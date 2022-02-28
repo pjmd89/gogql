@@ -28,9 +28,10 @@ func Init(serverName string, path string) *gql{
     gql.objectTypes["__EnumValue"]  = objectTypes.NewEnumValue(gql.schema,gql.Directives);
     gql.objectTypes["__InputValue"]  = objectTypes.NewInputValue(gql.schema,gql.Directives);
     gql.objectTypes["__Directive"]  = objectTypes.NewDirective(gql.schema);
-    /*s
+    /*
     gql.Directives["include"] = directives.NewInclude(gql.schema);
-    gql.Directives["skip"] = directives.NewSkip(gql.schema);*/
+    gql.Directives["skip"] = directives.NewSkip(gql.schema);
+    //*/
     gql.Directives["deprecated"] = directives.NewDeprecated(gql.schema);
 
     //anadir directivas y resolvers;
