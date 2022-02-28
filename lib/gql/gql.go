@@ -37,7 +37,12 @@ func Init(serverName string, path string) *gql{
     //anadir directivas y resolvers;
 	return gql;
 }
-
+func(o *gql) ObjectType(resolver string, object resolvers.ObjectTypeInterface){
+    o.objectTypes[resolver] = object;
+}
+func(o *gql) Directive(resolver string, object resolvers.Directive){
+    o.Directives[resolver] = object;
+}
 func(o *gql) loadSchema(path string){
 	var schema []*ast.Source;
     files := lib.ScanDir(path);
