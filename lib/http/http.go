@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/pjmd89/gql/lib"
+	"github.com/pjmd89/gogql/lib"
 
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
