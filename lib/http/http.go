@@ -12,9 +12,13 @@ import (
 
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
+	"github.com/gorilla/securecookie"
+	"github.com/gorilla/sessions"
 )
 type GQLDefault struct{
 }
+var store = sessions.NewCookieStore(securecookie.GenerateRandomKey(32))
+
 func(o *GQLDefault) GQLRender(w http.ResponseWriter,r *http.Request){
 	
 }
@@ -150,19 +154,23 @@ func(o *Http)ServeHTTP(w http.ResponseWriter,r *http.Request){
 func (o *pathConfig) ServeHTTP(w http.ResponseWriter,r *http.Request){
 	//hostSplit := strings.Split(r.Host, ":");
 	httpsURI := o.Url;
+	protocol := `http://`;
 	if o.httpsPort != "443" && o.enableHttps && o.redirect{
 		httpsURI += ":"+o.httpsPort;
 	} 
+	if r.TLS != nil {
+		protocol = `https://`;
+	}
 	if o.redirect && o.enableHttps && r.TLS == nil {
 		http.Redirect(w,r,"https://"+httpsURI+r.RequestURI,301);
 		return;
 	}
 	if strings.Trim(o.AllowOrigin, " ") != "" {
-		w.Header().Set("Access-Control-Allow-Origin", o.AllowOrigin);	
+		w.Header().Set("Access-Control-Allow-Origin", protocol+o.AllowOrigin);
+		w.Header().Set("Access-Control-Allow-Credentials", "true");
 	}
 	w.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE");
 	w.Header().Set("Access-Control-Allow-Headers", "Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization");
-	//w.Header().Set("Access-Control-Allow-Credentials", "true");
 	//w.Header().Set("Access-Control-Max-Age", "86400");
 	if r.Method == "OPTIONS" {
 		return;
@@ -192,7 +200,11 @@ func (o *pathConfig) ServeHTTP(w http.ResponseWriter,r *http.Request){
 			break;
 		case "gql":
 			w.Header().Set("Content-Type", "application/json; charset=UTF-8");
-			rx := o.gqlRender[o.serverName].GQLRender(w,r);
+			fmt.Println(r.Cookie("NUEVE_SESSION"));
+			cookie,_ := r.Cookie("NUEVE_SESSION");
+			cookieValue := []byte(cookie.Value);
+			session := SessionStart(w,r,&cookieValue,"NUEVE_SESSION")
+			rx := o.gqlRender[o.serverName].GQLRender(w,r,session);
 			fmt.Fprint(w,rx);
 			break;
 		default:

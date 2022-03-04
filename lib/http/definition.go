@@ -7,7 +7,7 @@ import (
 )
 type Gql interface{
 	GetServerName() string
-	GQLRender(w http.ResponseWriter,r *http.Request) string
+	GQLRender(w http.ResponseWriter,r *http.Request, session *Session) string
 }
 type pathConfig struct {
 	Mode 			string 					`json:"mode,omitempty"`
@@ -23,6 +23,7 @@ type pathConfig struct {
 	enableHttps		bool	
 	gqlRender		map[string]Gql
 	serverName		string
+	session 		*Session
 }
 type server struct {
 	ServerName 		string	 				`json:"serverName,omitempty"`
