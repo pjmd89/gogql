@@ -43,5 +43,9 @@ func(o *Cookie)Set(values map[interface{}]interface{}){
 	o.session.Save(o.r, o.w);
 }
 func(o *Cookie)Get() map[interface{}]interface{}{
-	return o.session.Values;
+	r := make(map[interface{}]interface{});
+	if o.session != nil{
+		r = o.session.Values
+	}
+	return r;
 }
