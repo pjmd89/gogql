@@ -2,7 +2,6 @@ package gql
 
 import (
 	"github.com/pjmd89/gogql/lib/gql/resolvers"
-	"github.com/pjmd89/gogql/lib/http"
 	"github.com/vektah/gqlparser/v2/ast"
 )
 
@@ -15,7 +14,6 @@ type gql struct{
     objectTypes 	ObjectTypes
     variables       variables
     Directives      Directives
-    Session         *http.Session
 }
 type HttpRequest struct{
     Query         	string                 `json:"query"`

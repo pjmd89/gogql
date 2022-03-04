@@ -4,10 +4,19 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
+	"github.com/gorilla/sessions"
 )
 type Gql interface{
 	GetServerName() string
-	GQLRender(w http.ResponseWriter,r *http.Request, session *Session) string
+	GQLRender(w http.ResponseWriter,r *http.Request) string
+}
+type Cookie struct{
+	sessionName []byte
+	session *sessions.Session
+	cookieName string
+	w http.ResponseWriter
+	r *http.Request
+	Start bool
 }
 type pathConfig struct {
 	Mode 			string 					`json:"mode,omitempty"`
@@ -23,7 +32,7 @@ type pathConfig struct {
 	enableHttps		bool	
 	gqlRender		map[string]Gql
 	serverName		string
-	session 		*Session
+	session 		*Cookie
 }
 type server struct {
 	ServerName 		string	 				`json:"serverName,omitempty"`

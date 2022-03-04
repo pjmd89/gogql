@@ -203,8 +203,8 @@ func (o *pathConfig) ServeHTTP(w http.ResponseWriter,r *http.Request){
 			fmt.Println(r.Cookie("NUEVE_SESSION"));
 			cookie,_ := r.Cookie("NUEVE_SESSION");
 			cookieValue := []byte(cookie.Value);
-			session := SessionStart(w,r,&cookieValue,"NUEVE_SESSION")
-			rx := o.gqlRender[o.serverName].GQLRender(w,r,session);
+			SessionStart(w,r,&cookieValue,"NUEVE_SESSION")
+			rx := o.gqlRender[o.serverName].GQLRender(w,r);
 			fmt.Fprint(w,rx);
 			break;
 		default:

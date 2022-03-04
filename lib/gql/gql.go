@@ -10,7 +10,6 @@ import (
 	"github.com/pjmd89/gogql/lib/gql/resolvers"
 	"github.com/pjmd89/gogql/lib/gql/resolvers/directives"
 	"github.com/pjmd89/gogql/lib/gql/resolvers/objectTypes"
-	gqlHttp "github.com/pjmd89/gogql/lib/http"
 
 	"github.com/vektah/gqlparser/v2"
 	"github.com/vektah/gqlparser/v2/ast"
@@ -63,10 +62,9 @@ func(o *gql) loadSchema(path string){
     }
     o.schema = parser;
 }
-func(o *gql) GQLRender(w http.ResponseWriter,r *http.Request, session *gqlHttp.Session) string{
+func(o *gql) GQLRender(w http.ResponseWriter,r *http.Request) string{
     var request HttpRequest;
     json.NewDecoder(r.Body).Decode(&request)
-    o.Session = session;
     response := o.response(request);
     rx := response.Data;
 
