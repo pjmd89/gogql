@@ -15,7 +15,7 @@ type gql struct{
     objectTypes 	ObjectTypes
     variables       variables
     Directives      Directives
-    session         *http.Session
+    Session         *http.Session
 }
 type HttpRequest struct{
     Query         	string                 `json:"query"`

@@ -66,7 +66,7 @@ func(o *gql) loadSchema(path string){
 func(o *gql) GQLRender(w http.ResponseWriter,r *http.Request, session *gqlHttp.Session) string{
     var request HttpRequest;
     json.NewDecoder(r.Body).Decode(&request)
-    o.session = session;
+    o.Session = session;
     response := o.response(request);
     rx := response.Data;
 
