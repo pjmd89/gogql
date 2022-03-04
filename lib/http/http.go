@@ -197,7 +197,6 @@ func (o *pathConfig) ServeHTTP(w http.ResponseWriter,r *http.Request){
 			break;
 		case "gql":
 			w.Header().Set("Content-Type", "application/json; charset=UTF-8");
-			fmt.Println(r.Cookie("NUEVE_SESSION"));
 			cookie,_ := r.Cookie("NUEVE_SESSION");
 			var cookieValue []byte;
 			if cookie != nil {

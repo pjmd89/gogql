@@ -1,7 +1,6 @@
 package http
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/gorilla/securecookie"
@@ -19,7 +18,6 @@ func SessionStart(w http.ResponseWriter,r *http.Request, sessionName *[]byte, co
 	Session.w = w;
 	Session.cookieName = cookieName;
 	Session.sessionName = *sessionName;
-	fmt.Println("KEY ",Session.sessionName);
 	if sessionName != nil{
 		session, err := store.Get(r, cookieName)
 		if err == nil {
@@ -31,7 +29,6 @@ func SessionStart(w http.ResponseWriter,r *http.Request, sessionName *[]byte, co
 }
 func(o *Cookie) New( values map[interface{}]interface{} ){
 	o.Start = true;
-	fmt.Println("KEY ",o.sessionName);
 	o.session = sessions.NewSession(store, o.cookieName);
 	o.session.Values = values;
 	o.session.Save(o.r, o.w);
