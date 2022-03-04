@@ -32,7 +32,6 @@ type pathConfig struct {
 	enableHttps		bool	
 	gqlRender		map[string]Gql
 	serverName		string
-	session 		*Cookie
 }
 type server struct {
 	ServerName 		string	 				`json:"serverName,omitempty"`
