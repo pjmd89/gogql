@@ -12,12 +12,9 @@ import (
 
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
-	"github.com/gorilla/securecookie"
-	"github.com/gorilla/sessions"
 )
 type GQLDefault struct{
 }
-var store = sessions.NewCookieStore(securecookie.GenerateRandomKey(32))
 
 func(o *GQLDefault) GQLRender(w http.ResponseWriter,r *http.Request){
 	

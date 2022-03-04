@@ -8,7 +8,11 @@ import (
 	"github.com/gorilla/sessions"
 )
 
-var Session *Cookie
+var Session *Cookie;
+var store = sessions.NewCookieStore(
+	securecookie.GenerateRandomKey(64),
+	securecookie.GenerateRandomKey(32),
+);
 func SessionStart(w http.ResponseWriter,r *http.Request, sessionName *[]byte, cookieName string ) *Cookie{
 	Session = &Cookie{};
 	Session.r = r;
@@ -17,7 +21,6 @@ func SessionStart(w http.ResponseWriter,r *http.Request, sessionName *[]byte, co
 	Session.sessionName = *sessionName;
 	fmt.Println("KEY ",Session.sessionName);
 	if sessionName != nil{
-		store = sessions.NewCookieStore(*sessionName)
 		session, err := store.Get(r, cookieName)
 		if err == nil {
 			Session.Start = true;
@@ -27,10 +30,8 @@ func SessionStart(w http.ResponseWriter,r *http.Request, sessionName *[]byte, co
 	return Session
 }
 func(o *Cookie) New( values map[interface{}]interface{} ){
-	o.sessionName = securecookie.GenerateRandomKey(32);
 	o.Start = true;
 	fmt.Println("KEY ",o.sessionName);
-	store = sessions.NewCookieStore(o.sessionName)
 	o.session = sessions.NewSession(store, o.cookieName);
 	o.session.Values = values;
 	o.session.Save(o.r, o.w);
