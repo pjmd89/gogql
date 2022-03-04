@@ -11,12 +11,12 @@ type Gql interface{
 	GQLRender(w http.ResponseWriter,r *http.Request) string
 }
 type Cookie struct{
-	sessionName []byte
-	session *sessions.Session
-	cookieName string
-	w http.ResponseWriter
-	r *http.Request
-	Start bool
+	sessionName 	[]byte
+	session 		*sessions.Session
+	cookieName 		string
+	w 				http.ResponseWriter
+	r 				*http.Request
+	Start 			bool
 }
 type pathConfig struct {
 	Mode 			string 					`json:"mode,omitempty"`
