@@ -96,7 +96,7 @@ func(o *gql) selectionParse(field *ast.Field, parent interface{}, parentProceced
 		}
 		if o.objectTypes[namedType] != nil{	
 			args:= o.parseArguments(field.Arguments)
-			directives := resolvers.DirectiveList{};
+			directives := o.parseDirectives(field.Directives,namedType, field.Name);
 			o.parseDirectives(field.Directives,namedType, field.Name);
 			resolved = o.objectTypes[namedType].Resolver( field.Name, args, parent, directives , namedType)
 			resolvedProcesed = o.dataResponse(fieldNames, resolved);
@@ -138,6 +138,7 @@ func(o *gql) selectionParse(field *ast.Field, parent interface{}, parentProceced
 	return prepareToSend;
 }
 func(o *gql) parseDirectives(directives ast.DirectiveList, typeName string, fieldName string) (r resolvers.DirectiveList){
+	r = make(map[string]interface{},0);
 	for _,directive := range directives{
 		args := make(map[string]interface{},0);
 		for _,arg := range directive.Arguments{
