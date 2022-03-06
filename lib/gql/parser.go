@@ -97,6 +97,7 @@ func(o *gql) selectionParse(field *ast.Field, parent interface{}, parentProceced
 		if o.objectTypes[namedType] != nil{	
 			args:= o.parseArguments(field.Arguments)
 			directives := resolvers.DirectiveList{};
+			o.parseDirectives(field.Directives,namedType, field.Name);
 			resolved = o.objectTypes[namedType].Resolver( field.Name, args, parent, directives , namedType)
 			resolvedProcesed = o.dataResponse(fieldNames, resolved);
 		}
@@ -136,71 +137,20 @@ func(o *gql) selectionParse(field *ast.Field, parent interface{}, parentProceced
 	}
 	return prepareToSend;
 }
-/*
-func(o *gql) selectionParse(field *ast.Field, storage interface{}, parentLen int, tmpPrepareToSend map[string]interface{},  parentReturn interface{}) (  map[string]interface{}, interface{}){
-	fieldElem := field.Definition.Type.Elem;
-	//definition -> Type -> Elem
-	if field.SelectionSet != nil{
-		var resolved resolvers.DataReturn;
-		namedType := field.Definition.Type.NamedType;
-		if fieldElem != nil{
-			namedType = fieldElem.NamedType;
+func(o *gql) parseDirectives(directives ast.DirectiveList, typeName string, fieldName string) (r resolvers.DirectiveList){
+	for _,directive := range directives{
+		args := make(map[string]interface{},0);
+		for _,arg := range directive.Arguments{
+			args[arg.Name] = arg;
 		}
-		definition := o.schema.Types[namedType]
-		var returned resolvers.DataReturn;
-		var storaged resolvers.DataReturn;
-		fieldNames := o.getFieldNames(field.SelectionSet);
-		//se debe analizar las directivas de los fieldNames. posiblemente se anada la funcion de directivas en getFieldNames
-		if o.objectTypes[namedType] != nil{
-			o.objectTypes[namedType].SetDefinition(definition);
-			args:= o.parseArguments(field.Arguments)
-			directives := resolvers.DirectiveList{};
-			resolved = o.objectTypes[namedType].Resolver( field.Name, args, parentReturn, directives , namedType, storage)
-			returned, storaged = o.dataResponse(fieldNames,resolved);
+		var x resolvers.DataReturn;
+		if o.Directives[directive.Name] != nil{
+			x = o.Directives[directive.Name].Invoke(args,typeName,fieldName);
 		}
-		if fieldElem == nil && len(returned) > 1{
-			//devolver error
-		}
-		if fieldElem == nil && len(returned) == 1{
-			if parentLen > 0{
-				tmpPrepareToSend = parentReturn.(map[string]interface{});
-			}
-			
-			tmpPrepareToSend[field.Alias] = o.selectionSetParse(field.SelectionSet, returned[0], storaged[0])
-		}
-		if fieldElem == nil && len(returned) == 0{
-			tmpPrepareToSend = parentReturn.(map[string]interface{});
-			tmpPrepareToSend[field.Alias] = nil;
-		}
-		if fieldElem != nil && len(returned) > 0{
-			prepareResponse := make([]interface{},0)
-			prepare :=false;
-			for i,value :=range returned{
-				prepare = true;
-				xy := reflect.ValueOf(resolved[i]).Type();
-				if xy != reflect.TypeOf(&resolvers.Blank{}){
-					prepareResponse =  append(prepareResponse,o.selectionSetParse(field.SelectionSet, value, storaged[i]));
-				} else {
-					//prepareResponse =  append(prepareResponse,&resolvers.Blank{});
-				}
-			}
-			
-			if(!prepare){
-				tmpPrepareToSend[field.Alias] = parentReturn.(map[string]interface{});
-			} else {
-				tmpPrepareToSend = parentReturn.(map[string]interface{});
-				tmpPrepareToSend[field.Alias] = prepareResponse;
-			}
-			
-		}
-		// tambien devolver error si es nonnull false y retuned no tiene datos
-		
-		definition = nil;
-		fieldNames = nil;
+		r[directive.Name] = x;
 	}
-	return tmpPrepareToSend , parentReturn
+	return r
 }
-//*/
 func (o *gql) parseArguments(rawArgs ast.ArgumentList) map[string]interface{} {
 	// en la definicion de los Kind hay que agregar la lista entera que proporciona la broma esa
 	args := make(map[string]interface{})

@@ -5,7 +5,6 @@ import (
 	"github.com/pjmd89/gogql/lib/http"
 )
 
-///*
 func main(){
 
 	schema := gql.Init("localhost","schema");
@@ -13,13 +12,3 @@ func main(){
 	myHttp.Start();
 
 }
-//*/
-/*
-//basic example whitout gql
-func main(){
-	gqlDefault := new(http.GQLDefault);
-	myHttp := http.Init(gqlDefault);
-	myHttp.Start();
-
-}
-//*/
