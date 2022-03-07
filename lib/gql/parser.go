@@ -96,7 +96,6 @@ func(o *gql) selectionParse(field *ast.Field, parent interface{}, parentProceced
 		if o.objectTypes[namedType] != nil{	
 			args:= o.parseArguments(field.Arguments)
 			directives := o.parseDirectives(field.Directives,namedType, field.Name);
-			o.parseDirectives(field.Directives,namedType, field.Name);
 			if typeName == nil{
 				typeName = &namedType;
 			}
@@ -143,10 +142,7 @@ func(o *gql) selectionParse(field *ast.Field, parent interface{}, parentProceced
 func(o *gql) parseDirectives(directives ast.DirectiveList, typeName string, fieldName string) (r resolvers.DirectiveList){
 	r = make(map[string]interface{},0);
 	for _,directive := range directives{
-		args := make(map[string]interface{},0);
-		for _,arg := range directive.Arguments{
-			args[arg.Name] = arg;
-		}
+		args:= o.parseArguments(directive.Arguments)
 		var x resolvers.DataReturn;
 		if o.directives[directive.Name] != nil{
 			x = o.directives[directive.Name].Invoke(args,typeName,fieldName, o.schema.Directives[directive.Name]);
