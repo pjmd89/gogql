@@ -13,7 +13,7 @@ type gql struct{
 	schema 			*ast.Schema
     objectTypes 	ObjectTypes
     variables       variables
-    Directives      Directives
+    directives      Directives
 }
 type HttpRequest struct{
     Query         	string                 `json:"query"`

@@ -18,7 +18,7 @@ func NewDeprecated(schema resolvers.Schema) resolvers.Directive{
 	return _type;
 	
 }
-func (o *Deprecated) Invoke(args map[string]interface{},typeName string, fieldName string) resolvers.DataReturn{
+func (o *Deprecated) Invoke(args map[string]interface{},typeName string, fieldName string, directiveDefinition *ast.DirectiveDefinition ) resolvers.DataReturn{
 	r := DeprecatedData{};
 	if o.schema.Types[typeName] != nil{
 		switch(o.schema.Types[typeName].Kind){

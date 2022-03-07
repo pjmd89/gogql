@@ -84,7 +84,6 @@ func(o *gql) selectionSetParse(parse ast.SelectionSet, parent interface{}, paren
 }
 func(o *gql) selectionParse(field *ast.Field, parent interface{}, parentProceced interface{}) (map[string]interface{}){
 	fieldElem := field.Definition.Type.Elem;
-	//var prepareToSend map[string]interface{};
 	prepareToSend := make(map[string]interface{},0);
 	var resolved resolvers.DataReturn;
 	var resolvedProcesed resolvers.DataReturn;
@@ -145,8 +144,8 @@ func(o *gql) parseDirectives(directives ast.DirectiveList, typeName string, fiel
 			args[arg.Name] = arg;
 		}
 		var x resolvers.DataReturn;
-		if o.Directives[directive.Name] != nil{
-			x = o.Directives[directive.Name].Invoke(args,typeName,fieldName);
+		if o.directives[directive.Name] != nil{
+			x = o.directives[directive.Name].Invoke(args,typeName,fieldName, o.schema.Directives[directive.Name]);
 		}
 		r[directive.Name] = x;
 	}

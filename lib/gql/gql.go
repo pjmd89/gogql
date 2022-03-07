@@ -20,19 +20,19 @@ func Init(serverName string, path string) *gql{
 	gql.serverName = serverName;
 	gql.loadSchema(path);
     gql.objectTypes = make(map[string]resolvers.ObjectTypeInterface);
-    gql.Directives = make(map[string]resolvers.Directive);
+    gql.directives = make(map[string]resolvers.Directive);
 
-    gql.objectTypes["__Schema"] = objectTypes.NewSchema(gql.schema,gql.Directives);
-    gql.objectTypes["__Type"]   = objectTypes.NewType(gql.schema,gql.Directives);
-    gql.objectTypes["__Field"]  = objectTypes.NewField(gql.schema,gql.Directives);
-    gql.objectTypes["__EnumValue"]  = objectTypes.NewEnumValue(gql.schema,gql.Directives);
-    gql.objectTypes["__InputValue"]  = objectTypes.NewInputValue(gql.schema,gql.Directives);
+    gql.objectTypes["__Schema"] = objectTypes.NewSchema(gql.schema,gql.directives);
+    gql.objectTypes["__Type"]   = objectTypes.NewType(gql.schema,gql.directives);
+    gql.objectTypes["__Field"]  = objectTypes.NewField(gql.schema,gql.directives);
+    gql.objectTypes["__EnumValue"]  = objectTypes.NewEnumValue(gql.schema,gql.directives);
+    gql.objectTypes["__InputValue"]  = objectTypes.NewInputValue(gql.schema,gql.directives);
     gql.objectTypes["__Directive"]  = objectTypes.NewDirective(gql.schema);
     /*
-    gql.Directives["include"] = directives.NewInclude(gql.schema);
-    gql.Directives["skip"] = directives.NewSkip(gql.schema);
+    gql.directives["include"] = directives.NewInclude(gql.schema);
+    gql.directives["skip"] = directives.NewSkip(gql.schema);
     //*/
-    gql.Directives["deprecated"] = directives.NewDeprecated(gql.schema);
+    gql.directives["deprecated"] = directives.NewDeprecated(gql.schema);
 
     //anadir directivas y resolvers;
 	return gql;
@@ -41,7 +41,7 @@ func(o *gql) ObjectType(resolver string, object resolvers.ObjectTypeInterface){
     o.objectTypes[resolver] = object;
 }
 func(o *gql) Directive(resolver string, object resolvers.Directive){
-    o.Directives[resolver] = object;
+    o.directives[resolver] = object;
 }
 func(o *gql) loadSchema(path string){
 	var schema []*ast.Source;

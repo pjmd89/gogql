@@ -11,7 +11,7 @@ type Parent interface{}
 type Blank struct{}
 
 type Directive interface{
-	Invoke(args map[string]interface{},typeName string, fieldName string) DataReturn
+	Invoke(args map[string]interface{},typeName string, fieldName string, directiveDefinition *ast.DirectiveDefinition) DataReturn
 }
 type DirectiveList map[string]interface{}
 
