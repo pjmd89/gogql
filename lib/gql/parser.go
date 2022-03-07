@@ -97,10 +97,10 @@ func(o *gql) selectionParse(field *ast.Field, parent interface{}, parentProceced
 			args:= o.parseArguments(field.Arguments)
 			directives := o.parseDirectives(field.Directives,namedType, field.Name);
 			o.parseDirectives(field.Directives,namedType, field.Name);
-			if typeName != nil{
-				namedType = *typeName;
+			if typeName == nil{
+				typeName = &namedType;
 			}
-			resolved = o.objectTypes[namedType].Resolver( field.Name, args, parent, directives , namedType)
+			resolved = o.objectTypes[namedType].Resolver( field.Name, args, parent, directives , *typeName)
 			resolvedProcesed = o.dataResponse(fieldNames, resolved);
 		}
 		rType :=  reflect.TypeOf(resolved);
@@ -110,7 +110,7 @@ func(o *gql) selectionParse(field *ast.Field, parent interface{}, parentProceced
 				case reflect.Slice:
 					var data []interface{};
 					for i,value := range resolved.([]interface{}){
-						responsed := o.selectionSetParse(field.SelectionSet,value, resolvedProcesed.([]interface{})[i], &namedType);
+						responsed := o.selectionSetParse(field.SelectionSet,value, resolvedProcesed.([]interface{})[i], typeName);
 						data = append(data,responsed);
 					}
 					if parentProceced != nil{
@@ -118,7 +118,7 @@ func(o *gql) selectionParse(field *ast.Field, parent interface{}, parentProceced
 					}
 					prepareToSend[field.Alias] = data;
 				case reflect.Struct,reflect.Ptr:
-					responsed := o.selectionSetParse(field.SelectionSet,resolved, resolvedProcesed, &namedType);
+					responsed := o.selectionSetParse(field.SelectionSet,resolved, resolvedProcesed, typeName);
 					if parentProceced != nil{
 						prepareToSend = parentProceced.(map[string]interface{});
 					}
