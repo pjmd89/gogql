@@ -101,6 +101,7 @@ func(o *gql) selectionParse(field *ast.Field, parent interface{}, parentProceced
 				typeName = &namedType;
 			}
 			resolved = o.objectTypes[namedType].Resolver( field.Name, args, parent, directives , *typeName)
+			typeName = &namedType;
 			resolvedProcesed = o.dataResponse(fieldNames, resolved);
 		}
 		rType :=  reflect.TypeOf(resolved);
