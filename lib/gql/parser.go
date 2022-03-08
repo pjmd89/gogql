@@ -57,6 +57,7 @@ func(o *gql)setVariables(schema *ast.Schema, operation *ast.OperationDefinition,
 	if err != nil{
 		//responder con error
 	}
+	
 	o.variables = vars;
 }
 
@@ -94,7 +95,7 @@ func(o *gql) selectionParse(field *ast.Field, parent interface{}, parentProceced
 			namedType = fieldElem.NamedType;
 		}
 		if o.objectTypes[namedType] != nil{	
-			args:= o.parseArguments(field.Arguments)
+			args:= o.parseArguments(field.Arguments,field.Definition.Arguments);
 			directives := o.parseDirectives(field.Directives,namedType, field.Name);
 			if typeName == nil{
 				typeName = &namedType;
@@ -142,7 +143,7 @@ func(o *gql) selectionParse(field *ast.Field, parent interface{}, parentProceced
 func(o *gql) parseDirectives(directives ast.DirectiveList, typeName string, fieldName string) (r resolvers.DirectiveList){
 	r = make(map[string]interface{},0);
 	for _,directive := range directives{
-		args:= o.parseArguments(directive.Arguments)
+		args:= o.parseArguments(directive.Arguments, directive.Definition.Arguments);
 		var x resolvers.DataReturn;
 		if o.directives[directive.Name] != nil{
 			x = o.directives[directive.Name].Invoke(args,typeName,fieldName, o.schema.Directives[directive.Name]);
@@ -150,97 +151,6 @@ func(o *gql) parseDirectives(directives ast.DirectiveList, typeName string, fiel
 		r[directive.Name] = x;
 	}
 	return r
-}
-func (o *gql) parseArguments(rawArgs ast.ArgumentList) map[string]interface{} {
-	// en la definicion de los Kind hay que agregar la lista entera que proporciona la broma esa
-	args := make(map[string]interface{})
-	if len(rawArgs) > 0{
-		for _,vArgs := range rawArgs{
-			if len(vArgs.Value.Children) > 0 {
-				args[vArgs.Name] = o.parseArgChildren(vArgs.Value.Children)
-			}else{
-				switch(vArgs.Value.Definition.Kind){
-				case "OBJECT":	
-					args[vArgs.Name] = vArgs.Value.Raw
-				case "INTERFACE":
-					args[vArgs.Name] = vArgs.Value.Raw
-				case "UNION":
-					args[vArgs.Name] = vArgs.Value.Raw
-				case "ENUM":
-					args[vArgs.Name] = vArgs.Value.Raw
-				case "INPUT_OBJECT":
-					args[vArgs.Name] = o.variables[vArgs.Value.Raw]
-				case "SCALAR":
-					switch(vArgs.Value.Definition.Name){
-					case "String":
-						args[vArgs.Name] = vArgs.Value.Raw
-					case "Int":
-						args[vArgs.Name] = vArgs.Value.Raw
-					case "Float":
-						args[vArgs.Name] = vArgs.Value.Raw
-					case "Boolean":
-						var data bool;
-						if vArgs.Value.Raw == "true"{
-							data = true;
-						}
-						args[vArgs.Name] = data
-					case "ID":
-						args[vArgs.Name] = vArgs.Value.Raw
-					default:
-						args[vArgs.Name] = vArgs.Value.Raw
-					}
-				default:
-					args[vArgs.Name] = vArgs.Value.Raw
-				}
-			}
-		}
-	}
-	return args;
-}
-func (o *gql) parseArgChildren(rawArgs ast.ChildValueList) map[string]interface{} {
-	args := make(map[string]interface{})
-	if len(rawArgs) > 0{
-		for _,vArgs := range rawArgs{
-			if len(vArgs.Value.Children) > 0 {
-				args[vArgs.Name] = o.parseArgChildren(vArgs.Value.Children)
-			}else{
-				switch(vArgs.Value.Definition.Kind){
-				case "OBJECT":	
-					args[vArgs.Name] = vArgs.Value.Raw
-				case "INTERFACE":
-					args[vArgs.Name] = vArgs.Value.Raw
-				case "UNION":
-					args[vArgs.Name] = vArgs.Value.Raw
-				case "ENUM":
-					args[vArgs.Name] = vArgs.Value.Raw
-				case "INPUT_OBJECT":
-					args[vArgs.Name] = o.variables[vArgs.Value.Raw]
-				case "SCALAR":
-					switch(vArgs.Value.Definition.Name){
-					case "String":
-						args[vArgs.Name] = vArgs.Value.Raw
-					case "Int":
-						args[vArgs.Name] = vArgs.Value.Raw
-					case "Float":
-						args[vArgs.Name] = vArgs.Value.Raw
-					case "Boolean":
-						var data bool;
-						if args[vArgs.Name] == "true"{
-							data = true;
-						}
-						args[vArgs.Name] = data
-					case "ID":
-						args[vArgs.Name] = vArgs.Value.Raw
-					default:
-						args[vArgs.Name] = vArgs.Value.Raw
-					}
-				default:
-					args[vArgs.Name] = vArgs.Value.Raw
-				}
-			}
-		}
-	}
-	return args;
 }
 func(o *gql) getFieldNames(parse ast.SelectionSet) map[string]interface{}{
 	fields := make(map[string]interface{});

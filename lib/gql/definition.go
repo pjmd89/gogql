@@ -25,3 +25,11 @@ type HttpResponse struct{
     Data    		string `json:"data"`
     //Errors  		[]*lib.GqlError `json:"errors,omitempty"`
 }
+
+type DefaultArguments struct{
+    Name 			string
+    Value 			interface{}
+    NonNull 		bool
+    Kind 			string
+    Type 			string
+}
