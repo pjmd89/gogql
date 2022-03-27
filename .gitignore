@@ -2,6 +2,5 @@ etc/
 schema/
 htdocs/
 vendor/
-resolvers/
 .vscode/
 __debug_bin

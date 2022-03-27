@@ -8,12 +8,14 @@ import (
 type ObjectTypes map[string]resolvers.ObjectTypeInterface;
 type Directives map[string]resolvers.Directive;
 type variables map[string]interface{};
+type Scalars map[string]resolvers.Scalar;
 type gql struct{
 	serverName 		string
 	schema 			*ast.Schema
     objectTypes 	ObjectTypes
     variables       variables
     directives      Directives
+    scalars         Scalars
 }
 type HttpRequest struct{
     Query         	string                 `json:"query"`
@@ -28,6 +30,7 @@ type HttpResponse struct{
 
 type DefaultArguments struct{
     Name 			string
+    IsArray         bool
     Value 			interface{}
     NonNull 		bool
     Kind 			string

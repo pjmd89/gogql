@@ -20,3 +20,6 @@ type Storage interface{}
 type ObjectTypeInterface interface{
     Resolver( string, Args, Parent, DirectiveList, string) DataReturn
 }
+type Scalar interface{
+	Assess(value interface{}) (r interface{}, err error)
+}

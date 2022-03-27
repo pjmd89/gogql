@@ -10,6 +10,7 @@ import (
 	"github.com/pjmd89/gogql/lib/gql/resolvers"
 	"github.com/pjmd89/gogql/lib/gql/resolvers/directives"
 	"github.com/pjmd89/gogql/lib/gql/resolvers/objectTypes"
+	"github.com/pjmd89/gogql/lib/gql/resolvers/scalars"
 
 	"github.com/vektah/gqlparser/v2"
 	"github.com/vektah/gqlparser/v2/ast"
@@ -21,7 +22,8 @@ func Init(serverName string, path string) *gql{
 	gql.loadSchema(path);
     gql.objectTypes = make(map[string]resolvers.ObjectTypeInterface);
     gql.directives = make(map[string]resolvers.Directive);
-
+    gql.scalars = make(map[string]resolvers.Scalar);
+    
     gql.objectTypes["__Schema"] = objectTypes.NewSchema(gql.schema,gql.directives);
     gql.objectTypes["__Type"]   = objectTypes.NewType(gql.schema,gql.directives);
     gql.objectTypes["__Field"]  = objectTypes.NewField(gql.schema,gql.directives);
@@ -33,8 +35,10 @@ func Init(serverName string, path string) *gql{
     gql.directives["skip"] = directives.NewSkip(gql.schema);
     //*/
     gql.directives["deprecated"] = directives.NewDeprecated(gql.schema);
-
-    //anadir directivas y resolvers;
+    gql.scalars["Boolean"] = scalars.NewBoolScalar();
+    gql.scalars["String"] = scalars.NewBoolScalar();
+    gql.scalars["Int"] = scalars.NewBoolScalar();
+    gql.scalars["Float"] = scalars.NewBoolScalar();
 	return gql;
 }
 func(o *gql) ObjectType(resolver string, object resolvers.ObjectTypeInterface){
@@ -42,6 +46,9 @@ func(o *gql) ObjectType(resolver string, object resolvers.ObjectTypeInterface){
 }
 func(o *gql) Directive(resolver string, object resolvers.Directive){
     o.directives[resolver] = object;
+}
+func(o *gql) Scalar(resolver string, object resolvers.Scalar){
+    o.scalars[resolver] = object;
 }
 func(o *gql) loadSchema(path string){
 	var schema []*ast.Source;
