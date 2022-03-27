@@ -35,6 +35,7 @@ func Init(serverName string, path string) *gql{
     gql.directives["skip"] = directives.NewSkip(gql.schema);
     //*/
     gql.directives["deprecated"] = directives.NewDeprecated(gql.schema);
+    gql.scalars["ID"] = scalars.NewIDScalar();
     gql.scalars["Boolean"] = scalars.NewBoolScalar();
     gql.scalars["String"] = scalars.NewStringScalar();
     gql.scalars["Int"] = scalars.NewIntScalar();
