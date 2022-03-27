@@ -23,7 +23,7 @@ func Init(serverName string, path string) *gql{
     gql.objectTypes = make(map[string]resolvers.ObjectTypeInterface);
     gql.directives = make(map[string]resolvers.Directive);
     gql.scalars = make(map[string]resolvers.Scalar);
-    
+
     gql.objectTypes["__Schema"] = objectTypes.NewSchema(gql.schema,gql.directives);
     gql.objectTypes["__Type"]   = objectTypes.NewType(gql.schema,gql.directives);
     gql.objectTypes["__Field"]  = objectTypes.NewField(gql.schema,gql.directives);
@@ -36,9 +36,9 @@ func Init(serverName string, path string) *gql{
     //*/
     gql.directives["deprecated"] = directives.NewDeprecated(gql.schema);
     gql.scalars["Boolean"] = scalars.NewBoolScalar();
-    gql.scalars["String"] = scalars.NewBoolScalar();
-    gql.scalars["Int"] = scalars.NewBoolScalar();
-    gql.scalars["Float"] = scalars.NewBoolScalar();
+    gql.scalars["String"] = scalars.NewStringScalar();
+    gql.scalars["Int"] = scalars.NewIntScalar();
+    gql.scalars["Float"] = scalars.NewFloatScalar();
 	return gql;
 }
 func(o *gql) ObjectType(resolver string, object resolvers.ObjectTypeInterface){
