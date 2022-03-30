@@ -1,6 +1,6 @@
 package introspection
 
-import "github.com/vektah/gqlparser/v2/ast"
+import "github.com/pjmd89/gqlparser/v2/ast"
 type Args []*InputValue
 type InputValue struct{
 	Name				string		`gql:"name=name,storage=name"`

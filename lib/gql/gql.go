@@ -6,14 +6,15 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/gorilla/websocket"
 	"github.com/pjmd89/gogql/lib"
 	"github.com/pjmd89/gogql/lib/gql/resolvers"
 	"github.com/pjmd89/gogql/lib/gql/resolvers/directives"
 	"github.com/pjmd89/gogql/lib/gql/resolvers/objectTypes"
 	"github.com/pjmd89/gogql/lib/gql/resolvers/scalars"
 
-	"github.com/vektah/gqlparser/v2"
-	"github.com/vektah/gqlparser/v2/ast"
+	"github.com/pjmd89/gqlparser/v2"
+	"github.com/pjmd89/gqlparser/v2/ast"
 )
 
 func Init(serverName string, path string) *gql{
@@ -69,6 +70,9 @@ func(o *gql) loadSchema(path string){
         log.Fatal(err);
     }
     o.schema = parser;
+}
+func(o *gql) GQLRenderSubscription (ws *websocket.Conn){
+
 }
 func(o *gql) GQLRender(w http.ResponseWriter,r *http.Request) string{
     var request HttpRequest;

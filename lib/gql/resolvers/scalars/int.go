@@ -22,8 +22,16 @@ func(o *IntScalar) Assess(value interface{})( val interface{}, err error){
 	switch value.(type){
 	case string:
 		val, er = strconv.ParseInt(value.(string),10, 64);
-	case int ,int32 ,int64:
-		val = value.(int64);
+	case int:
+		val = value.(int);
+	case int32:
+		val = int(value.(int32));
+	case int64:
+		val = int(value.(int64));
+	case float32:
+		val = int(value.(float32));
+	case float64:
+		val = int(value.(float64));
 	default:
 		if value != nil{
 			err = errors.New("Invalid int type");

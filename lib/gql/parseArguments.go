@@ -3,7 +3,7 @@ package gql
 import (
 	"log"
 
-	"github.com/vektah/gqlparser/v2/ast"
+	"github.com/pjmd89/gqlparser/v2/ast"
 )
 
 /*

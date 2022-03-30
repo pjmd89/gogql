@@ -3,6 +3,7 @@ package http
 import (
 	"crypto/tls"
 	"fmt"
+	"log"
 	"net/http"
 	"os"
 	"strings"
@@ -12,10 +13,13 @@ import (
 
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
+	"github.com/gorilla/websocket"
 )
 type GQLDefault struct{
 }
-
+var upgrader = websocket.Upgrader{
+	EnableCompression: true,
+}
 func(o *GQLDefault) GQLRender(w http.ResponseWriter,r *http.Request){
 	
 }
@@ -53,6 +57,7 @@ func (o *Http) Start() {
 	o.HTTPSService = &http.Server{Addr: ":" + o.HttpsPort, Handler: o.router, TLSConfig: tlsConfig};
 	
 	for _, v := range o.Server {
+		endpoints := make(map[string]bool,0);
 		if strings.Trim(v.ServerName," ") ==""{
 			v.ServerName = "localhost";
 		}
@@ -76,7 +81,15 @@ func (o *Http) Start() {
 			
 			tlsConfig.Certificates = append(tlsConfig.Certificates, tmp);
 		}
+		
 		for _, vv := range v.Path {
+			if _, ok := endpoints[vv.Endpoint]; !ok {
+				endpoints[vv.Endpoint] = true;
+			} else{
+				err = "Endpoint is not shoud be the same";
+				stop = true;
+				break;
+			}
 			vv.Url = v.ServerName;
 			if vv.Path == "" {
 				vv.Path = "htdocs";
@@ -91,14 +104,18 @@ func (o *Http) Start() {
 			vv.enableHttps = v.EnableHttps;
 			vv.httpsPort = o.HttpsPort;
 			vv.serverName = v.ServerName;
-			if vv.Mode == "gql"{
+			switch vv.Mode{
+			case "gql":
 				x:= v.subrouter.Methods("POST", "OPTIONS").Path(vv.Endpoint);
 				vv.gqlRender = o.gql;
 				x.Handler(vv)
-			} else{				
+			case "websocket":
+				x:= v.subrouter.Methods("POST","GET").Path(vv.Endpoint);
+				vv.gqlRender = o.gql;
+				x.Handler(vv)
+			default:
 				x:= v.subrouter.Methods("GET", "OPTIONS").PathPrefix(vv.Endpoint);
 				x.Handler(http.StripPrefix(vv.Endpoint,vv))
-				
 			}
 		}
 		
@@ -150,7 +167,16 @@ func(o *Http)ServeHTTP(w http.ResponseWriter,r *http.Request){
 }
 func (o *pathConfig) ServeHTTP(w http.ResponseWriter,r *http.Request){
 	//hostSplit := strings.Split(r.Host, ":");
+	upgrade := false
+    for _, header := range r.Header["Upgrade"] {
+        if header == "websocket" {
+            upgrade = true
+            break
+        }
+    }
 	httpsURI := o.Url;
+	secureProtocol := "https://";
+	//wsSecureProtocol := "ws://";
 	protocol := `http://`;
 	if o.httpsPort != "443" && o.enableHttps && o.redirect{
 		httpsURI += ":"+o.httpsPort;
@@ -158,9 +184,21 @@ func (o *pathConfig) ServeHTTP(w http.ResponseWriter,r *http.Request){
 	if r.TLS != nil {
 		protocol = `https://`;
 	}
+	if upgrade {
+		secureProtocol = "wss://";
+		switch protocol{
+		case "http://":
+			protocol = "ws://";
+		case "https://":
+			protocol = "wss://";
+		}
+	}
 	if o.redirect && o.enableHttps && r.TLS == nil {
-		http.Redirect(w,r,"https://"+httpsURI+r.RequestURI,301);
+		http.Redirect(w,r,secureProtocol+httpsURI+r.RequestURI,301);
 		return;
+	}
+	upgrader.CheckOrigin = func(r *http.Request) bool { 
+		return true;
 	}
 	if strings.Trim(o.AllowOrigin, " ") != "" {
 		w.Header().Set("Access-Control-Allow-Origin", protocol+o.AllowOrigin);
@@ -195,6 +233,32 @@ func (o *pathConfig) ServeHTTP(w http.ResponseWriter,r *http.Request){
 			
 			http.ServeContent(w,r,o.Path+"/"+r.RequestURI,time.Time{},file);
 			break;
+		case "websocket":
+			//w.Header().Set("Content-Type", "application/json; charset=UTF-8");
+			cookie,_ := r.Cookie("NUEVE_SESSION");
+			var cookieValue []byte;
+			if cookie != nil {
+				cookieValue = []byte(cookie.Value);
+			}
+			SessionStart(w,r,&cookieValue,"NUEVE_SESSION")
+			ws, eerr := upgrader.Upgrade(w, r, nil)
+			fmt.Println(eerr);
+			defer ws.Close()
+			for {
+				// Receive message
+				mt, message, _ := ws.ReadMessage()
+				log.Printf("Message received: %s", message)
+		
+				// Reverse message
+				n := len(message)
+				for i := 0; i < n/2; i++ {
+					message[i], message[n-1-i] = message[n-1-i], message[i]
+				}
+		
+				// Response message
+				_ = ws.WriteMessage(mt, message)
+				log.Printf("Message sent: %s", message)
+			}
 		case "gql":
 			w.Header().Set("Content-Type", "application/json; charset=UTF-8");
 			cookie,_ := r.Cookie("NUEVE_SESSION");

@@ -1,6 +1,6 @@
 package introspection
 
-import "github.com/vektah/gqlparser/v2/ast"
+import "github.com/pjmd89/gqlparser/v2/ast"
 type Field struct{
 	Name				string							`gql:"name=name"`
 	Description			*string							`gql:"name=description"`

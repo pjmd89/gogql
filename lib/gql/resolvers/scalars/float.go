@@ -22,8 +22,16 @@ func(o *FloatScalar) Assess(value interface{})( val interface{}, err error){
 	switch value.(type){
 	case string:
 		val, er = strconv.ParseFloat(value.(string), 64);
-	case float32, float64 ,int ,int32 ,int64:
-		val = value.(float64);
+	case float32:
+		val = float64(value.(float32));
+	case float64:
+		val = float64(value.(float64));
+	case int:
+		val = float64(value.(int));
+	case int32:
+		val = float64(value.(int32));
+	case int64:
+		val = float64(value.(int64));
 	default:
 		if value != nil{
 			err = errors.New("Invalid float type");

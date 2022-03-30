@@ -7,8 +7,9 @@ require (
 	github.com/gorilla/mux v1.8.0
 	github.com/gorilla/securecookie v1.1.1
 	github.com/gorilla/sessions v1.2.1
+	github.com/gorilla/websocket v1.5.0
 	github.com/jinzhu/copier v0.3.5
-	github.com/vektah/gqlparser/v2 v2.4.1
+	github.com/pjmd89/gqlparser/v2 v2.2.1-0.20220330002356-e1babba1695a
 )
 
 require (

@@ -2,7 +2,7 @@ package directives
 
 import (
 	"github.com/pjmd89/gogql/lib/gql/resolvers"
-	"github.com/vektah/gqlparser/v2/ast"
+	"github.com/pjmd89/gqlparser/v2/ast"
 )
 
 type Deprecated struct{

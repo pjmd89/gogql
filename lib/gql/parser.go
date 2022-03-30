@@ -6,9 +6,9 @@ import (
 	"strings"
 
 	"github.com/pjmd89/gogql/lib/gql/resolvers"
-	"github.com/vektah/gqlparser/v2"
-	"github.com/vektah/gqlparser/v2/ast"
-	"github.com/vektah/gqlparser/v2/validator"
+	"github.com/pjmd89/gqlparser/v2"
+	"github.com/pjmd89/gqlparser/v2/ast"
+	"github.com/pjmd89/gqlparser/v2/validator"
 )
 
 type Response interface{}

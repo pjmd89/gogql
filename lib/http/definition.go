@@ -5,10 +5,12 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/gorilla/sessions"
+	"github.com/gorilla/websocket"
 )
 type Gql interface{
 	GetServerName() string
 	GQLRender(w http.ResponseWriter,r *http.Request) string
+	GQLRenderSubscription(ws *websocket.Conn)
 }
 type Cookie struct{
 	sessionName 	[]byte
