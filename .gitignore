@@ -3,4 +3,6 @@ schema/
 htdocs/
 vendor/
 .vscode/
+subscriptions/
+resolvers/
 __debug_bin

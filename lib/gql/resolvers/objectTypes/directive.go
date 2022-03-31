@@ -16,11 +16,11 @@ func NewDirective(schema resolvers.Schema) resolvers.ObjectTypeInterface{
 
 	return _type;
 }
-func (o *Directive) SetDefinition(definition resolvers.Definition){
-	o.definition = definition;
+func(o *Directive) Subscribe(info resolvers.ResolverInfo) ( r bool, s resolvers.Subscription ){
+	return r,s;
 }
-func(o *Directive) Resolver(resolver string, args resolvers.Args, parent resolvers.Parent, directives resolvers.DirectiveList,typename string) ( r resolvers.DataReturn ){
-	thisParent := parent.(introspection.Schema);
+func(o *Directive) Resolver(info resolvers.ResolverInfo) ( r resolvers.DataReturn ){
+	thisParent := info.Parent.(introspection.Schema);
 	r = make([]interface{},0);
 	for _,value := range thisParent.Directives{
 		x:=introspection.Directive{};

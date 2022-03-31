@@ -22,6 +22,11 @@ type HttpRequest struct{
     Variables     	map[string]interface{} `json:"variables,omitempty"`
     OperationName 	string                 `json:"operationName,omitempty"`
 }
+type WebSocketRequest struct{
+    Id          	string                 `json:"id"`
+    Type         	string                 `json:"type"`
+    Payload       	HttpRequest            `json:"payload"`
+}
 
 type HttpResponse struct{
     Data    		string `json:"data"`

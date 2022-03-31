@@ -18,19 +18,22 @@ func NewInputValue(schema resolvers.Schema,directives map[string]resolvers.Direc
 
 	return _type;
 }
-func(o *InputValue) Resolver(resolver string, args resolvers.Args, parent resolvers.Parent, directives resolvers.DirectiveList,typename string) ( r resolvers.DataReturn ){
+func(o *InputValue) Subscribe(info resolvers.ResolverInfo) ( r bool, s resolvers.Subscription ){
+	return r, s;
+}
+func(o *InputValue) Resolver(info resolvers.ResolverInfo) ( r resolvers.DataReturn ){
 	
-	switch(resolver){
+	switch(info.Resolver){
 	case "args":
-		r = o.args(args, parent, directives, typename);
+		r = o.args(info.Parent);
 	case "inputFields":
-		r = o.fields(args, parent, directives, typename);
+		r = o.fields(info.Parent);
 	default:
 	}
 	
 	return r;
 }
-func(o *InputValue) args(args resolvers.Args, parent resolvers.Parent, directiveList resolvers.DirectiveList, typename string) (r resolvers.DataReturn ){
+func(o *InputValue) args(parent resolvers.Parent) (r resolvers.DataReturn ){
 	r = make([]interface{},0);
 	var arguments ast.ArgumentDefinitionList;
 	rValue := reflect.ValueOf(parent);
@@ -56,7 +59,7 @@ func(o *InputValue) args(args resolvers.Args, parent resolvers.Parent, directive
 	}
 	return r;
 }
-func(o *InputValue) fields(args resolvers.Args, parent resolvers.Parent, directiveList resolvers.DirectiveList, typename string) (r resolvers.DataReturn ){
+func(o *InputValue) fields(parent resolvers.Parent) (r resolvers.DataReturn ){
 	thisParent := parent.(introspection.Type);
 	switch(thisParent.Kind){
 	case introspection.TYPEKIND_INPUT_OBJECT:

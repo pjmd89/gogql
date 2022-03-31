@@ -17,11 +17,14 @@ func NewField(schema resolvers.Schema,directives map[string]resolvers.Directive)
 
 	return _type;
 }
-func(o *Field) Resolver(resolver string, args resolvers.Args, parent resolvers.Parent, directives resolvers.DirectiveList,typename string) ( r resolvers.DataReturn ){
+func(o *Field) Subscribe(info resolvers.ResolverInfo) ( r bool, s resolvers.Subscription ){
+	return r, s;
+}
+func(o *Field) Resolver(info resolvers.ResolverInfo) ( r resolvers.DataReturn ){
 	
-	switch(resolver){
+	switch(info.Resolver){
 		case "fields":
-			r = o.fields(args, parent, directives, typename);
+			r = o.fields(info.Args, info.Parent);
 			break;
 		default:
 	}
@@ -29,7 +32,7 @@ func(o *Field) Resolver(resolver string, args resolvers.Args, parent resolvers.P
 	return r;
 }
 
-func(o *Field) fields(args resolvers.Args, parent resolvers.Parent, directiveList resolvers.DirectiveList, typename string) (r resolvers.DataReturn ){
+func(o *Field) fields(args resolvers.Args, parent resolvers.Parent) (r resolvers.DataReturn ){
 	thisParent := parent.(introspection.Type);
 	r = nil;
 	includeDeprecated := false;
@@ -70,7 +73,7 @@ func(o *Field) setDeprecate(value *ast.FieldDefinition,thisParent introspection.
 		for _,directive:=range value.Directives{
 			switch directive.Name{
 				case "deprecated":
-					deprecateDirectiveResult = o.directives[directive.Name].Invoke(map[string]interface{}{},*thisParent.Name,value.Name,o.schema.Directives[directive.Name]).(directives.DeprecatedData);
+					deprecateDirectiveResult = o.directives[directive.Name].Invoke(map[string]interface{}{},*thisParent.Name,value.Name).(directives.DeprecatedData);
 			}
 		}
 	}

@@ -3,7 +3,6 @@ package http
 import (
 	"crypto/tls"
 	"fmt"
-	"log"
 	"net/http"
 	"os"
 	"strings"
@@ -17,11 +16,16 @@ import (
 )
 type GQLDefault struct{
 }
+
+type msg struct{
+	Name string `json:"name"`;
+	Message string `json:"message"`;
+}
+type xD struct{
+	Data *msg `json:"data"`;
+}
 var upgrader = websocket.Upgrader{
 	EnableCompression: true,
-}
-func(o *GQLDefault) GQLRender(w http.ResponseWriter,r *http.Request){
-	
 }
 func(o *GQLDefault) GetServerName() string{
 	return "localhost";
@@ -234,30 +238,26 @@ func (o *pathConfig) ServeHTTP(w http.ResponseWriter,r *http.Request){
 			http.ServeContent(w,r,o.Path+"/"+r.RequestURI,time.Time{},file);
 			break;
 		case "websocket":
-			//w.Header().Set("Content-Type", "application/json; charset=UTF-8");
+			w.Header().Set("Content-Type", "application/json; charset=UTF-8");
 			cookie,_ := r.Cookie("NUEVE_SESSION");
 			var cookieValue []byte;
 			if cookie != nil {
 				cookieValue = []byte(cookie.Value);
 			}
 			SessionStart(w,r,&cookieValue,"NUEVE_SESSION")
-			ws, eerr := upgrader.Upgrade(w, r, nil)
-			fmt.Println(eerr);
+			ws, upgraderError := upgrader.Upgrade(w, r, nil)
 			defer ws.Close()
+			if upgraderError != nil{
+				fmt.Println(upgraderError);
+			}
+			
 			for {
-				// Receive message
-				mt, message, _ := ws.ReadMessage()
-				log.Printf("Message received: %s", message)
-		
-				// Reverse message
-				n := len(message)
-				for i := 0; i < n/2; i++ {
-					message[i], message[n-1-i] = message[n-1-i], message[i]
-				}
-		
-				// Response message
-				_ = ws.WriteMessage(mt, message)
-				log.Printf("Message sent: %s", message)
+				mt, message, _ := ws.ReadMessage();
+				fmt.Printf("%s",message);
+				//r, _ := o.gqlRender[o.serverName].GQLRenderSubscription(message);
+				//ws.WriteMessage(mt,[]byte(r));
+				go o.WebSocketMessage(mt,message,ws);
+				
 			}
 		case "gql":
 			w.Header().Set("Content-Type", "application/json; charset=UTF-8");
@@ -275,4 +275,19 @@ func (o *pathConfig) ServeHTTP(w http.ResponseWriter,r *http.Request){
 			fmt.Fprint(w,"Mode "+o.Mode+" not exists.");
 		}
 	return;
+}
+func (o *pathConfig) WebSocketMessage(mt int, message []byte, ws *websocket.Conn){
+	r, messageType := o.gqlRender[o.serverName].GQLRenderSubscription(message);
+	switch messageType{
+	case "connection_ack","ping","pong":
+		ws.WriteMessage(mt,[]byte(r));
+	case "next":
+		ws.WriteMessage(mt,[]byte(r));
+		for{
+			o.WebSocketMessage(mt,message,ws);
+		}
+	default:
+		fmt.Println(messageType);
+	}
+	
 }

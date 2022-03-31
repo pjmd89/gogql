@@ -15,18 +15,21 @@ func NewSchema(gqlSchema resolvers.Schema, directives map[string]resolvers.Direc
 	schema_ = &schema{schema:gqlSchema, directives: directives};
 	return schema_;
 }
-func(o *schema) Resolver(resolver string, args resolvers.Args, parent resolvers.Parent, directives resolvers.DirectiveList, typename string) ( r resolvers.DataReturn ){
+func(o *schema) Subscribe(info resolvers.ResolverInfo) ( r bool, s resolvers.Subscription ){
+	return r, s;
+}
+func(o *schema) Resolver(info resolvers.ResolverInfo) ( r resolvers.DataReturn ){
 
-	switch(resolver){
+	switch(info.Resolver){
 		case "__schema":
-			r = o.__schema(args, parent, directives, typename);
+			r = o.__schema();
 			break;
 		default:
 	}
 	
 	return r;
 }
-func(o *schema) __schema(args resolvers.Args, parent resolvers.Parent, directives resolvers.DirectiveList, typename string) ( r resolvers.DataReturn ){
+func(o *schema) __schema() ( r resolvers.DataReturn ){
 	x := introspection.Schema{};
 	x.Types = o.schema.Types;
 	x.QueryType = o.schema.Query;

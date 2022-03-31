@@ -2,11 +2,11 @@ package gql
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
 
-	"github.com/gorilla/websocket"
 	"github.com/pjmd89/gogql/lib"
 	"github.com/pjmd89/gogql/lib/gql/resolvers"
 	"github.com/pjmd89/gogql/lib/gql/resolvers/directives"
@@ -71,8 +71,31 @@ func(o *gql) loadSchema(path string){
     }
     o.schema = parser;
 }
-func(o *gql) GQLRenderSubscription (ws *websocket.Conn){
-
+func(o *gql) GQLRenderSubscription (message []byte) (r string, messageType string) {
+    var request WebSocketRequest;
+    json.Unmarshal(message,&request);
+    var response *HttpResponse = &HttpResponse{};
+    send :="";
+    switch request.Type {
+    case "connection_init":
+        messageType = "connection_ack";
+        send = `{"type":"connection_ack","payload":{}}`;
+    case "subscribe":
+        messageType = "next";
+        response = o.response(request.Payload);
+        send = `{"id":"`+request.Id+`","type":"next","payload":`+response.Data+`}`;
+    case "ping":
+        messageType = "pong";
+        send = `{"type":"pong","payload":{}}`;
+    case "complete":
+        messageType = "complete";
+        send = `{"id":"`+request.Id+`","type":"complete"}`;
+    default:
+        fmt.Println(request.Type,request.Id)
+        messageType = "error";
+    }
+    fmt.Println(send);
+    return send, messageType;
 }
 func(o *gql) GQLRender(w http.ResponseWriter,r *http.Request) string{
     var request HttpRequest;

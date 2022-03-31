@@ -18,19 +18,21 @@ func NewEnumValue(schema resolvers.Schema,directives map[string]resolvers.Direct
 
 	return _type;
 }
-
-func(o *Enum) Resolver(resolver string, args resolvers.Args, parent resolvers.Parent, directives resolvers.DirectiveList,typename string) ( r resolvers.DataReturn ){
+func(o *Enum) Subscribe(info resolvers.ResolverInfo) ( r bool, s resolvers.Subscription ){
+	return r, s;
+}
+func(o *Enum) Resolver( info resolvers.ResolverInfo) ( r resolvers.DataReturn ){
 	
-	switch(resolver){
+	switch(info.Resolver){
 		case "enumValues":
-			r = o.enumValues(args, parent, directives, typename);
+			r = o.enumValues(info.Args, info.Parent);
 			break;
 		default:
 	}
 	
 	return r;
 }
-func(o *Enum) enumValues(args resolvers.Args, parent resolvers.Parent, directiveList resolvers.DirectiveList, typename string) (r resolvers.DataReturn ){	
+func(o *Enum) enumValues(args resolvers.Args, parent resolvers.Parent) (r resolvers.DataReturn ){	
 	thisParent := parent.(introspection.Type);
 	includeDeprecated := false;
 	if(args["includeDeprecated"] != nil){
@@ -65,7 +67,7 @@ func(o *Enum) setDeprecate(value *ast.EnumValueDefinition,thisParent introspecti
 		for _,directive:=range value.Directives{
 			switch directive.Name{
 				case "deprecated":
-					deprecateDirectiveResult = o.directives[directive.Name].Invoke(map[string]interface{}{},*thisParent.Name,value.Name,o.schema.Directives[directive.Name]).(directives.DeprecatedData);
+					deprecateDirectiveResult = o.directives[directive.Name].Invoke(map[string]interface{}{},*thisParent.Name,value.Name).(directives.DeprecatedData);
 			}
 		}
 	}
