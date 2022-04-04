@@ -24,6 +24,9 @@ type msg struct{
 }
 var upgrader = websocket.Upgrader{
 	EnableCompression: true,
+	Subprotocols:      []string{"binary"},
+	ReadBufferSize:    1024,
+	WriteBufferSize:   1024,
 }
 var WsIds map[string]chan bool = make(map[string]chan bool);
 var WsChannels map[string] *websocket.Conn = make(map[string] *websocket.Conn);
@@ -251,7 +254,11 @@ func (o *pathConfig) ServeHTTP(w http.ResponseWriter,r *http.Request){
 			fmt.Fprint(w,rx);
 			break;
 		case "websocket":
-			w.Header().Set("Content-Type", "application/json; charset=UTF-8");
+			headers := http.Header{};
+			headers.Set("Sec-WebSocket-Protocol", "graphql-transport-ws");
+			headers.Set("Sec-WebSocket-Version", "13");
+			headers.Set("Content-Type", "application/json; charset=UTF-8");
+			headers.Set("Access-Control-Allow-Origin", protocol+o.AllowOrigin);
 			cookie,_ := r.Cookie("NUEVE_SESSION");
 			var cookieValue []byte;
 			if cookie != nil {
@@ -262,7 +269,7 @@ func (o *pathConfig) ServeHTTP(w http.ResponseWriter,r *http.Request){
 			id := uuid.New().String();
 			WsIds[id] = make(chan bool,1);
 			var upgraderError error;
-			WsChannels[id], upgraderError = upgrader.Upgrade(w, r, nil)
+			WsChannels[id], upgraderError = upgrader.Upgrade(w, r, headers)
 			if upgraderError != nil{
 
 				fmt.Println(upgraderError);
