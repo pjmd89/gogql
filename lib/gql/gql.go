@@ -66,9 +66,12 @@ func(o *gql) loadSchema(path string){
     }
     parser,err := gqlparser.LoadSchema(schema...);
     
-    for _,subs := range parser.Subscription.Fields{
-        PubSub.createSubscriptionEvent(OperationID(subs.Name));
+    if parser.Subscription != nil {
+        for _,subs := range parser.Subscription.Fields{
+            PubSub.createSubscriptionEvent(OperationID(subs.Name));
+        }
     }
+    
     if err !=nil{
         log.Fatal(err);
     }
