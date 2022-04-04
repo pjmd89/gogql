@@ -20,6 +20,7 @@ func SessionStart(w http.ResponseWriter,r *http.Request, sessionName *[]byte, co
 	Session.cookieName = cookieName;
 	Session.sessionName = *sessionName;
 	if sessionName != nil{
+		store.Options = &sessions.Options{ Path: "/",SameSite: http.SameSiteNoneMode, HttpOnly: true, Secure: true, MaxAge: 0};
 		session, err := store.Get(r, cookieName)
 		if err == nil {
 			Session.Start = true;
@@ -38,7 +39,7 @@ func(o *Cookie)Set(values map[interface{}]interface{}){
 	for k,v :=range values{
 		o.session.Values[k] = v;
 	}
-	o.session.Options = &sessions.Options{SameSite: http.SameSiteNoneMode, HttpOnly: true, Secure: true, MaxAge: 0}
+	
 	o.session.Save(o.r, o.w);
 }
 func(o *Cookie)Get() map[interface{}]interface{}{
