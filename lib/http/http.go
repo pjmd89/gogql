@@ -24,9 +24,6 @@ type msg struct{
 }
 var upgrader = websocket.Upgrader{
 	EnableCompression: true,
-	Subprotocols:      []string{"binary"},
-	ReadBufferSize:    1024,
-	WriteBufferSize:   1024,
 }
 var WsIds map[string]chan bool = make(map[string]chan bool);
 var WsChannels map[string] *websocket.Conn = make(map[string] *websocket.Conn);
