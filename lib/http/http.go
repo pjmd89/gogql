@@ -10,6 +10,7 @@ import (
 
 	"github.com/pjmd89/gogql/lib"
 
+	"github.com/google/uuid"
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
@@ -21,12 +22,13 @@ type msg struct{
 	Name string `json:"name"`;
 	Message string `json:"message"`;
 }
-type xD struct{
-	Data *msg `json:"data"`;
-}
 var upgrader = websocket.Upgrader{
 	EnableCompression: true,
 }
+var WsIds map[string]chan bool = make(map[string]chan bool);
+var WsChannels map[string] *websocket.Conn = make(map[string] *websocket.Conn);
+
+var TmpChannelId string = "";
 func(o *GQLDefault) GetServerName() string{
 	return "localhost";
 }
@@ -237,28 +239,6 @@ func (o *pathConfig) ServeHTTP(w http.ResponseWriter,r *http.Request){
 			
 			http.ServeContent(w,r,o.Path+"/"+r.RequestURI,time.Time{},file);
 			break;
-		case "websocket":
-			w.Header().Set("Content-Type", "application/json; charset=UTF-8");
-			cookie,_ := r.Cookie("NUEVE_SESSION");
-			var cookieValue []byte;
-			if cookie != nil {
-				cookieValue = []byte(cookie.Value);
-			}
-			SessionStart(w,r,&cookieValue,"NUEVE_SESSION")
-			ws, upgraderError := upgrader.Upgrade(w, r, nil)
-			defer ws.Close()
-			if upgraderError != nil{
-				fmt.Println(upgraderError);
-			}
-			
-			for {
-				mt, message, _ := ws.ReadMessage();
-				fmt.Printf("%s",message);
-				//r, _ := o.gqlRender[o.serverName].GQLRenderSubscription(message);
-				//ws.WriteMessage(mt,[]byte(r));
-				go o.WebSocketMessage(mt,message,ws);
-				
-			}
 		case "gql":
 			w.Header().Set("Content-Type", "application/json; charset=UTF-8");
 			cookie,_ := r.Cookie("NUEVE_SESSION");
@@ -270,24 +250,59 @@ func (o *pathConfig) ServeHTTP(w http.ResponseWriter,r *http.Request){
 			rx := o.gqlRender[o.serverName].GQLRender(w,r);
 			fmt.Fprint(w,rx);
 			break;
+		case "websocket":
+			w.Header().Set("Content-Type", "application/json; charset=UTF-8");
+			cookie,_ := r.Cookie("NUEVE_SESSION");
+			var cookieValue []byte;
+			if cookie != nil {
+				cookieValue = []byte(cookie.Value);
+			}
+			SessionStart(w,r,&cookieValue,"NUEVE_SESSION")
+
+			id := uuid.New().String();
+			WsIds[id] = make(chan bool,1);
+			var upgraderError error;
+			WsChannels[id], upgraderError = upgrader.Upgrade(w, r, nil)
+			if upgraderError != nil{
+
+				fmt.Println(upgraderError);
+				select{
+					case WsIds[id] <- false:
+				}
+				close(WsIds[id]);
+				delete(WsIds,id);
+				delete(WsChannels,id);
+				fmt.Println(upgraderError);
+			}
+			TmpChannelId = id;
+			defer WsChannels[id].Close();
+			while:=true;
+			for while{
+				mt, message, err := WsChannels[id].ReadMessage();
+				if err != nil {
+					select{
+					case WsIds[id] <- false:
+					}
+					close(WsIds[id]);
+					delete(WsIds,id);
+					delete(WsChannels,id);
+					fmt.Println(err);
+					while = false;
+					break;
+				}
+				go o.WebSocketMessage(mt, message, id);
+				
+			}
 		default:
 			w.WriteHeader(http.StatusExpectationFailed);
 			fmt.Fprint(w,"Mode "+o.Mode+" not exists.");
 		}
 	return;
 }
-func (o *pathConfig) WebSocketMessage(mt int, message []byte, ws *websocket.Conn){
-	r, messageType := o.gqlRender[o.serverName].GQLRenderSubscription(message);
-	switch messageType{
-	case "connection_ack","ping","pong":
-		ws.WriteMessage(mt,[]byte(r));
-	case "next":
-		ws.WriteMessage(mt,[]byte(r));
-		for{
-			o.WebSocketMessage(mt,message,ws);
-		}
-	default:
-		fmt.Println(messageType);
-	}
+func (o *pathConfig) WebSocketMessage(mt int, message []byte, id string ){
 	
+	o.gqlRender[o.serverName].GQLRenderSubscription(mt,message,id);
+}
+func WriteWebsocketMessage(mt int , id string,message []byte){
+	WsChannels[id].WriteMessage(mt,message);
 }

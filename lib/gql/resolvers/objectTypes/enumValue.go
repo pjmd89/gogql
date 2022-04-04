@@ -18,8 +18,8 @@ func NewEnumValue(schema resolvers.Schema,directives map[string]resolvers.Direct
 
 	return _type;
 }
-func(o *Enum) Subscribe(info resolvers.ResolverInfo) ( r bool, s resolvers.Subscription ){
-	return r, s;
+func(o *Enum) Subscribe(info resolvers.ResolverInfo) ( r bool){
+	return r;
 }
 func(o *Enum) Resolver( info resolvers.ResolverInfo) ( r resolvers.DataReturn ){
 	

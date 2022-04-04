@@ -9,7 +9,7 @@ import (
 type Gql interface{
 	GetServerName() string
 	GQLRender(w http.ResponseWriter,r *http.Request) string
-	GQLRenderSubscription(message []byte) (r string, messageType string)
+	GQLRenderSubscription(mt int,message []byte, socketId string)
 }
 type Cookie struct{
 	sessionName 	[]byte

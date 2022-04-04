@@ -17,8 +17,8 @@ func NewField(schema resolvers.Schema,directives map[string]resolvers.Directive)
 
 	return _type;
 }
-func(o *Field) Subscribe(info resolvers.ResolverInfo) ( r bool, s resolvers.Subscription ){
-	return r, s;
+func(o *Field) Subscribe(info resolvers.ResolverInfo) ( r bool){
+	return r;
 }
 func(o *Field) Resolver(info resolvers.ResolverInfo) ( r resolvers.DataReturn ){
 	

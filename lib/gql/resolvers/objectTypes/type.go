@@ -19,8 +19,8 @@ func NewType(schema resolvers.Schema,directives map[string]resolvers.Directive) 
 	_type = &Type{schema:schema, directives: directives};
 	return _type;
 }
-func(o *Type) Subscribe( info resolvers.ResolverInfo ) ( r bool, s resolvers.Subscription ){
-	return r, s;
+func(o *Type) Subscribe(info resolvers.ResolverInfo) ( r bool){
+	return r;
 }
 func(o *Type) Resolver( info resolvers.ResolverInfo) ( r resolvers.DataReturn ){
 	

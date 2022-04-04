@@ -1,7 +1,6 @@
 package resolvers
 
 import (
-	"github.com/pjmd89/gogql/lib/gql/pubsub"
 	"github.com/pjmd89/gqlparser/v2/ast"
 )
 
@@ -9,13 +8,17 @@ type Schema *ast.Schema;
 type DataReturn interface{}
 type Args map[string]interface{}
 type Parent interface{}
-type Subscription *pubsub.Subscription
 type Directive interface{
 	Invoke(args map[string]interface{},typeName string, fieldName string) DataReturn
 }
 type DirectiveList map[string]interface{}
 
 type Definition *ast.Definition;
+type Subscription struct{
+	socketId string;
+    resolverId string;
+    subscriptionId int;
+}
 type ResolverInfo struct{
 	Operation string
 	Resolver string
@@ -24,11 +27,11 @@ type ResolverInfo struct{
 	Directives DirectiveList
 	TypeName string
 	ParentTypeName *string
-	Subscription Subscription
+	SubscriptionValue interface{}
 }
 type ObjectTypeInterface interface{
     Resolver(ResolverInfo) DataReturn
-	Subscribe(ResolverInfo) (bool, Subscription)
+	Subscribe(ResolverInfo) (bool)
 }
 type Scalar interface{
 	Assess(value interface{}) (r interface{}, err error)

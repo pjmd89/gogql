@@ -5,6 +5,7 @@ import (
 	"reflect"
 	"strings"
 
+	"github.com/google/uuid"
 	"github.com/pjmd89/gogql/lib/gql/resolvers"
 	"github.com/pjmd89/gqlparser/v2"
 	"github.com/pjmd89/gqlparser/v2/ast"
@@ -18,7 +19,6 @@ func(o *gql) response(request HttpRequest) *HttpResponse{
 	
 	if err != nil{
 		fmt.Println(err.Error());
-
 	}
 	if document != nil{
 		parse := document.Operations;
@@ -35,19 +35,70 @@ func(o *gql) response(request HttpRequest) *HttpResponse{
 	}
 	return response;
 }
+func(o *gql) WebsocketResponse(request HttpRequest, socketId string, requestID RequestID, mt int){
+	document,err := gqlparser.LoadQuery(o.schema,request.Query);
+	
+	if err != nil{
+		fmt.Println(err.Error());
 
+	}
+	if document != nil{
+		parse := document.Operations;
+		if strings.Trim(request.OperationName," ") != ""{
+			for _,operation := range document.Operations{
+				if operation.Name == request.OperationName{
+					parse = ast.OperationList{operation};
+					break;
+				}
+			}
+		}
+		for _,operation :=range parse{
+			go o.websocketOperationParse(operation,request.Variables, socketId, requestID, mt);
+		}
+	}
+}
+func(o *gql) websocketOperationParse(operation *ast.OperationDefinition, variables map[string]interface{}, socketId string, requestID RequestID ,mt int){
+	uuid := uuid.New().String();
+	operationID := OperationID(operation.SelectionSet[0].(*ast.Field).Name);
+	PubSub.createExcecuteEvent(EventID(uuid),operationID,SocketID(socketId),requestID,mt);
+	response := &HttpResponse{};
+	while := true;
+	for while{
+		listen:= PubSub.listenExcecuteEvent(operationID,EventID(uuid));
+		rType := reflect.ValueOf(listen).Type();
+		
+		switch rType{
+		case reflect.TypeOf(&SubscriptionClose{}):
+			while = false;
+			break;
+		default:
+			o.setVariables(o.schema,operation,variables);
+			var dataReturn resolvers.DataReturn;
+			data := make(map[string]interface{},0);
+			isSubscriptionResponse:= false;
+			switch operation.Operation{
+			case ast.Subscription:
+				data["data"],isSubscriptionResponse = o.selectionSetParse(string(operation.Operation), operation.SelectionSet, dataReturn ,dataReturn,nil, 0, listen);
+			}
+			if isSubscriptionResponse{
+				response.Data = fmt.Sprintf("%v",o.jsonResponse(data));
+			o.WriteWebsocketMessage(mt,socketId,requestID, response);
+			}
+		}
+	}
+}
 func(o *gql) operationParse(parse ast.OperationList, variables map[string]interface{}) (map[string]interface{}){
-	//este es el nombre de la query si es que lo tiene, si no, ejecuta la query unica
 	prepareToSend := make(map[string]interface{},0);
 	for _,operation :=range parse{
 		o.setVariables(o.schema,operation,variables);
 		var dataReturn resolvers.DataReturn;
 		data := make(map[string]interface{},0);
-		data["data"] = o.selectionSetParse(string(operation.Operation), operation.SelectionSet, dataReturn ,dataReturn,nil, 0);
+		switch operation.Operation{
+		case ast.Query, ast.Mutation:
+			data["data"],_ = o.selectionSetParse(string(operation.Operation), operation.SelectionSet, dataReturn ,dataReturn,nil, 0, nil);
+		}
 		prepareToSend["data"] = o.jsonResponse(data);
-		//prepareToSend["data"] = `"data":{"__schema":{"types":[{"name":"__DirectiveLocation","description":"","kind":"<introspection.TypeKind Value>"},{"kind":"<introspection.TypeKind Value>","name":"String","description":"The Stringscalar type represents textual data, represented as UTF-8 character sequences. The String type is most often used by GraphQL to represent free-form human-readable text."},{"kind":"<introspection.TypeKind Value>","name":"Boolean","description":"The Boolean scalar type represents true or false."},{"kind":"<introspection.TypeKind Value>","name":"__Schema","description":""},{"kind":"<introspection.TypeKind Value>","name":"__Directive","description":""},{"kind":"<introspection.TypeKind Value>","name":"__EnumValue","description":""},{"kind":"<introspection.TypeKind Value>","name":"Queries","description":""},{"kind":"<introspection.TypeKind Value>","name":"InputobEmp","description":""},{"kind":"<introspection.TypeKind Value>","name":"Int","description":"The Int scalar type represents non-fractional signed whole numeric values. Int can represent values between -(2^31) and 2^31 - 1."},{"kind":"<introspection.TypeKind Value>","name":"Float","description":"The Float scalar type represents signed double-precision fractional values as specified by [IEEE 754](http://en.wikipedia.org/wiki/IEEE_floating_point)."},{"kind":"<introspection.TypeKind Value>","name":"ID","description":"The ID scalar type represents a unique identifier, often used to refetch an object or as key for a cache. The ID type appears in a JSON response as a String; however, it is not intended to be human-readable. When expected as an input type, any string (such as \"4\") or integer (such as 4) input value will be accepted as an ID."},{"description":"","kind":"<introspection.TypeKind Value>","name":"__Type"},{"kind":"<introspection.TypeKind Value>","name":"Empleado","description":""},{"kind":"<introspection.TypeKind Value>","name":"Cargo","description":""},{"kind":"<introspection.TypeKind Value>","name":"__Field","description":""},{"kind":"<introspection.TypeKind Value>","name":"__InputValue","description":""},{"kind":"<introspection.TypeKind Value>","name":"__TypeKind","description":""},{"kind":"<introspection.TypeKind Value>","name":"Mutations","description":""}],"types2":[{"name":"Queries"},{"name":"__EnumValue"},{"name":"Float"},{"name":"ID"},{"name":"__Type"},{"name":"InputobEmp"},{"name":"Int"},{"name":"__InputValue"},{"name":"__TypeKind"},{"name":"Mutations"},{"name":"Empleado"},{"name":"Cargo"},{"name":"__Field"},{"name":"Boolean"},{"name":"__Schema"},{"name":"__Directive"},{"name":"__DirectiveLocation"},{"name":"String"}]},"pepe":{"types":[{"name":"Int"},{"name":"Float"},{"name":"ID"},{"name":"__Type"},{"name":"InputobEmp"},{"name":"__Field"},{"name":"__InputValue"},{"name":"__TypeKind"},{"name":"Mutations"},{"name":"Empleado"},{"name":"Cargo"},{"name":"String"},{"name":"Boolean"},{"name":"__Schema"},{"name":"__Directive"},{"name":"__DirectiveLocation"},{"name":"__EnumValue"},{"name":"Queries"}]}}`;
 	}
-	
 	return prepareToSend
 }
 func(o *gql)setVariables(schema *ast.Schema, operation *ast.OperationDefinition,variables map[string]interface{}){
@@ -61,9 +112,10 @@ func(o *gql)setVariables(schema *ast.Schema, operation *ast.OperationDefinition,
 	o.variables = vars;
 }
 
-func(o *gql) selectionSetParse(operation string, parse ast.SelectionSet, parent interface{}, parentProceced interface{}, typeName *string,start int) ( Response ){
+func(o *gql) selectionSetParse(operation string, parse ast.SelectionSet, parent interface{}, parentProceced interface{}, typeName *string,start int, subscriptionValue interface{}) ( Response, bool ){
 	
 	//var prepareToSend Response
+	isSubscriptionResponse := false;
 	prepareToSend := make(map[string]interface{},0);
 	//ejecucion de las queries internas
 	for _,selection :=range parse{
@@ -71,20 +123,21 @@ func(o *gql) selectionSetParse(operation string, parse ast.SelectionSet, parent 
 		switch rField.Type(){
 		case reflect.TypeOf(&ast.Field{}):
 			field := selection.(*ast.Field);
-			prepareToSend = o.selectionParse(operation, field, parent, parentProceced,typeName, start );
+			prepareToSend,isSubscriptionResponse = o.selectionParse(operation, field, parent, parentProceced,typeName, start, subscriptionValue );
 		case reflect.TypeOf(&ast.FragmentSpread{}):
 			fragment := selection.(*ast.FragmentSpread);
 			fragmentDef := fragment.Definition;
 			for _,fragmentSelection := range fragmentDef.SelectionSet{
 				field := fragmentSelection.(*ast.Field);
-				prepareToSend = o.selectionParse(operation, field, parent, parentProceced,typeName, start );
+				prepareToSend,isSubscriptionResponse = o.selectionParse(operation, field, parent, parentProceced,typeName, start, subscriptionValue );
 			}
 		}
 	}
-	return prepareToSend;
+	return prepareToSend,isSubscriptionResponse;
 }
-func(o *gql) selectionParse( operation string, field *ast.Field, parent interface{}, parentProceced interface{}, typeName *string, start int) (map[string]interface{}){
+func(o *gql) selectionParse( operation string, field *ast.Field, parent interface{}, parentProceced interface{}, typeName *string, start int, subscriptionValue interface{}) (map[string]interface{}, bool){
 	fieldElem := field.Definition.Type.Elem;
+	isSubscriptionResponse := false;
 	prepareToSend := make(map[string]interface{},0);
 	var resolved resolvers.DataReturn;
 	var resolvedProcesed resolvers.DataReturn;
@@ -105,19 +158,21 @@ func(o *gql) selectionParse( operation string, field *ast.Field, parent interfac
 				Directives: directives,
 				TypeName: namedType,
 				ParentTypeName: typeName,
+				SubscriptionValue: subscriptionValue,
 			};
 			if operation == "subscription" && start == 0{
-				subscribe :=false;
-				for !subscribe{
-					if ok, sub := o.objectTypes[namedType].Subscribe( resolverInfo ); ok{
-						subscribe = true;
-						resolverInfo.Subscription = sub;
-					}
+				if ok := o.objectTypes[namedType].Subscribe( resolverInfo ); ok{
+					resolved = o.objectTypes[namedType].Resolver( resolverInfo );
+					typeName = &namedType;
+					resolvedProcesed = o.dataResponse(fieldNames, resolved);
+					isSubscriptionResponse = true;
 				}
+			} else{
+				resolved = o.objectTypes[namedType].Resolver( resolverInfo );
+				typeName = &namedType;
+				resolvedProcesed = o.dataResponse(fieldNames, resolved);
 			}
-			resolved = o.objectTypes[namedType].Resolver( resolverInfo );
-			typeName = &namedType;
-			resolvedProcesed = o.dataResponse(fieldNames, resolved);
+			
 		}
 		rType :=  reflect.TypeOf(resolved);
 		if rType != nil{
@@ -126,7 +181,7 @@ func(o *gql) selectionParse( operation string, field *ast.Field, parent interfac
 				case reflect.Slice:
 					var data []interface{};
 					for i,value := range resolved.([]interface{}){
-						responsed := o.selectionSetParse(operation, field.SelectionSet,value, resolvedProcesed.([]interface{})[i], typeName, 1 );
+						responsed,_ := o.selectionSetParse(operation, field.SelectionSet,value, resolvedProcesed.([]interface{})[i], typeName, 1, subscriptionValue );
 						data = append(data,responsed);
 					}
 					if parentProceced != nil{
@@ -134,13 +189,11 @@ func(o *gql) selectionParse( operation string, field *ast.Field, parent interfac
 					}
 					prepareToSend[field.Alias] = data;
 				case reflect.Struct,reflect.Ptr:
-					responsed := o.selectionSetParse(operation, field.SelectionSet,resolved, resolvedProcesed, typeName, 1 );
+					responsed,_ := o.selectionSetParse(operation, field.SelectionSet,resolved, resolvedProcesed, typeName, 1, subscriptionValue );
 					if parentProceced != nil{
 						prepareToSend = parentProceced.(map[string]interface{});
 					}
 					prepareToSend[field.Alias] = responsed
-				default:
-					fmt.Println("aqui")
 			}
 		} else{
 			if parentProceced != nil{
@@ -153,7 +206,7 @@ func(o *gql) selectionParse( operation string, field *ast.Field, parent interfac
 	} else{
 		prepareToSend = parentProceced.(map[string]interface{});
 	}
-	return prepareToSend;
+	return prepareToSend,isSubscriptionResponse;
 }
 func(o *gql) parseDirectives(directives ast.DirectiveList, typeName string, fieldName string) (r resolvers.DirectiveList){
 	r = make(map[string]interface{},0);

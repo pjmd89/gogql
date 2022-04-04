@@ -2,7 +2,6 @@ package gql
 
 import (
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -12,6 +11,7 @@ import (
 	"github.com/pjmd89/gogql/lib/gql/resolvers/directives"
 	"github.com/pjmd89/gogql/lib/gql/resolvers/objectTypes"
 	"github.com/pjmd89/gogql/lib/gql/resolvers/scalars"
+	gqlHttp "github.com/pjmd89/gogql/lib/http"
 
 	"github.com/pjmd89/gqlparser/v2"
 	"github.com/pjmd89/gqlparser/v2/ast"
@@ -66,36 +66,34 @@ func(o *gql) loadSchema(path string){
     }
     parser,err := gqlparser.LoadSchema(schema...);
     
+    for _,subs := range parser.Subscription.Fields{
+        PubSub.createSubscriptionEvent(OperationID(subs.Name));
+    }
     if err !=nil{
         log.Fatal(err);
     }
     o.schema = parser;
 }
-func(o *gql) GQLRenderSubscription (message []byte) (r string, messageType string) {
+func(o *gql) GQLRenderSubscription (mt int, message []byte , socketId string) {
     var request WebSocketRequest;
     json.Unmarshal(message,&request);
-    var response *HttpResponse = &HttpResponse{};
-    send :="";
+    //var response *HttpResponse = &HttpResponse{};
     switch request.Type {
     case "connection_init":
-        messageType = "connection_ack";
-        send = `{"type":"connection_ack","payload":{}}`;
+        r := `{"type":"connection_ack","payload":{}}`;
+        gqlHttp.WriteWebsocketMessage(mt,socketId,[]byte(r));
     case "subscribe":
-        messageType = "next";
-        response = o.response(request.Payload);
-        send = `{"id":"`+request.Id+`","type":"next","payload":`+response.Data+`}`;
+        o.WebsocketResponse(request.Payload,socketId,RequestID(request.Id), mt);
+        //r = `{"id":"`+request.Id+`","type":"next","payload":`+response.Data+`}`;
     case "ping":
-        messageType = "pong";
-        send = `{"type":"pong","payload":{}}`;
+        r := `{"type":"pong","payload":{}}`;
+        gqlHttp.WriteWebsocketMessage(mt,socketId,[]byte(r));
     case "complete":
-        messageType = "complete";
-        send = `{"id":"`+request.Id+`","type":"complete"}`;
+        r := `{"id":"`+request.Id+`","type":"complete"}`;
+        gqlHttp.WriteWebsocketMessage(mt,socketId,[]byte(r));
     default:
-        fmt.Println(request.Type,request.Id)
-        messageType = "error";
+        
     }
-    fmt.Println(send);
-    return send, messageType;
 }
 func(o *gql) GQLRender(w http.ResponseWriter,r *http.Request) string{
     var request HttpRequest;
@@ -104,6 +102,10 @@ func(o *gql) GQLRender(w http.ResponseWriter,r *http.Request) string{
     rx := response.Data;
 
     return rx;
+}
+func(o *gql) WriteWebsocketMessage(mt int,socketId string, requestID RequestID,response *HttpResponse){
+    r := `{"id":"`+string(requestID)+`","type":"next","payload":`+response.Data+`}`;
+    gqlHttp.WriteWebsocketMessage(mt,socketId,[]byte(r));
 }
 func(o *gql) GetServerName() string{
 	return o.serverName;

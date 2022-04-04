@@ -16,8 +16,8 @@ func NewDirective(schema resolvers.Schema) resolvers.ObjectTypeInterface{
 
 	return _type;
 }
-func(o *Directive) Subscribe(info resolvers.ResolverInfo) ( r bool, s resolvers.Subscription ){
-	return r,s;
+func(o *Directive) Subscribe(info resolvers.ResolverInfo) ( r bool){
+	return r;
 }
 func(o *Directive) Resolver(info resolvers.ResolverInfo) ( r resolvers.DataReturn ){
 	thisParent := info.Parent.(introspection.Schema);

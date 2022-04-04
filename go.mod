@@ -3,6 +3,7 @@ module github.com/pjmd89/gogql
 go 1.17
 
 require (
+	github.com/google/uuid v1.3.0
 	github.com/gorilla/handlers v1.5.1
 	github.com/gorilla/mux v1.8.0
 	github.com/gorilla/securecookie v1.1.1
@@ -15,4 +16,7 @@ require (
 require (
 	github.com/agnivade/levenshtein v1.1.1 // indirect
 	github.com/felixge/httpsnoop v1.0.2 // indirect
+
+// indirect
+
 )

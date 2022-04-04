@@ -15,8 +15,8 @@ func NewSchema(gqlSchema resolvers.Schema, directives map[string]resolvers.Direc
 	schema_ = &schema{schema:gqlSchema, directives: directives};
 	return schema_;
 }
-func(o *schema) Subscribe(info resolvers.ResolverInfo) ( r bool, s resolvers.Subscription ){
-	return r, s;
+func(o *schema) Subscribe(info resolvers.ResolverInfo) ( r bool){
+	return r;
 }
 func(o *schema) Resolver(info resolvers.ResolverInfo) ( r resolvers.DataReturn ){
 
