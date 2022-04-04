@@ -13,6 +13,7 @@ var store = sessions.NewCookieStore(
 	securecookie.GenerateRandomKey(32),
 );
 func SessionStart(w http.ResponseWriter,r *http.Request, sessionName *[]byte, cookieName string ) *Cookie{
+
 	Session = &Cookie{};
 	Session.r = r;
 	Session.w = w;
@@ -20,6 +21,7 @@ func SessionStart(w http.ResponseWriter,r *http.Request, sessionName *[]byte, co
 	Session.sessionName = *sessionName;
 	if sessionName != nil{
 		session, err := store.Get(r, cookieName)
+		session.Options = &sessions.Options{SameSite: http.SameSiteStrictMode}
 		if err == nil {
 			Session.Start = true;
 			Session.session = session

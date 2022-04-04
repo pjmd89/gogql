@@ -172,7 +172,6 @@ func(o *gql) selectionParse( operation string, field *ast.Field, parent interfac
 				typeName = &namedType;
 				resolvedProcesed = o.dataResponse(fieldNames, resolved);
 			}
-			
 		}
 		rType :=  reflect.TypeOf(resolved);
 		if rType != nil{
