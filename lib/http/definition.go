@@ -11,6 +11,7 @@ type Gql interface{
 	GQLRender(w http.ResponseWriter,r *http.Request) string
 	GQLRenderSubscription(mt int,message []byte, socketId string)
 }
+type ValidateHost func(hostname string) bool;
 type Cookie struct{
 	sessionName 	[]byte
 	session 		*sessions.Session
@@ -33,6 +34,7 @@ type pathConfig struct {
 	enableHttps		bool	
 	gqlRender		map[string]Gql
 	serverName		string
+	validateHost 	ValidateHost
 }
 type server struct {
 	ServerName 		string	 				`json:"serverName,omitempty"`
@@ -52,4 +54,5 @@ type Http struct{
 	HTTPSService	*http.Server
 	router 			*mux.Router
 	gql				map[string]Gql
+	ValidateHost 	ValidateHost
 }

@@ -4,6 +4,7 @@ import (
 	"crypto/tls"
 	"fmt"
 	"net/http"
+	"net/url"
 	"os"
 	"strings"
 	"time"
@@ -89,6 +90,7 @@ func (o *Http) Start() {
 		}
 		
 		for _, vv := range v.Path {
+			vv.validateHost = o.ValidateHost;
 			if _, ok := endpoints[vv.Endpoint]; !ok {
 				endpoints[vv.Endpoint] = true;
 			} else{
@@ -172,21 +174,26 @@ func(o *Http)ServeHTTP(w http.ResponseWriter,r *http.Request){
 	fmt.Fprint(w,"file not found, archivo no se encuentra");
 }
 func (o *pathConfig) ServeHTTP(w http.ResponseWriter,r *http.Request){
-	//hostSplit := strings.Split(r.Host, ":");
+	hostSplit,_ := url.Parse(r.Host);
 	upgrade := false
+	if (o.validateHost != nil && !o.validateHost(hostSplit.Scheme)) || o.Url != hostSplit.Scheme {
+		w.WriteHeader(http.StatusUnauthorized);
+		return;
+	}
     for _, header := range r.Header["Upgrade"] {
         if header == "websocket" {
             upgrade = true
             break
         }
     }
-	httpsURI := o.Url;
+
+	httpsURI := hostSplit.Scheme;
+	
 	secureProtocol := "https://";
-	//wsSecureProtocol := "ws://";
 	protocol := `http://`;
 	if o.httpsPort != "443" && o.enableHttps && o.redirect{
 		httpsURI += ":"+o.httpsPort;
-	} 
+	}
 	if r.TLS != nil {
 		protocol = `https://`;
 	}
@@ -206,6 +213,7 @@ func (o *pathConfig) ServeHTTP(w http.ResponseWriter,r *http.Request){
 	upgrader.CheckOrigin = func(r *http.Request) bool { 
 		return true;
 	}
+	
 	if strings.Trim(o.AllowOrigin, " ") != "" {
 		w.Header().Set("Access-Control-Allow-Origin", protocol+o.AllowOrigin);
 		w.Header().Set("Access-Control-Allow-Credentials", "true");
@@ -216,6 +224,7 @@ func (o *pathConfig) ServeHTTP(w http.ResponseWriter,r *http.Request){
 	if r.Method == "OPTIONS" {
 		return;
 	}
+
 	switch o.Mode{
 		case "file":
 			file, fErr := os.Open(o.Path+r.RequestURI);
@@ -290,7 +299,6 @@ func (o *pathConfig) ServeHTTP(w http.ResponseWriter,r *http.Request){
 					close(WsIds[id]);
 					delete(WsIds,id);
 					delete(WsChannels,id);
-					fmt.Println(err);
 					while = false;
 					break;
 				}
