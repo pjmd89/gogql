@@ -1,6 +1,7 @@
 package objectTypes
 
 import (
+	"github.com/pjmd89/gogql/lib/gql/definitionError"
 	"github.com/pjmd89/gogql/lib/gql/introspection"
 	"github.com/pjmd89/gogql/lib/gql/resolvers"
 	"github.com/pjmd89/gogql/lib/gql/resolvers/directives"
@@ -20,7 +21,7 @@ func NewField(schema resolvers.Schema,directives map[string]resolvers.Directive)
 func(o *Field) Subscribe(info resolvers.ResolverInfo) ( r bool){
 	return r;
 }
-func(o *Field) Resolver(info resolvers.ResolverInfo) ( r resolvers.DataReturn ){
+func(o *Field) Resolver(info resolvers.ResolverInfo) ( r resolvers.DataReturn, err  definitionError.Error ){
 	
 	switch(info.Resolver){
 		case "fields":
@@ -29,7 +30,7 @@ func(o *Field) Resolver(info resolvers.ResolverInfo) ( r resolvers.DataReturn ){
 		default:
 	}
 	
-	return r;
+	return r,err;
 }
 
 func(o *Field) fields(args resolvers.Args, parent resolvers.Parent) (r resolvers.DataReturn ){

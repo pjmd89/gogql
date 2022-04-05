@@ -3,6 +3,7 @@ package scalars
 import (
 	"errors"
 
+	"github.com/pjmd89/gogql/lib/gql/definitionError"
 	"github.com/pjmd89/gogql/lib/gql/resolvers"
 )
 
@@ -15,7 +16,7 @@ func NewStringScalar() resolvers.Scalar{
 	scalar = &StringScalar{};
 	return scalar
 }
-func(o *StringScalar) Assess(value interface{})( val interface{}, err error){
+func(o *StringScalar) Assess(value interface{})( val interface{}, err definitionError.Error){
 	var er error;
 
 	switch value.(type){
@@ -23,11 +24,11 @@ func(o *StringScalar) Assess(value interface{})( val interface{}, err error){
 		val = value.(string);
 	default:
 		if value != nil{
-			err = errors.New("Invalid string type");
+			er = errors.New("Invalid string type");
 		}
 	}
-	if value != "" && er != nil{
-		err = er;
+	if value != nil && er != nil{
+		err=definitionError.NewWarning(er.Error(),nil);
 	}
 	return val, err
 }

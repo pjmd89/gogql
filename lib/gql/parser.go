@@ -162,13 +162,13 @@ func(o *gql) selectionParse( operation string, field *ast.Field, parent interfac
 			};
 			if operation == "subscription" && start == 0{
 				if ok := o.objectTypes[namedType].Subscribe( resolverInfo ); ok{
-					resolved = o.objectTypes[namedType].Resolver( resolverInfo );
+					resolved,_ = o.objectTypes[namedType].Resolver( resolverInfo );
 					typeName = &namedType;
 					resolvedProcesed = o.dataResponse(fieldNames, resolved);
 					isSubscriptionResponse = true;
 				}
 			} else{
-				resolved = o.objectTypes[namedType].Resolver( resolverInfo );
+				resolved,_ = o.objectTypes[namedType].Resolver( resolverInfo );
 				typeName = &namedType;
 				resolvedProcesed = o.dataResponse(fieldNames, resolved);
 			}

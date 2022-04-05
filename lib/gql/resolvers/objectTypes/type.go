@@ -4,6 +4,7 @@ import (
 	"reflect"
 
 	"github.com/jinzhu/copier"
+	"github.com/pjmd89/gogql/lib/gql/definitionError"
 	"github.com/pjmd89/gogql/lib/gql/introspection"
 	"github.com/pjmd89/gogql/lib/gql/resolvers"
 	"github.com/pjmd89/gqlparser/v2/ast"
@@ -22,7 +23,7 @@ func NewType(schema resolvers.Schema,directives map[string]resolvers.Directive) 
 func(o *Type) Subscribe(info resolvers.ResolverInfo) ( r bool){
 	return r;
 }
-func(o *Type) Resolver( info resolvers.ResolverInfo) ( r resolvers.DataReturn ){
+func(o *Type) Resolver( info resolvers.ResolverInfo) ( r resolvers.DataReturn, err definitionError.Error ){
 	
 	switch(info.Resolver){
 		case "__type":
@@ -46,7 +47,7 @@ func(o *Type) Resolver( info resolvers.ResolverInfo) ( r resolvers.DataReturn ){
 		default:
 	}
 	
-	return r;
+	return r,err;
 }
 func(o *Type) subscriptionType(parent resolvers.Parent) (r resolvers.DataReturn ){
 	parentInfo := parent.(introspection.Schema);

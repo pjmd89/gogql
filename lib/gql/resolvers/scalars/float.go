@@ -4,6 +4,7 @@ import (
 	"errors"
 	"strconv"
 
+	"github.com/pjmd89/gogql/lib/gql/definitionError"
 	"github.com/pjmd89/gogql/lib/gql/resolvers"
 )
 
@@ -16,7 +17,7 @@ func NewFloatScalar() resolvers.Scalar{
 	scalar = &FloatScalar{};
 	return scalar
 }
-func(o *FloatScalar) Assess(value interface{})( val interface{}, err error){
+func(o *FloatScalar) Assess(value interface{})( val interface{}, err definitionError.Error){
 	var er error;
 
 	switch value.(type){
@@ -34,11 +35,11 @@ func(o *FloatScalar) Assess(value interface{})( val interface{}, err error){
 		val = float64(value.(int64));
 	default:
 		if value != nil{
-			err = errors.New("Invalid float type");
+			er = errors.New("Invalid float type");
 		}
 	}
-	if value != "" && er != nil{
-		err = er;
+	if value != nil && er != nil{
+		err=definitionError.NewWarning(er.Error(),nil);
 	}
 	return val, err
 }

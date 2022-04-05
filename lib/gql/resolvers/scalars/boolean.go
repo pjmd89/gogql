@@ -4,6 +4,7 @@ import (
 	"errors"
 	"strconv"
 
+	"github.com/pjmd89/gogql/lib/gql/definitionError"
 	"github.com/pjmd89/gogql/lib/gql/resolvers"
 )
 
@@ -15,7 +16,7 @@ func NewBoolScalar() resolvers.Scalar{
 	scalar = &BoolScalar{};
 	return scalar
 }
-func(o *BoolScalar) Assess(value interface{})( val interface{}, err error){
+func(o *BoolScalar) Assess(value interface{})( val interface{}, err definitionError.Error){
 	var er error;
 
 	switch value.(type){
@@ -25,11 +26,13 @@ func(o *BoolScalar) Assess(value interface{})( val interface{}, err error){
 		val = value.(bool);
 	default:
 		if value != nil{
-			err = errors.New("Invalid bool type");
+			er = errors.New("Invalid bool type");
+			
 		}
 	}
-	if value != "" && er != nil{
-		err = er;
+	if value != nil && er != nil{
+		err=definitionError.NewWarning(er.Error(),nil);
+		
 	}
 	return val, err
 }

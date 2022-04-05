@@ -1,6 +1,7 @@
 package objectTypes
 
 import (
+	"github.com/pjmd89/gogql/lib/gql/definitionError"
 	"github.com/pjmd89/gogql/lib/gql/introspection"
 	"github.com/pjmd89/gogql/lib/gql/resolvers"
 	"github.com/pjmd89/gogql/lib/gql/resolvers/directives"
@@ -21,7 +22,7 @@ func NewEnumValue(schema resolvers.Schema,directives map[string]resolvers.Direct
 func(o *Enum) Subscribe(info resolvers.ResolverInfo) ( r bool){
 	return r;
 }
-func(o *Enum) Resolver( info resolvers.ResolverInfo) ( r resolvers.DataReturn ){
+func(o *Enum) Resolver( info resolvers.ResolverInfo) ( r resolvers.DataReturn, err  definitionError.Error ){
 	
 	switch(info.Resolver){
 		case "enumValues":
@@ -30,7 +31,7 @@ func(o *Enum) Resolver( info resolvers.ResolverInfo) ( r resolvers.DataReturn ){
 		default:
 	}
 	
-	return r;
+	return r,err;
 }
 func(o *Enum) enumValues(args resolvers.Args, parent resolvers.Parent) (r resolvers.DataReturn ){	
 	thisParent := parent.(introspection.Type);

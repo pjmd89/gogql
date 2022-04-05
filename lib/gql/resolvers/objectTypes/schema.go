@@ -1,6 +1,7 @@
 package objectTypes
 
 import (
+	"github.com/pjmd89/gogql/lib/gql/definitionError"
 	"github.com/pjmd89/gogql/lib/gql/introspection"
 	"github.com/pjmd89/gogql/lib/gql/resolvers"
 )
@@ -18,7 +19,7 @@ func NewSchema(gqlSchema resolvers.Schema, directives map[string]resolvers.Direc
 func(o *schema) Subscribe(info resolvers.ResolverInfo) ( r bool){
 	return r;
 }
-func(o *schema) Resolver(info resolvers.ResolverInfo) ( r resolvers.DataReturn ){
+func(o *schema) Resolver(info resolvers.ResolverInfo) ( r resolvers.DataReturn, err definitionError.Error ){
 
 	switch(info.Resolver){
 		case "__schema":
@@ -27,7 +28,7 @@ func(o *schema) Resolver(info resolvers.ResolverInfo) ( r resolvers.DataReturn )
 		default:
 	}
 	
-	return r;
+	return r,err;
 }
 func(o *schema) __schema() ( r resolvers.DataReturn ){
 	x := introspection.Schema{};

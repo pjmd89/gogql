@@ -3,6 +3,7 @@ package objectTypes
 import (
 	"reflect"
 
+	"github.com/pjmd89/gogql/lib/gql/definitionError"
 	"github.com/pjmd89/gogql/lib/gql/introspection"
 	"github.com/pjmd89/gogql/lib/gql/resolvers"
 	"github.com/pjmd89/gqlparser/v2/ast"
@@ -21,7 +22,7 @@ func NewInputValue(schema resolvers.Schema,directives map[string]resolvers.Direc
 func(o *InputValue) Subscribe(info resolvers.ResolverInfo) ( r bool){
 	return r;
 }
-func(o *InputValue) Resolver(info resolvers.ResolverInfo) ( r resolvers.DataReturn ){
+func(o *InputValue) Resolver(info resolvers.ResolverInfo) ( r resolvers.DataReturn, err definitionError.Error ){
 	
 	switch(info.Resolver){
 	case "args":
@@ -31,7 +32,7 @@ func(o *InputValue) Resolver(info resolvers.ResolverInfo) ( r resolvers.DataRetu
 	default:
 	}
 	
-	return r;
+	return r,err;
 }
 func(o *InputValue) args(parent resolvers.Parent) (r resolvers.DataReturn ){
 	r = make([]interface{},0);
