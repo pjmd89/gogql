@@ -10,6 +10,7 @@ import (
 	"github.com/pjmd89/gqlparser/v2"
 	"github.com/pjmd89/gqlparser/v2/ast"
 	"github.com/pjmd89/gqlparser/v2/validator"
+	maps "golang.org/x/exp/maps"
 )
 
 type Response interface{}
@@ -37,7 +38,6 @@ func(o *gql) response(request HttpRequest) *HttpResponse{
 }
 func(o *gql) WebsocketResponse(request HttpRequest, socketId string, requestID RequestID, mt int){
 	document,err := gqlparser.LoadQuery(o.schema,request.Query);
-	
 	if err != nil{
 		fmt.Println(err.Error());
 
@@ -117,6 +117,7 @@ func(o *gql) selectionSetParse(operation string, parse ast.SelectionSet, parent 
 	//var prepareToSend Response
 	isSubscriptionResponse := false;
 	prepareToSend := make(map[string]interface{},0);
+	send := make(map[string]interface{},0);
 	//ejecucion de las queries internas
 	for _,selection :=range parse{
 		rField := reflect.ValueOf(selection);
@@ -131,6 +132,10 @@ func(o *gql) selectionSetParse(operation string, parse ast.SelectionSet, parent 
 				field := fragmentSelection.(*ast.Field);
 				prepareToSend,isSubscriptionResponse = o.selectionParse(operation, field, parent, parentProceced,typeName, start, subscriptionValue );
 			}
+		}
+		if start == 0{
+			maps.Copy(send, prepareToSend)
+			prepareToSend = send;
 		}
 	}
 	return prepareToSend,isSubscriptionResponse;
