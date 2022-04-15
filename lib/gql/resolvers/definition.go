@@ -11,7 +11,7 @@ type Args map[string]interface{}
 type Parent interface{}
 
 type Directive interface{
-	Invoke(args map[string]interface{},typeName string, fieldName string) DataReturn
+	Invoke(args map[string]interface{},typeName string, fieldName string) (DataReturn, definitionError.Error)
 }
 type DirectiveList map[string]interface{}
 

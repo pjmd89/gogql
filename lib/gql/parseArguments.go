@@ -34,7 +34,9 @@ func (o *gql) parseArguments(argsRaw ast.ArgumentList, argsDefinition ast.Argume
 	for _,argRaw := range argsRaw{
 		switch (argRaw.Value.Kind){
 		case 0:
-			args[argRaw.Name].Value = o.variables[argRaw.Value.Raw];
+			if o.variables[argRaw.Value.Raw] != nil{
+				args[argRaw.Name].Value = o.variables[argRaw.Value.Raw];
+			}
 		case 8,9:
 			args[argRaw.Name].Value = o.parseArgChildren(argRaw.Value.Children);
 		default:

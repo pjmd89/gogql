@@ -222,6 +222,7 @@ func (o *pathConfig) ServeHTTP(w http.ResponseWriter,r *http.Request){
 	w.Header().Set("Access-Control-Allow-Headers", "Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization");
 	//w.Header().Set("Access-Control-Max-Age", "86400");
 	if r.Method == "OPTIONS" {
+		w.WriteHeader(http.StatusNoContent);
 		return;
 	}
 
@@ -316,5 +317,7 @@ func (o *pathConfig) WebSocketMessage(mt int, message []byte, id string ){
 	o.gqlRender[o.serverName].GQLRenderSubscription(mt,message,id);
 }
 func WriteWebsocketMessage(mt int , id string,message []byte){
-	WsChannels[id].WriteMessage(mt,message);
+	if WsChannels[id] != nil{
+		WsChannels[id].WriteMessage(mt,message);
+	}
 }

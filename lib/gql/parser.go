@@ -106,7 +106,7 @@ func(o *gql)setVariables(schema *ast.Schema, operation *ast.OperationDefinition,
 	vars,err := validator.VariableValues(o.schema,operation,variables)
 	//validar las variables con los scalar propios
 	if err != nil{
-		//responder con error
+		fmt.Println(err);
 	}
 	
 	o.variables = vars;
@@ -218,7 +218,7 @@ func(o *gql) parseDirectives(directives ast.DirectiveList, typeName string, fiel
 		args:= o.parseArguments(directive.Arguments, directive.Definition.Arguments);
 		var x resolvers.DataReturn;
 		if o.directives[directive.Name] != nil{
-			x = o.directives[directive.Name].Invoke(args,typeName,fieldName);
+			x,_ = o.directives[directive.Name].Invoke(args,typeName,fieldName);
 		}
 		r[directive.Name] = x;
 	}
