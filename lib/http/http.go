@@ -99,6 +99,9 @@ func (o *Http) Start() {
 				break;
 			}
 			vv.Url = v.ServerName;
+			vv.CheckOrigin = o.CheckOrigin
+			vv.OnBegin = o.OnBegin
+			vv.OnFinish = o.OnFinish
 			if vv.Path == "" {
 				vv.Path = "htdocs";
 			}
@@ -210,11 +213,14 @@ func (o *pathConfig) ServeHTTP(w http.ResponseWriter,r *http.Request){
 		http.Redirect(w,r,secureProtocol+httpsURI+r.RequestURI,301);
 		return;
 	}
+	isAllow := o.isAllowOrigin(o.AllowOrigin);
+
 	upgrader.CheckOrigin = func(r *http.Request) bool { 
-		return true;
+		
+		return isAllow;
 	}
 	
-	if strings.Trim(o.AllowOrigin, " ") != "" {
+	if strings.Trim(o.AllowOrigin, " ") != "" && isAllow{
 		w.Header().Set("Access-Control-Allow-Origin", protocol+o.AllowOrigin);
 		w.Header().Set("Access-Control-Allow-Credentials", "true");
 	}
@@ -225,7 +231,10 @@ func (o *pathConfig) ServeHTTP(w http.ResponseWriter,r *http.Request){
 		w.WriteHeader(http.StatusNoContent);
 		return;
 	}
-
+	if o.OnBegin != nil {
+		o.OnBegin(o.AllowOrigin);
+	}
+	
 	switch o.Mode{
 		case "file":
 			file, fErr := os.Open(o.Path+r.RequestURI);
@@ -309,12 +318,25 @@ func (o *pathConfig) ServeHTTP(w http.ResponseWriter,r *http.Request){
 		default:
 			w.WriteHeader(http.StatusExpectationFailed);
 			fmt.Fprint(w,"Mode "+o.Mode+" not exists.");
-		}
+	}
+
+	if o.OnFinish != nil {
+		o.OnFinish();
+	}
 	return;
 }
 func (o *pathConfig) WebSocketMessage(mt int, message []byte, id string ){
 	
 	o.gqlRender[o.serverName].GQLRenderSubscription(mt,message,id);
+}
+func (o *pathConfig) isAllowOrigin( url string ) bool {
+	isAllow :=true;
+
+	if o.CheckOrigin != nil{
+		isAllow = o.CheckOrigin( url );
+	}
+
+	return isAllow;
 }
 func WriteWebsocketMessage(mt int , id string,message []byte){
 	if WsChannels[id] != nil{
