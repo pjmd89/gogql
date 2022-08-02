@@ -74,7 +74,8 @@ func(o *Field) setDeprecate(value *ast.FieldDefinition,thisParent introspection.
 		for _,directive:=range value.Directives{
 			switch directive.Name{
 				case "deprecated":
-					deprecateDirectiveResult = o.directives[directive.Name].Invoke(map[string]interface{}{},*thisParent.Name,value.Name).(directives.DeprecatedData);
+					deprecateDirectiveResults,_ := o.directives[directive.Name].Invoke(map[string]interface{}{},*thisParent.Name,value.Name);
+					deprecateDirectiveResult = deprecateDirectiveResults.(directives.DeprecatedData)
 			}
 		}
 	}

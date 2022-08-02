@@ -1,6 +1,7 @@
 package directives
 
 import (
+	"github.com/pjmd89/gogql/lib/gql/definitionError"
 	"github.com/pjmd89/gogql/lib/gql/resolvers"
 	"github.com/pjmd89/gqlparser/v2/ast"
 )
@@ -18,7 +19,7 @@ func NewDeprecated(schema resolvers.Schema) resolvers.Directive{
 	return _type;
 	
 }
-func (o *Deprecated) Invoke(args map[string]interface{},typeName string, fieldName string) resolvers.DataReturn{
+func (o *Deprecated) Invoke(args map[string]interface{},typeName string, fieldName string) (re resolvers.DataReturn, err definitionError.Error){
 	r := DeprecatedData{};
 	if o.schema.Types[typeName] != nil{
 		switch(o.schema.Types[typeName].Kind){
@@ -28,7 +29,7 @@ func (o *Deprecated) Invoke(args map[string]interface{},typeName string, fieldNa
 			o.parseFields(o.schema.Types[typeName].Fields, fieldName, &r);
 		}
 	}
-	return r;
+	return r, err;
 
 }
 
