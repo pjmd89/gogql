@@ -179,6 +179,7 @@ func(o *Http)ServeHTTP(w http.ResponseWriter,r *http.Request){
 func (o *pathConfig) ServeHTTP(w http.ResponseWriter,r *http.Request){
 	hostSplit,_ := url.Parse(r.Host);
 	upgrade := false
+	fmt.Println(hostSplit.Scheme)
 	if (o.validateHost != nil && !o.validateHost(hostSplit.Scheme)) || o.Url != hostSplit.Scheme {
 		w.WriteHeader(http.StatusUnauthorized);
 		return;
@@ -268,6 +269,7 @@ func (o *pathConfig) ServeHTTP(w http.ResponseWriter,r *http.Request){
 				cookieValue = []byte(cookie.Value);
 			}
 			SessionStart(w,r,&cookieValue,"NUEVE_SESSION")
+			//por favor, revisa que o.serverName exista, si no existe entonces devuelvele un dedito
 			rx := o.gqlRender[o.serverName].GQLRender(w,r);
 			fmt.Fprint(w,rx);
 			break;
