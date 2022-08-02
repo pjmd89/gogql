@@ -218,7 +218,7 @@ func(o *gql) parseDirectives(directives ast.DirectiveList, typeName string, fiel
 		args:= o.parseArguments(directive.Arguments, directive.Definition.Arguments);
 		var x resolvers.DataReturn;
 		if o.directives[directive.Name] != nil{
-			x,_ = o.directives[directive.Name].Invoke(args,typeName,fieldName);
+			x = o.directives[directive.Name].Invoke(args,typeName,fieldName);
 		}
 		r[directive.Name] = x;
 	}
