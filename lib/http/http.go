@@ -219,7 +219,9 @@ func (o *pathConfig) ServeHTTP(w http.ResponseWriter,r *http.Request){
 		
 		return isAllow;
 	}
-	
+	if !isAllow{
+		return;
+	}
 	if strings.Trim(o.AllowOrigin, " ") != "" && isAllow{
 		w.Header().Set("Access-Control-Allow-Origin", protocol+o.AllowOrigin);
 		w.Header().Set("Access-Control-Allow-Credentials", "true");
