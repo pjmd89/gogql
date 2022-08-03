@@ -179,7 +179,6 @@ func(o *Http)ServeHTTP(w http.ResponseWriter,r *http.Request){
 func (o *pathConfig) ServeHTTP(w http.ResponseWriter,r *http.Request){
 	hostSplit,_ := url.Parse(r.Host);
 	upgrade := false
-	fmt.Println(hostSplit.Scheme)
 	if (o.validateHost != nil && !o.validateHost(hostSplit.Scheme)) || o.Url != hostSplit.Scheme {
 		w.WriteHeader(http.StatusUnauthorized);
 		return;
@@ -214,7 +213,7 @@ func (o *pathConfig) ServeHTTP(w http.ResponseWriter,r *http.Request){
 		http.Redirect(w,r,secureProtocol+httpsURI+r.RequestURI,301);
 		return;
 	}
-	isAllow := o.isAllowOrigin(o.AllowOrigin);
+	isAllow := o.isAllowOrigin(hostSplit);
 
 	upgrader.CheckOrigin = func(r *http.Request) bool { 
 		
@@ -235,7 +234,7 @@ func (o *pathConfig) ServeHTTP(w http.ResponseWriter,r *http.Request){
 		return;
 	}
 	if o.OnBegin != nil {
-		o.OnBegin(o.AllowOrigin, hostSplit);
+		o.OnBegin(hostSplit);
 	}
 	
 	switch o.Mode{
@@ -333,7 +332,7 @@ func (o *pathConfig) WebSocketMessage(mt int, message []byte, id string ){
 	
 	o.gqlRender[o.serverName].GQLRenderSubscription(mt,message,id);
 }
-func (o *pathConfig) isAllowOrigin( url string ) bool {
+func (o *pathConfig) isAllowOrigin( url *url.URL ) bool {
 	isAllow :=true;
 
 	if o.CheckOrigin != nil{
