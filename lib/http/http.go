@@ -235,7 +235,7 @@ func (o *pathConfig) ServeHTTP(w http.ResponseWriter,r *http.Request){
 		return;
 	}
 	if o.OnBegin != nil {
-		o.OnBegin(o.AllowOrigin);
+		o.OnBegin(o.AllowOrigin, hostSplit);
 	}
 	
 	switch o.Mode{

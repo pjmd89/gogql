@@ -2,6 +2,7 @@ package http
 
 import (
 	"net/http"
+	"net/url"
 
 	"github.com/gorilla/mux"
 	"github.com/gorilla/sessions"
@@ -35,7 +36,7 @@ type pathConfig struct {
 	gqlRender		map[string]Gql
 	serverName		string
 	validateHost 	ValidateHost
-	OnBegin			func( url string )
+	OnBegin			func( hostname string , url *url.URL)
 	OnFinish		func()
 	CheckOrigin 	func( url string ) bool
 }
@@ -58,7 +59,7 @@ type Http struct{
 	router 			*mux.Router
 	gql				map[string]Gql
 	ValidateHost 	ValidateHost
-	OnBegin			func( url string )
+	OnBegin			func( hostname string, url *url.URL )
 	OnFinish		func()
 	CheckOrigin 	func( url string )  bool
 }
