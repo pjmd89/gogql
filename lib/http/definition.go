@@ -36,9 +36,9 @@ type pathConfig struct {
 	gqlRender		map[string]Gql
 	serverName		string
 	validateHost 	ValidateHost
-	OnBegin			func( url *url.URL)
+	OnBegin			func( host *url.URL, referer *url.URL )
 	OnFinish		func()
-	CheckOrigin 	func( url *url.URL ) bool
+	CheckOrigin 	func(  host *url.URL, referer *url.URL  ) bool
 }
 type server struct {
 	ServerName 		string	 				`json:"serverName,omitempty"`
@@ -59,7 +59,7 @@ type Http struct{
 	router 			*mux.Router
 	gql				map[string]Gql
 	ValidateHost 	ValidateHost
-	OnBegin			func( url *url.URL )
+	OnBegin			func( host *url.URL, referer *url.URL )
 	OnFinish		func()
-	CheckOrigin 	func( url *url.URL )  bool
+	CheckOrigin 	func( host *url.URL, referer *url.URL )  bool
 }

@@ -74,7 +74,9 @@ func (o *Http) Start() {
 			stop = true;
 			break;
 		}
-		v.subrouter = o.router.Host(v.ServerName).Subrouter();
+		replaceServerName := strings.Replace(v.ServerName,"*","{subdomain}",-1);
+		v.subrouter = o.router.Host(replaceServerName).Subrouter();
+		
 		if v.EnableHttps {
 			isTls = true;
 		}
@@ -125,7 +127,8 @@ func (o *Http) Start() {
 				vv.gqlRender = o.gql;
 				x.Handler(vv)
 			default:
-				x:= v.subrouter.Methods("GET", "OPTIONS").PathPrefix(vv.Endpoint);
+				x:= v.subrouter.Methods("GET", "POST", "OPTIONS").PathPrefix(vv.Endpoint);
+				//x.Handler(vv)
 				x.Handler(http.StripPrefix(vv.Endpoint,vv))
 			}
 		}
@@ -172,31 +175,16 @@ func(o *Http) listenHttps(channel chan bool, handler http.Server){
 		channel <- true;
 	}
 }
+
 func(o *Http)ServeHTTP(w http.ResponseWriter,r *http.Request){
 	w.WriteHeader(http.StatusNotFound);
 	fmt.Fprint(w,"file not found, archivo no se encuentra");
 }
-func (o *pathConfig) ServeHTTP(w http.ResponseWriter,r *http.Request){
-	hostSplit,_ := url.Parse(r.Host);
-	upgrade := false
-	if (o.validateHost != nil && !o.validateHost(hostSplit.Scheme)) || o.Url != hostSplit.Scheme {
-		w.WriteHeader(http.StatusUnauthorized);
-		return;
-	}
-    for _, header := range r.Header["Upgrade"] {
-        if header == "websocket" {
-            upgrade = true
-            break
-        }
-    }
 
-	httpsURI := hostSplit.Scheme;
-	
-	secureProtocol := "https://";
+func (o *pathConfig) ServeHTTP(w http.ResponseWriter,r *http.Request){
+	upgrade := false
 	protocol := `http://`;
-	if o.httpsPort != "443" && o.enableHttps && o.redirect{
-		httpsURI += ":"+o.httpsPort;
-	}
+	secureProtocol := "https://";
 	if r.TLS != nil {
 		protocol = `https://`;
 	}
@@ -209,21 +197,41 @@ func (o *pathConfig) ServeHTTP(w http.ResponseWriter,r *http.Request){
 			protocol = "wss://";
 		}
 	}
+    for _, header := range r.Header["Upgrade"] {
+        if header == "websocket" {
+            upgrade = true
+            break
+        }
+    }
+
+	hostSplit,_ := url.Parse(protocol+r.Host);
+	refererSplit,_ := url.Parse(r.Referer());
+	
+	isAllow := o.isAllowOrigin( hostSplit, refererSplit );
+	if !isAllow{
+		w.WriteHeader(http.StatusUnauthorized);
+		return;
+	}
+	httpsURI := hostSplit.Scheme;
+	
+	
+	
+	if o.httpsPort != "443" && o.enableHttps && o.redirect{
+		httpsURI += ":"+o.httpsPort;
+	}
+	
 	if o.redirect && o.enableHttps && r.TLS == nil {
 		http.Redirect(w,r,secureProtocol+httpsURI+r.RequestURI,301);
 		return;
 	}
-	isAllow := o.isAllowOrigin(hostSplit);
 
 	upgrader.CheckOrigin = func(r *http.Request) bool { 
 		
 		return isAllow;
 	}
-	if !isAllow{
-		return;
-	}
-	if strings.Trim(o.AllowOrigin, " ") != "" && isAllow{
-		w.Header().Set("Access-Control-Allow-Origin", protocol+o.AllowOrigin);
+	
+	if refererSplit.Host != "" {
+		w.Header().Set("Access-Control-Allow-Origin", protocol+refererSplit.Host);
 		w.Header().Set("Access-Control-Allow-Credentials", "true");
 	}
 	w.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE");
@@ -234,7 +242,7 @@ func (o *pathConfig) ServeHTTP(w http.ResponseWriter,r *http.Request){
 		return;
 	}
 	if o.OnBegin != nil {
-		o.OnBegin(hostSplit);
+		o.OnBegin(hostSplit, refererSplit);
 	}
 	
 	switch o.Mode{
@@ -255,6 +263,7 @@ func (o *pathConfig) ServeHTTP(w http.ResponseWriter,r *http.Request){
 			if fErr != nil || fileStat.IsDir(){
 				w.WriteHeader(http.StatusNotFound);
 				fmt.Fprint(w,"file not found, archivo no se encuentra");
+
 				return;
 			}
 			
@@ -332,11 +341,11 @@ func (o *pathConfig) WebSocketMessage(mt int, message []byte, id string ){
 	
 	o.gqlRender[o.serverName].GQLRenderSubscription(mt,message,id);
 }
-func (o *pathConfig) isAllowOrigin( url *url.URL ) bool {
+func (o *pathConfig) isAllowOrigin( host *url.URL, referer *url.URL ) bool {
 	isAllow :=true;
 
 	if o.CheckOrigin != nil{
-		isAllow = o.CheckOrigin( url );
+		isAllow = o.CheckOrigin( host, referer );
 	}
 
 	return isAllow;
