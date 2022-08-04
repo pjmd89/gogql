@@ -207,6 +207,13 @@ func (o *pathConfig) ServeHTTP(w http.ResponseWriter,r *http.Request){
 	hostSplit,_ := url.Parse(protocol+r.Host);
 	refererSplit,_ := url.Parse(r.Referer());
 	
+	cookie,_ := r.Cookie("NUEVE_SESSION");
+	var cookieValue []byte;
+	if cookie != nil {
+		cookieValue = []byte(cookie.Value);
+	}
+	SessionStart(w,r,&cookieValue,"NUEVE_SESSION")
+	
 	isAllow := o.isAllowOrigin( hostSplit, refererSplit );
 	if !isAllow{
 		w.WriteHeader(http.StatusUnauthorized);
@@ -244,92 +251,80 @@ func (o *pathConfig) ServeHTTP(w http.ResponseWriter,r *http.Request){
 	if o.OnBegin != nil {
 		o.OnBegin(hostSplit, refererSplit);
 	}
-	
 	switch o.Mode{
-		case "file":
-			file, fErr := os.Open(o.Path+r.RequestURI);
-			fileStat,_ := file.Stat();
-			
-			if fErr != nil || fileStat.IsDir(){
-				file, fErr = os.Open(o.Path+r.RequestURI+"/"+o.FileDefault);
-				fileStat,_ = file.Stat();
-			}
-			
-			if o.Rewrite && fErr != nil{
-				file, fErr = os.Open(o.Path+"/"+o.RewriteTo);
-				fileStat,_ = file.Stat();
-			}
-			
-			if fErr != nil || fileStat.IsDir(){
-				w.WriteHeader(http.StatusNotFound);
-				fmt.Fprint(w,"file not found, archivo no se encuentra");
+	case "file":
+		file, fErr := os.Open(o.Path+r.RequestURI);
+		fileStat,_ := file.Stat();
+		
+		if fErr != nil || fileStat.IsDir(){
+			file, fErr = os.Open(o.Path+r.RequestURI+"/"+o.FileDefault);
+			fileStat,_ = file.Stat();
+		}
+		
+		if o.Rewrite && fErr != nil{
+			file, fErr = os.Open(o.Path+"/"+o.RewriteTo);
+			fileStat,_ = file.Stat();
+		}
+		
+		if fErr != nil || fileStat.IsDir(){
+			w.WriteHeader(http.StatusNotFound);
+			fmt.Fprint(w,"file not found, archivo no se encuentra");
 
-				return;
-			}
-			
-			http.ServeContent(w,r,o.Path+"/"+r.RequestURI,time.Time{},file);
-			break;
-		case "gql":
-			w.Header().Set("Content-Type", "application/json; charset=UTF-8");
-			cookie,_ := r.Cookie("NUEVE_SESSION");
-			var cookieValue []byte;
-			if cookie != nil {
-				cookieValue = []byte(cookie.Value);
-			}
-			SessionStart(w,r,&cookieValue,"NUEVE_SESSION")
-			//por favor, revisa que o.serverName exista, si no existe entonces devuelvele un dedito
-			rx := o.gqlRender[o.serverName].GQLRender(w,r);
-			fmt.Fprint(w,rx);
-			break;
-		case "websocket":
-			headers := http.Header{};
-			headers.Set("Sec-WebSocket-Protocol", "graphql-transport-ws");
-			headers.Set("Sec-WebSocket-Version", "13");
-			headers.Set("Content-Type", "application/json; charset=UTF-8");
-			headers.Set("Access-Control-Allow-Origin", protocol+o.AllowOrigin);
-			cookie,_ := r.Cookie("NUEVE_SESSION");
-			var cookieValue []byte;
-			if cookie != nil {
-				cookieValue = []byte(cookie.Value);
-			}
-			SessionStart(w,r,&cookieValue,"NUEVE_SESSION")
+			return;
+		}
+		
+		http.ServeContent(w,r,o.Path+"/"+r.RequestURI,time.Time{},file);
+		break;
+	case "gql":
+		w.Header().Set("Content-Type", "application/json; charset=UTF-8");
+		
+		//por favor, revisa que o.serverName exista, si no existe entonces devuelvele un dedito
+		rx := o.gqlRender[o.serverName].GQLRender(w,r);
+		fmt.Fprint(w,rx);
+		break;
+	case "websocket":
+		headers := http.Header{};
+		headers.Set("Sec-WebSocket-Protocol", "graphql-transport-ws");
+		headers.Set("Sec-WebSocket-Version", "13");
+		headers.Set("Content-Type", "application/json; charset=UTF-8");
+		headers.Set("Access-Control-Allow-Origin", protocol+o.AllowOrigin);
 
-			id := uuid.New().String();
-			WsIds[id] = make(chan bool,1);
-			var upgraderError error;
-			WsChannels[id], upgraderError = upgrader.Upgrade(w, r, headers)
-			if upgraderError != nil{
+		id := uuid.New().String();
+		WsIds[id] = make(chan bool,1);
+		var upgraderError error;
+		WsChannels[id], upgraderError = upgrader.Upgrade(w, r, headers)
+		if upgraderError != nil{
 
-				fmt.Println(upgraderError);
+			fmt.Println(upgraderError);
+			select{
+				case WsIds[id] <- false:
+			}
+			close(WsIds[id]);
+			delete(WsIds,id);
+			delete(WsChannels,id);
+			fmt.Println(upgraderError);
+		}
+		TmpChannelId = id;
+		defer WsChannels[id].Close();
+		while:=true;
+		for while{
+			mt, message, err := WsChannels[id].ReadMessage();
+			if err != nil {
 				select{
-					case WsIds[id] <- false:
+				case WsIds[id] <- false:
 				}
 				close(WsIds[id]);
 				delete(WsIds,id);
 				delete(WsChannels,id);
-				fmt.Println(upgraderError);
+				while = false;
+				break;
 			}
-			TmpChannelId = id;
-			defer WsChannels[id].Close();
-			while:=true;
-			for while{
-				mt, message, err := WsChannels[id].ReadMessage();
-				if err != nil {
-					select{
-					case WsIds[id] <- false:
-					}
-					close(WsIds[id]);
-					delete(WsIds,id);
-					delete(WsChannels,id);
-					while = false;
-					break;
-				}
-				go o.WebSocketMessage(mt, message, id);
-				
-			}
-		default:
-			w.WriteHeader(http.StatusExpectationFailed);
-			fmt.Fprint(w,"Mode "+o.Mode+" not exists.");
+			go o.WebSocketMessage(mt, message, id);
+			
+		}
+	default:
+		w.WriteHeader(http.StatusExpectationFailed);
+		fmt.Fprint(w,"Mode "+o.Mode+" not exists.");
 	}
 
 	if o.OnFinish != nil {

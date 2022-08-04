@@ -2,6 +2,7 @@ package http
 
 import (
 	"net/http"
+	"sync"
 
 	"github.com/gorilla/securecookie"
 	"github.com/gorilla/sessions"
@@ -12,8 +13,10 @@ var store = sessions.NewCookieStore(
 	securecookie.GenerateRandomKey(64),
 	securecookie.GenerateRandomKey(32),
 );
-func SessionStart(w http.ResponseWriter,r *http.Request, sessionName *[]byte, cookieName string ) *Cookie{
+var mutex = &sync.Mutex{}
 
+func SessionStart(w http.ResponseWriter,r *http.Request, sessionName *[]byte, cookieName string ) *Cookie{
+	mutex.Lock()
 	Session = &Cookie{};
 	Session.r = r;
 	Session.w = w;
@@ -27,24 +30,26 @@ func SessionStart(w http.ResponseWriter,r *http.Request, sessionName *[]byte, co
 			Session.session = session
 		}
 	}
+	if Session.session == nil {
+		Session.Start = true;
+		Session.session = sessions.NewSession(store, Session.cookieName);
+		Session.session.Values = make(map[interface{}]interface{});
+		Session.session.Save(Session.r, Session.w);
+	}
+	mutex.Unlock()
 	return Session
 }
-func(o *Cookie) New( values map[interface{}]interface{} ){
-	o.Start = true;
-	o.session = sessions.NewSession(store, o.cookieName);
-	o.session.Values = values;
-	o.session.Save(o.r, o.w);
-}
 func(o *Cookie)Set(values map[interface{}]interface{}){
+	mutex.Lock()
 	for k,v :=range values{
 		o.session.Values[k] = v;
 	}
-	
 	o.session.Save(o.r, o.w);
+	mutex.Unlock()
 }
 func(o *Cookie)Get() map[interface{}]interface{}{
 	r := make(map[interface{}]interface{});
-	if o.session != nil{
+	if o != nil && o.session != nil{
 		r = o.session.Values
 	}
 	return r;
