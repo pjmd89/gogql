@@ -131,7 +131,7 @@ func (o *Http) ServeHTTP(w http.ResponseWriter,r *http.Request){
 		host := strings.Replace(server.Host,"*",`[^.]+`,-1);
 		match,_ := regexp.MatchString(host,urlInfo.Host);
 		serverBreak := false;
-		if match && slices.Contains(server.Reject, urlInfo.Hosts){
+		if match && slices.Contains(server.Reject, urlInfo.Host){
 			for _,serverPath := range server.Path{
 				matchPath,_ := regexp.MatchString(`^`+serverPath.Endpoint,urlPath);
 				if matchPath{
