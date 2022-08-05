@@ -7,14 +7,12 @@ import (
 	"github.com/gorilla/securecookie"
 	"github.com/gorilla/sessions"
 )
-
 var Session *Cookie;
+var mutex = &sync.Mutex{}
 var store = sessions.NewCookieStore(
 	securecookie.GenerateRandomKey(64),
 	securecookie.GenerateRandomKey(32),
 );
-var mutex = &sync.Mutex{}
-
 func SessionStart(w http.ResponseWriter,r *http.Request, sessionName *[]byte, cookieName string ) *Cookie{
 	mutex.Lock()
 	Session = &Cookie{};
@@ -23,19 +21,44 @@ func SessionStart(w http.ResponseWriter,r *http.Request, sessionName *[]byte, co
 	Session.cookieName = cookieName;
 	Session.sessionName = *sessionName;
 	if sessionName != nil{
-		store.Options = &sessions.Options{ Path: "/",SameSite: http.SameSiteNoneMode, HttpOnly: true, Secure: true, MaxAge: 0};
+		store.Options = &sessions.Options{ Domain:".cpfback.lo", Path: "/", HttpOnly: true, Secure: true, MaxAge: 0,SameSite: http.SameSiteNoneMode};
 		session, err := store.Get(r, cookieName)
-		if err == nil {
-			Session.Start = true;
-			Session.session = session
+		Session.Start = true;
+		Session.session = session
+		
+		if session.IsNew{
+			Session.session = sessions.NewSession(store, Session.cookieName);
+			Session.session.Options = store.Options
+			Session.session.Values = make(map[interface{}]interface{});
+			Session.session.Save(Session.r, Session.w);
 		}
+		if err == nil {
+			//Session.Start = true;
+			//Session.session = session
+			/*
+			switch session.IsNew{
+			case true:
+				Session.session.Options = store.Options;
+				Session.session.Values = make(map[interface{}]interface{});
+				Session.session.Save(Session.r, Session.w);
+				break;
+			case false:
+				fmt.Println(Session.session);
+				break;
+			}
+			*/
+		}
+		
 	}
+	/*
 	if Session.session == nil {
 		Session.Start = true;
 		Session.session = sessions.NewSession(store, Session.cookieName);
-		Session.session.Values = make(map[interface{}]interface{});
-		Session.session.Save(Session.r, Session.w);
+		Session.session.Options = store.Options
+		
+		
 	}
+	*/
 	mutex.Unlock()
 	return Session
 }
