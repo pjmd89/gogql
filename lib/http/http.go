@@ -313,11 +313,3 @@ func contains(s []interface{}, e int) bool {
     }
     return false
 }
-func in_array(val string, array []string) (ok bool) {
-    for i := range array {
-        if ok = array[i] == val; ok {
-            return
-        }
-    }
-    return
-}
