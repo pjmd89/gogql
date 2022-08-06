@@ -34,7 +34,7 @@ func Init(gql... Gql) *Http {
 		mapGQL[v.GetServerName()] = v;
 	}
 	o := &Http{HttpPort: "8080", HttpsPort: "8443", gql: mapGQL};
-	lib.GetJson("http/httpx.json", &o);
+	lib.GetJson("http/http.json", &o);
 	
 	if  strings.Trim(o.HttpPort," ") == "" {
 		o.HttpPort = "8080";
