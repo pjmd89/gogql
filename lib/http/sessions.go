@@ -21,44 +21,22 @@ func SessionStart(w http.ResponseWriter,r *http.Request, sessionName *[]byte, co
 	Session.cookieName = cookieName;
 	Session.sessionName = *sessionName;
 	if sessionName != nil{
-		store.Options = &sessions.Options{ Domain:".cpfback.lo", Path: "/", HttpOnly: true, Secure: true, MaxAge: 0,SameSite: http.SameSiteNoneMode};
+		secureCookie := false;
+		if r.TLS != nil {
+			secureCookie = true;
+		}
+		store.Options = &sessions.Options{ Path: "/", HttpOnly: true, Secure: secureCookie, MaxAge: 0,SameSite: http.SameSiteNoneMode};
 		session, err := store.Get(r, cookieName)
 		Session.Start = true;
 		Session.session = session
 		
-		if session.IsNew{
+		if session.IsNew || err == nil{
 			Session.session = sessions.NewSession(store, Session.cookieName);
 			Session.session.Options = store.Options
 			Session.session.Values = make(map[interface{}]interface{});
 			Session.session.Save(Session.r, Session.w);
 		}
-		if err == nil {
-			//Session.Start = true;
-			//Session.session = session
-			/*
-			switch session.IsNew{
-			case true:
-				Session.session.Options = store.Options;
-				Session.session.Values = make(map[interface{}]interface{});
-				Session.session.Save(Session.r, Session.w);
-				break;
-			case false:
-				fmt.Println(Session.session);
-				break;
-			}
-			*/
-		}
-		
 	}
-	/*
-	if Session.session == nil {
-		Session.Start = true;
-		Session.session = sessions.NewSession(store, Session.cookieName);
-		Session.session.Options = store.Options
-		
-		
-	}
-	*/
 	mutex.Unlock()
 	return Session
 }
