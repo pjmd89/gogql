@@ -36,11 +36,14 @@ type URL struct{
 		URL			string
 	}
 }
-type path struct{
+type Path struct{
 	Mode			string					`json:"mode,omitempty"`
 	Path			string					`json:"path,omitempty"`
 	Endpoint		string					`json:"endpoint,omitempty"`
 	len				int
+	pathURL			string
+	host			string
+	origin			string
 }
 type server struct{
 	Host			string					`json:"host,omitempty"`
@@ -53,18 +56,19 @@ type server struct{
 	RewriteTo		string					`json:"rewriteTo,omitempty"`
 	Rewrite			bool					`json:"rewrite,omitempty"`
 	FileDefault		string					`json:"fileDefault,omitempty"`
-	Path			[]path					`json:"path,omitempty"`
+	Path			[]Path					`json:"path,omitempty"`
 }
 type Http struct{
 	HttpPort		string					`json:"httpPort,omitempty"`
 	HttpsPort		string					`json:"httpsPort,omitempty"`
+	CookieName		string					`json:"cookieName,omitempty"`
 	Server 			[]server 				`json:"server,omitempty"`
 	httpService		mux.Router
 	httpsService	mux.Router
 	router 			*mux.Router
 	gql				map[string]Gql
 	CheckOrigin		func( url URL ) bool
-	OnBegin			func( url URL, mode string ) bool
+	OnBegin			func( url URL, httpPath *Path ) bool
 	OnFinish		func()
 	http404			func()
 	http405			func()

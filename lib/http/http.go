@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/pjmd89/gogql/lib"
 
 	"github.com/gorilla/handlers"
@@ -35,11 +36,14 @@ func Init(gql... Gql) *Http {
 	o := &Http{HttpPort: "8080", HttpsPort: "8443", gql: mapGQL};
 	lib.GetJson("http/httpx.json", &o);
 	
-	if  o.HttpPort == "" {
+	if  strings.Trim(o.HttpPort," ") == "" {
 		o.HttpPort = "8080";
 	}
-	if  o.HttpsPort == "" {
+	if  strings.Trim(o.HttpsPort," ") == "" {
 		o.HttpsPort = "8443";
+	}
+	if  strings.Trim(o.CookieName," ") == "" {
+		o.CookieName = "GOGQL_SESSION";
 	}
 	return o;
 }
@@ -51,7 +55,11 @@ func (o *Http) Start(){
 	isTls := false;
 	tlsConfig := &tls.Config{};
 	tlsConfig.Certificates = []tls.Certificate{};
-
+	/*
+	xhttp:=&Http{Url:v.ServerName}
+	o.router[counter].NotFoundHandler = xhttp;
+	o.router[counter].MethodNotAllowedHandler = xhttp;
+	*/
 	o.router = mux.NewRouter();
 	o.router.Use(handlers.CompressHandler);
 	subrouter := o.router.MatcherFunc(o.MatcherFunc).Subrouter();
@@ -106,14 +114,14 @@ func (o *Http) ServeHTTP(w http.ResponseWriter,r *http.Request){
 	var urlInfo URL;
 	urlInfo.Split(r);
 	urlPath := "/";
-	var httpPathMode *path;
+	var httpPathMode *Path;
 	
 
 	if urlInfo.Origin.URL != "" {
 		w.Header().Set("Access-Control-Allow-Origin", urlInfo.Origin.URL);
 		w.Header().Set("Access-Control-Allow-Credentials", "true");
 	}
-	w.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE");
+	w.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS");
 	w.Header().Set("Access-Control-Allow-Headers", "Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization");
 	//w.Header().Set("Access-Control-Max-Age", "86400");
 	if r.Method == "OPTIONS" {
@@ -126,12 +134,23 @@ func (o *Http) ServeHTTP(w http.ResponseWriter,r *http.Request){
 		urlPath = strings.TrimSuffix(parseUrl.Path,"/");
 	}
 	
+	for i,svr := range o.Server{
+		if strings.Trim(svr.Host," ") == "*" {
+			tmp := make([]server,0)
+			tmp = append(tmp, o.Server[:i]...)
+			tmp = append(tmp, o.Server[i+1:]...)
+			o.Server = append(tmp, svr)
+		}
+	}
 	for _,server := range o.Server{
-		var httpModes []path;
+		var httpModes []Path;
 		host := strings.Replace(server.Host,"*",`[^.]+`,-1);
+		if strings.Trim(server.Host," ") == "*" {
+			host = `[^/]+`;
+		}
 		match,_ := regexp.MatchString(host,urlInfo.Host);
 		serverBreak := false;
-		if match && slices.Contains(server.Reject, urlInfo.Host){
+		if match && !slices.Contains(server.Reject, urlInfo.Host){
 			for _,serverPath := range server.Path{
 				matchPath,_ := regexp.MatchString(`^`+serverPath.Endpoint,urlPath);
 				if matchPath{
@@ -151,26 +170,59 @@ func (o *Http) ServeHTTP(w http.ResponseWriter,r *http.Request){
 				}
 			}
 			if len(httpModes) >= mode  {
-				httpPathMode = &path{};
+				httpPathMode = &Path{};
 				*httpPathMode = httpModes[mode];
+				httpPathMode.pathURL = urlPath;
+				httpPathMode.host = server.Host;
+				httpPathMode.origin = urlInfo.Origin.URL;
 			}
-			
 			break;
 		}
 	}
 	if httpPathMode != nil{
-		fmt.Println(httpPathMode)
+		cookie,_ := r.Cookie(o.CookieName);
+		var cookieValue []byte;
+		if cookie != nil {
+			cookieValue = []byte(cookie.Value);
+		}
+		SessionStart(w,r,&cookieValue,o.CookieName)
+		if o.OnBegin != nil {
+			o.OnBegin( urlInfo, httpPathMode );
+		}
+		switch httpPathMode.Mode{
+		case "file":
+			o.fileServeHTTP(w,r,httpPathMode);
+			break;
+		case "gql":
+			o.gqlServeHTTP(w,r,httpPathMode);
+			break;
+		case "websocket":
+			o.websocketServeHTTP(w,r,httpPathMode);
+			break;
+		}
+		if o.OnFinish != nil {
+			o.OnFinish();
+		}
+	} else {
+		fmt.Println("mode not found");
+		w.WriteHeader(http.StatusNotFound);
 	}
-	file, fErr := os.Open("htdocs/"+urlPath);
+	if o.OnFinish != nil {
+		o.OnFinish();
+	}
+	return;
+}
+func(o *Http) fileServeHTTP(w http.ResponseWriter, r *http.Request, httpPath *Path){
+	file, fErr := os.Open(httpPath.Path+"/"+httpPath.pathURL);
 	fileStat,_ := file.Stat();
 	
 	if fErr != nil || fileStat.IsDir(){
-		file, fErr = os.Open("htdocs"+urlPath+"/index.html");
+		file, fErr = os.Open(httpPath.Path+httpPath.pathURL+"/index.html");
 		fileStat,_ = file.Stat();
 	}
 	
 	if false && fErr != nil{
-		file, fErr = os.Open("htdocs/index.html");
+		file, fErr = os.Open(httpPath.Path+"/index.html");
 		fileStat,_ = file.Stat();
 	}
 	
@@ -181,58 +233,21 @@ func (o *Http) ServeHTTP(w http.ResponseWriter,r *http.Request){
 		return;
 	}
 	
-	http.ServeContent(w,r,"htdocs/"+r.RequestURI,time.Time{},file);
-	/*
-	switch o.Mode{
-	case "gql","websocket","file":
-		cookie,_ := r.Cookie("NUEVE_SESSION");
-		var cookieValue []byte;
-		if cookie != nil {
-			cookieValue = []byte(cookie.Value);
-		}
-		//fmt.Println(string(cookieValue))
-		SessionStart(w,r,&cookieValue,"NUEVE_SESSION")
-	}
-	if o.OnBegin != nil {
-		o.OnBegin(hostSplit, refererSplit, o.Mode );
-	}
-	switch o.Mode{
-	case "file":
-		file, fErr := os.Open(o.Path+r.RequestURI);
-		fileStat,_ := file.Stat();
-		
-		if fErr != nil || fileStat.IsDir(){
-			file, fErr = os.Open(o.Path+r.RequestURI+"/"+o.FileDefault);
-			fileStat,_ = file.Stat();
-		}
-		
-		if o.Rewrite && fErr != nil{
-			file, fErr = os.Open(o.Path+"/"+o.RewriteTo);
-			fileStat,_ = file.Stat();
-		}
-		
-		if fErr != nil || fileStat.IsDir(){
-			w.WriteHeader(http.StatusNotFound);
-			fmt.Fprint(w,"file not found, archivo no se encuentra");
-
-			return;
-		}
-		
-		http.ServeContent(w,r,o.Path+"/"+r.RequestURI,time.Time{},file);
-		break;
-	case "gql":
-		w.Header().Set("Content-Type", "application/json; charset=UTF-8");
-		
-		//por favor, revisa que o.serverName exista, si no existe entonces devuelvele un dedito
-		rx := o.gqlRender[o.serverName].GQLRender(w,r);
-		fmt.Fprint(w,rx);
-		break;
-	case "websocket":
+	http.ServeContent(w,r,httpPath.Path+"/"+r.RequestURI,time.Time{},file);
+}
+func(o *Http) gqlServeHTTP(w http.ResponseWriter, r *http.Request, httpPath *Path){
+	w.Header().Set("Content-Type", "application/json; charset=UTF-8");
+	//por favor, revisa que o.serverName exista, si no existe entonces devuelvele un dedito
+	rx := o.gql[httpPath.host].GQLRender(w,r);
+	fmt.Fprint(w,rx);
+}
+func(o *Http) websocketServeHTTP(w http.ResponseWriter, r *http.Request, httpPath *Path){
 		headers := http.Header{};
 		headers.Set("Sec-WebSocket-Protocol", "graphql-transport-ws");
 		headers.Set("Sec-WebSocket-Version", "13");
 		headers.Set("Content-Type", "application/json; charset=UTF-8");
-		headers.Set("Access-Control-Allow-Origin", protocol+refererSplit.Host);
+		headers.Set("Access-Control-Allow-Credentials", "true");
+		headers.Set("Access-Control-Allow-Origin", httpPath.origin);
 
 		id := uuid.New().String();
 		WsIds[id] = make(chan bool,1);
@@ -240,14 +255,14 @@ func (o *Http) ServeHTTP(w http.ResponseWriter,r *http.Request){
 		WsChannels[id], upgraderError = upgrader.Upgrade(w, r, headers)
 		if upgraderError != nil{
 
-			fmt.Println(upgraderError);
+			//fmt.Println(upgraderError);
 			select{
 				case WsIds[id] <- false:
 			}
 			close(WsIds[id]);
 			delete(WsIds,id);
 			delete(WsChannels,id);
-			fmt.Println(upgraderError);
+			//fmt.Println(upgraderError);
 		}
 		defer WsChannels[id].Close();
 		while:=true;
@@ -263,18 +278,8 @@ func (o *Http) ServeHTTP(w http.ResponseWriter,r *http.Request){
 				while = false;
 				break;
 			}
-			go o.WebSocketMessage(mt, message, id);
-			
+			go o.WebSocketMessage(mt, message, id, httpPath);
 		}
-	default:
-		w.WriteHeader(http.StatusExpectationFailed);
-		fmt.Fprint(w,"Mode "+o.Mode+" not exists.");
-	}
-	*/
-	if o.OnFinish != nil {
-		o.OnFinish();
-	}
-	return;
 }
 func (o *Http) listenHttp(channel chan bool, handler *http.Server){
 	channel <- false;
@@ -298,6 +303,10 @@ func(o *Http) listenHttps(channel chan bool, handler *http.Server){
 		fmt.Println("https server error: " + err.Error());
 		channel <- true;
 	}
+}
+func (o *Http) WebSocketMessage(mt int, message []byte, id string, httpPath *Path ){
+	
+	o.gql[httpPath.host].GQLRenderSubscription(mt,message,id);
 }
 func WriteWebsocketMessage(mt int , id string,message []byte){
 	if WsChannels[id] != nil{
@@ -333,11 +342,6 @@ func (o *Http) Start() {
 	counter := 0;
 	for _, v := range o.Server {
 		
-		o.router[counter] = mux.NewRouter();
-		o.router[counter].Use(handlers.CompressHandler);
-		xhttp:=&Http{Url:v.ServerName}
-		o.router[counter].NotFoundHandler = xhttp;
-		o.router[counter].MethodNotAllowedHandler = xhttp;
 		
 		o.HTTPService = &http.Server{Addr: ":" + o.HttpPort, Handler: o.router[counter]};
 		o.HTTPSService = &http.Server{Addr: ":" + o.HttpsPort, Handler: o.router[counter], TLSConfig: tlsConfig};
@@ -371,49 +375,6 @@ func (o *Http) Start() {
 			
 			tlsConfig.Certificates = append(tlsConfig.Certificates, tmp);
 		}
-		
-		for _, vv := range v.Path {
-			vv.validateHost = o.ValidateHost;
-			if _, ok := endpoints[vv.Endpoint]; !ok {
-				endpoints[vv.Endpoint] = true;
-			} else{
-				err = "Endpoint is not shoud be the same";
-				stop = true;
-				break;
-			}
-			vv.Url = v.ServerName;
-			vv.CheckOrigin = o.CheckOrigin
-			vv.OnBegin = o.OnBegin
-			vv.OnFinish = o.OnFinish
-			if vv.Path == "" {
-				vv.Path = "htdocs";
-			}
-			if strings.Trim(vv.FileDefault, " ") == ""{
-				vv.FileDefault = "index.html";
-			}
-			if strings.Trim(vv.RewriteTo, " ") == ""{
-				vv.RewriteTo = "index.html";
-			}
-			vv.redirect = v.Redirect;
-			vv.enableHttps = v.EnableHttps;
-			vv.httpsPort = o.HttpsPort;
-			vv.serverName = v.ServerName;
-			switch vv.Mode{
-			case "gql":
-				x:= v.subrouter.Methods("POST", "OPTIONS").Path(vv.Endpoint);
-				vv.gqlRender = o.gql;
-				x.Handler(vv)
-			case "websocket":
-				x:= v.subrouter.Methods("POST","GET").Path(vv.Endpoint);
-				vv.gqlRender = o.gql;
-				x.Handler(vv)
-			default:
-				x:= v.subrouter.Methods("GET", "OPTIONS").PathPrefix(vv.Endpoint);
-				//x.Handler(vv)
-				x.Handler(http.StripPrefix(vv.Endpoint,vv))
-			}
-		}
-		counter++;
 	}
 	fmt.Println("http server start");
 	go o.listenHttp(channel, *o.HTTPService);
@@ -436,34 +397,6 @@ func (o *Http) Start() {
 func(o *Http) MatcherFunc(hh *http.Request, bb *mux.RouteMatch)(r bool){
 	
 	return r;
-}
-func (o *Http) listenHttp(channel chan bool, handler http.Server){
-	channel <- false;
-	err := handler.ListenAndServe();
-	if(err != nil){
-		fmt.Println("http server start error: " + err.Error());
-		channel <- true;
-	}
-	
-}
-func(o *Http) listenHttps(channel chan bool, handler http.Server){
-	channel <- false;
-	listener , tlsErr := tls.Listen("tcp",handler.Addr,handler.TLSConfig);
-	if tlsErr != nil{
-		fmt.Println("https server start error: " + tlsErr.Error());
-		channel <- true;
-	}
-	
-	err := handler.Serve(listener);
-	if err != nil{
-		fmt.Println("https server error: " + err.Error());
-		channel <- true;
-	}
-}
-
-func(o *Http)ServeHTTP(w http.ResponseWriter,r *http.Request){
-	w.WriteHeader(http.StatusNotFound);
-	fmt.Fprint(w,"file not found, archivo no se encuentra");
 }
 
 func (o *pathConfig) ServeHTTP(w http.ResponseWriter,r *http.Request){
