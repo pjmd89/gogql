@@ -4,9 +4,10 @@ import (
 	"reflect"
 
 	"github.com/jinzhu/copier"
+	"github.com/pjmd89/gogql/lib/gql/definitionError"
 	"github.com/pjmd89/gogql/lib/gql/introspection"
 	"github.com/pjmd89/gogql/lib/gql/resolvers"
-	"github.com/vektah/gqlparser/v2/ast"
+	"github.com/pjmd89/gqlparser/v2/ast"
 )
 
 type Type struct{
@@ -19,33 +20,36 @@ func NewType(schema resolvers.Schema,directives map[string]resolvers.Directive) 
 	_type = &Type{schema:schema, directives: directives};
 	return _type;
 }
-func(o *Type) Resolver(resolver string, args resolvers.Args, parent resolvers.Parent, directives resolvers.DirectiveList, typename string) ( r resolvers.DataReturn ){
+func(o *Type) Subscribe(info resolvers.ResolverInfo) ( r bool){
+	return r;
+}
+func(o *Type) Resolver( info resolvers.ResolverInfo) ( r resolvers.DataReturn, err definitionError.Error ){
 	
-	switch(resolver){
+	switch(info.Resolver){
 		case "__type":
-			r = o.__type(args, parent, directives, typename);
+			r = o.__type(info.Args, info.Parent);
 		case "types":
-			r = o.types(args, parent, directives, typename);
+			r = o.types(info.Parent);
 		case "type":
-			r = o._type(args, parent, directives, typename);
+			r = o._type(info.Parent);
 		case "interfaces":
-			r = o.interfaces(args, parent, directives, typename);
+			r = o.interfaces(info.Parent);
 		case "possibleTypes":
-			r = o.possibleTypes(args, parent, directives, typename);
+			r = o.possibleTypes(info.Parent);
 		case "ofType":
-			r = o.ofType(args, parent, directives, typename);
+			r = o.ofType(info.Parent);
 		case "queryType":
-			r = o.queryType(args, parent, directives, typename);
+			r = o.queryType(info.Parent);
 		case "mutationType":
-			r = o.mutationType(args, parent, directives, typename);
+			r = o.mutationType(info.Parent);
 		case "subscriptionType":
-			r = o.subscriptionType(args, parent, directives, typename);
+			r = o.subscriptionType(info.Parent);
 		default:
 	}
 	
-	return r;
+	return r,err;
 }
-func(o *Type) subscriptionType(args resolvers.Args, parent resolvers.Parent, directives resolvers.DirectiveList, typename string) (r resolvers.DataReturn ){
+func(o *Type) subscriptionType(parent resolvers.Parent) (r resolvers.DataReturn ){
 	parentInfo := parent.(introspection.Schema);
 	thisType := parentInfo.SubscriptionType;
 	if thisType != nil{
@@ -61,7 +65,7 @@ func(o *Type) subscriptionType(args resolvers.Args, parent resolvers.Parent, dir
 	}
 	return r;
 }
-func(o *Type) mutationType(args resolvers.Args, parent resolvers.Parent, directives resolvers.DirectiveList, typename string) (r resolvers.DataReturn ){
+func(o *Type) mutationType(parent resolvers.Parent) (r resolvers.DataReturn ){
 	parentInfo := parent.(introspection.Schema);
 	thisType := parentInfo.MutationType;
 	if thisType != nil{
@@ -77,7 +81,7 @@ func(o *Type) mutationType(args resolvers.Args, parent resolvers.Parent, directi
 	}
 	return r;
 }
-func(o *Type) queryType(args resolvers.Args, parent resolvers.Parent, directives resolvers.DirectiveList, typename string) (r resolvers.DataReturn ){
+func(o *Type) queryType(parent resolvers.Parent) (r resolvers.DataReturn ){
 	parentInfo := parent.(introspection.Schema);
 	thisType := parentInfo.QueryType;
 	if thisType != nil{
@@ -95,7 +99,7 @@ func(o *Type) queryType(args resolvers.Args, parent resolvers.Parent, directives
 	}
 	return r;
 }
-func(o *Type) ofType(args resolvers.Args, parent resolvers.Parent, directives resolvers.DirectiveList, typename string) ( r resolvers.DataReturn ){
+func(o *Type) ofType(parent resolvers.Parent) ( r resolvers.DataReturn ){
 	thisParent := parent.(introspection.Type);
 	thisType := thisParent.OfType;
 	switch(thisParent.Kind){
@@ -125,7 +129,7 @@ func(o *Type) ofType(args resolvers.Args, parent resolvers.Parent, directives re
 	}
 	return r;
 }
-func(o *Type) _type(args resolvers.Args, parent resolvers.Parent, directives resolvers.DirectiveList,typename string) (r resolvers.DataReturn ){
+func(o *Type) _type(parent resolvers.Parent) (r resolvers.DataReturn ){
 	rValue := reflect.ValueOf(parent);
 	switch(rValue.Type()){
 	case reflect.TypeOf(introspection.Field{}):
@@ -173,7 +177,7 @@ func(o *Type) _type(args resolvers.Args, parent resolvers.Parent, directives res
 	}
 	return r;
 }
-func(o *Type) possibleTypes(args resolvers.Args, parent resolvers.Parent, directives resolvers.DirectiveList, typename string) ( r resolvers.DataReturn ){
+func(o *Type) possibleTypes(parent resolvers.Parent) ( r resolvers.DataReturn ){
 	thisParent := parent.(introspection.Type);
 	switch(thisParent.Kind){
 		case introspection.TYPEKIND_INTERFACE, introspection.TYPEKIND_UNION:
@@ -196,7 +200,7 @@ func(o *Type) possibleTypes(args resolvers.Args, parent resolvers.Parent, direct
 	return r;
 }
 
-func(o *Type) interfaces(args resolvers.Args, parent resolvers.Parent, directives resolvers.DirectiveList, typename string) ( r resolvers.DataReturn ){
+func(o *Type) interfaces(parent resolvers.Parent) ( r resolvers.DataReturn ){
 	thisParent := parent.(introspection.Type);
 	switch(thisParent.Kind){
 		case introspection.TYPEKIND_OBJECT:
@@ -220,7 +224,7 @@ func(o *Type) interfaces(args resolvers.Args, parent resolvers.Parent, directive
 	}
 	return r;
 }
-func(o *Type) __type(args resolvers.Args, parent resolvers.Parent, directives resolvers.DirectiveList, typename string) (r resolvers.DataReturn ){
+func(o *Type) __type(args resolvers.Args, parent resolvers.Parent) (r resolvers.DataReturn ){
 	findType:= o.schema.Types[args["name"].(string)];
 	if findType != nil{
 		x := introspection.Type{};
@@ -238,7 +242,7 @@ func(o *Type) __type(args resolvers.Args, parent resolvers.Parent, directives re
 	return r;
 }
 
-func(o *Type) types(args resolvers.Args, parent resolvers.Parent, directives resolvers.DirectiveList,typename string) ( r resolvers.DataReturn ){
+func(o *Type) types(parent resolvers.Parent) ( r resolvers.DataReturn ){
 	r = make([]interface{},0);
 	for _,findType := range parent.(introspection.Schema).Types{
 		x := introspection.Type{};

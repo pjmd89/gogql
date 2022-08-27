@@ -1,10 +1,11 @@
 package objectTypes
 
 import (
+	"github.com/pjmd89/gogql/lib/gql/definitionError"
 	"github.com/pjmd89/gogql/lib/gql/introspection"
 	"github.com/pjmd89/gogql/lib/gql/resolvers"
 	"github.com/pjmd89/gogql/lib/gql/resolvers/directives"
-	"github.com/vektah/gqlparser/v2/ast"
+	"github.com/pjmd89/gqlparser/v2/ast"
 )
 type Field struct{
 	schema resolvers.Schema
@@ -17,19 +18,22 @@ func NewField(schema resolvers.Schema,directives map[string]resolvers.Directive)
 
 	return _type;
 }
-func(o *Field) Resolver(resolver string, args resolvers.Args, parent resolvers.Parent, directives resolvers.DirectiveList,typename string) ( r resolvers.DataReturn ){
+func(o *Field) Subscribe(info resolvers.ResolverInfo) ( r bool){
+	return r;
+}
+func(o *Field) Resolver(info resolvers.ResolverInfo) ( r resolvers.DataReturn, err  definitionError.Error ){
 	
-	switch(resolver){
+	switch(info.Resolver){
 		case "fields":
-			r = o.fields(args, parent, directives, typename);
+			r = o.fields(info.Args, info.Parent);
 			break;
 		default:
 	}
 	
-	return r;
+	return r,err;
 }
 
-func(o *Field) fields(args resolvers.Args, parent resolvers.Parent, directiveList resolvers.DirectiveList, typename string) (r resolvers.DataReturn ){
+func(o *Field) fields(args resolvers.Args, parent resolvers.Parent) (r resolvers.DataReturn ){
 	thisParent := parent.(introspection.Type);
 	r = nil;
 	includeDeprecated := false;
@@ -70,7 +74,8 @@ func(o *Field) setDeprecate(value *ast.FieldDefinition,thisParent introspection.
 		for _,directive:=range value.Directives{
 			switch directive.Name{
 				case "deprecated":
-					deprecateDirectiveResult = o.directives[directive.Name].Invoke(map[string]interface{}{},*thisParent.Name,value.Name).(directives.DeprecatedData);
+					deprecateDirectiveResults,_ := o.directives[directive.Name].Invoke(map[string]interface{}{},*thisParent.Name,value.Name);
+					deprecateDirectiveResult = deprecateDirectiveResults.(directives.DeprecatedData)
 			}
 		}
 	}

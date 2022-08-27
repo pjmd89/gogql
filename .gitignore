@@ -3,4 +3,7 @@ schema/
 htdocs/
 vendor/
 .vscode/
+subscriptions/
+resolvers/
+main.go
 __debug_bin

@@ -4,42 +4,72 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
+	"github.com/gorilla/sessions"
 )
 type Gql interface{
 	GetServerName() string
 	GQLRender(w http.ResponseWriter,r *http.Request) string
+	GQLRenderSubscription(mt int,message []byte, socketId string)
 }
-type pathConfig struct {
-	Mode 			string 					`json:"mode,omitempty"`
-	Endpoint 		string 					`json:"endpoint,omitempty"`
-	Path 			string 					`json:"path,omitempty"`
-	AllowOrigin 	string 					`json:"allowOrigin,omitempty"`
-	FileDefault		string					`json:"default,omitempty"`
-	RewriteTo		string					`json:"RewriteTo,omitempty"`
-	Rewrite 		bool					`json:"rewrite,omitempty"`
-	Url 			string 					
-	httpsPort		string
-	redirect 		bool
-	enableHttps		bool	
-	gqlRender		map[string]Gql
-	serverName		string
+
+type Cookie struct{
+	sessionName 	[]byte
+	session 		*sessions.Session
+	cookieName 		string
+	w 				http.ResponseWriter
+	r 				*http.Request
+	Start 			bool
 }
-type server struct {
-	ServerName 		string	 				`json:"serverName,omitempty"`
-	Path 	 		[]*pathConfig 			`json:"path,omitempty"`
-	Cert	   		string 					`json:"cert,omitempty"`
-	Key	   			string 					`json:"key,omitempty"`
-	Redirect		bool					`json:"redirectToHttps,omitempty"`
-	EnableHttps		bool					`json:"enableHttps,omitempty"`
-	subrouter		*mux.Router
+type URL struct{
+	Scheme			string
+	Port			string
+	Host			string
+	RequestURI		string
+	TLS				bool
+	Method			string
+	URL				string
+	Referer			string
+	Origin	 		struct{
+		Scheme		string
+		Host		string
+		Port		string
+		URL			string
+	}
+}
+type Path struct{
+	Mode			string					`json:"mode,omitempty"`
+	Path			string					`json:"path,omitempty"`
+	Endpoint		string					`json:"endpoint,omitempty"`
+	len				int
+	pathURL			string
+	host			string
+	origin			string
+}
+type server struct{
+	Host			string					`json:"host,omitempty"`
+	Reject			[]string				`json:"reject,omitempty"`
+	Cert			string					`json:"cert,omitempty"`
+	Key				string					`json:"key,omitempty"`
+	LetsEncrypt 	bool					`json:"letsEncrypt,omitempty"`
+    RedirectToHttps	bool					`json:"redirectToHttps,omitempty"`
+    EnableHttps		bool					`json:"enableHttps,omitempty"`
+	RewriteTo		string					`json:"rewriteTo,omitempty"`
+	Rewrite			bool					`json:"rewrite,omitempty"`
+	FileDefault		string					`json:"fileDefault,omitempty"`
+	Path			[]Path					`json:"path,omitempty"`
 }
 type Http struct{
 	HttpPort		string					`json:"httpPort,omitempty"`
 	HttpsPort		string					`json:"httpsPort,omitempty"`
+	CookieName		string					`json:"cookieName,omitempty"`
 	Server 			[]server 				`json:"server,omitempty"`
-	Path			map[string]string
-	HTTPService		*http.Server
-	HTTPSService	*http.Server
+	httpService		mux.Router
+	httpsService	mux.Router
 	router 			*mux.Router
 	gql				map[string]Gql
+	CheckOrigin		func( url URL ) bool
+	OnBegin			func( url URL, httpPath *Path ) bool
+	OnFinish		func()
+	http404			func()
+	http405			func()
 }

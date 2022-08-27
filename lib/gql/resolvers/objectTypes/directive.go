@@ -1,6 +1,7 @@
 package objectTypes
 
 import (
+	"github.com/pjmd89/gogql/lib/gql/definitionError"
 	"github.com/pjmd89/gogql/lib/gql/introspection"
 	"github.com/pjmd89/gogql/lib/gql/resolvers"
 )
@@ -16,11 +17,11 @@ func NewDirective(schema resolvers.Schema) resolvers.ObjectTypeInterface{
 
 	return _type;
 }
-func (o *Directive) SetDefinition(definition resolvers.Definition){
-	o.definition = definition;
+func(o *Directive) Subscribe(info resolvers.ResolverInfo) ( r bool){
+	return r;
 }
-func(o *Directive) Resolver(resolver string, args resolvers.Args, parent resolvers.Parent, directives resolvers.DirectiveList,typename string) ( r resolvers.DataReturn ){
-	thisParent := parent.(introspection.Schema);
+func(o *Directive) Resolver(info resolvers.ResolverInfo) ( r resolvers.DataReturn, err  definitionError.Error){
+	thisParent := info.Parent.(introspection.Schema);
 	r = make([]interface{},0);
 	for _,value := range thisParent.Directives{
 		x:=introspection.Directive{};
@@ -32,5 +33,5 @@ func(o *Directive) Resolver(resolver string, args resolvers.Args, parent resolve
 		x.Args = value.Arguments;
 		r = append(r.([]interface{}),x);
 	}
-	return r;
+	return r, err;
 }

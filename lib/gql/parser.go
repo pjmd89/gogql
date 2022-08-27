@@ -5,10 +5,12 @@ import (
 	"reflect"
 	"strings"
 
+	"github.com/google/uuid"
 	"github.com/pjmd89/gogql/lib/gql/resolvers"
-	"github.com/vektah/gqlparser/v2"
-	"github.com/vektah/gqlparser/v2/ast"
-	"github.com/vektah/gqlparser/v2/validator"
+	"github.com/pjmd89/gqlparser/v2"
+	"github.com/pjmd89/gqlparser/v2/ast"
+	"github.com/pjmd89/gqlparser/v2/validator"
+	maps "golang.org/x/exp/maps"
 )
 
 type Response interface{}
@@ -18,7 +20,6 @@ func(o *gql) response(request HttpRequest) *HttpResponse{
 	
 	if err != nil{
 		fmt.Println(err.Error());
-
 	}
 	if document != nil{
 		parse := document.Operations;
@@ -35,19 +36,69 @@ func(o *gql) response(request HttpRequest) *HttpResponse{
 	}
 	return response;
 }
+func(o *gql) WebsocketResponse(request HttpRequest, socketId string, requestID RequestID, mt int){
+	document,err := gqlparser.LoadQuery(o.schema,request.Query);
+	if err != nil{
+		fmt.Println(err.Error());
 
+	}
+	if document != nil{
+		parse := document.Operations;
+		if strings.Trim(request.OperationName," ") != ""{
+			for _,operation := range document.Operations{
+				if operation.Name == request.OperationName{
+					parse = ast.OperationList{operation};
+					break;
+				}
+			}
+		}
+		for _,operation :=range parse{
+			go o.websocketOperationParse(operation,request.Variables, socketId, requestID, mt);
+		}
+	}
+}
+func(o *gql) websocketOperationParse(operation *ast.OperationDefinition, variables map[string]interface{}, socketId string, requestID RequestID ,mt int){
+	uuid := uuid.New().String();
+	operationID := OperationID(operation.SelectionSet[0].(*ast.Field).Name);
+	PubSub.createExcecuteEvent(EventID(uuid),operationID,SocketID(socketId),requestID,mt);
+	response := &HttpResponse{};
+	while := true;
+	for while{
+		listen:= PubSub.listenExcecuteEvent(operationID,EventID(uuid));
+		rType := reflect.ValueOf(listen).Type();
+		
+		switch rType{
+		case reflect.TypeOf(&SubscriptionClose{}):
+			while = false;
+			break;
+		default:
+			o.setVariables(o.schema,operation,variables);
+			var dataReturn resolvers.DataReturn;
+			data := make(map[string]interface{},0);
+			isSubscriptionResponse:= false;
+			switch operation.Operation{
+			case ast.Subscription:
+				data["data"],isSubscriptionResponse = o.selectionSetParse(string(operation.Operation), operation.SelectionSet, dataReturn ,dataReturn,nil, 0, listen);
+			}
+			if isSubscriptionResponse{
+				response.Data = fmt.Sprintf("%v",o.jsonResponse(data));
+			o.WriteWebsocketMessage(mt,socketId,requestID, response);
+			}
+		}
+	}
+}
 func(o *gql) operationParse(parse ast.OperationList, variables map[string]interface{}) (map[string]interface{}){
-	//este es el nombre de la query si es que lo tiene, si no, ejecuta la query unica
 	prepareToSend := make(map[string]interface{},0);
 	for _,operation :=range parse{
 		o.setVariables(o.schema,operation,variables);
 		var dataReturn resolvers.DataReturn;
 		data := make(map[string]interface{},0);
-		data["data"] = o.selectionSetParse(operation.SelectionSet, dataReturn ,dataReturn);
+		switch operation.Operation{
+		case ast.Query, ast.Mutation:
+			data["data"],_ = o.selectionSetParse(string(operation.Operation), operation.SelectionSet, dataReturn ,dataReturn,nil, 0, nil);
+		}
 		prepareToSend["data"] = o.jsonResponse(data);
-		//prepareToSend["data"] = `"data":{"__schema":{"types":[{"name":"__DirectiveLocation","description":"","kind":"<introspection.TypeKind Value>"},{"kind":"<introspection.TypeKind Value>","name":"String","description":"The Stringscalar type represents textual data, represented as UTF-8 character sequences. The String type is most often used by GraphQL to represent free-form human-readable text."},{"kind":"<introspection.TypeKind Value>","name":"Boolean","description":"The Boolean scalar type represents true or false."},{"kind":"<introspection.TypeKind Value>","name":"__Schema","description":""},{"kind":"<introspection.TypeKind Value>","name":"__Directive","description":""},{"kind":"<introspection.TypeKind Value>","name":"__EnumValue","description":""},{"kind":"<introspection.TypeKind Value>","name":"Queries","description":""},{"kind":"<introspection.TypeKind Value>","name":"InputobEmp","description":""},{"kind":"<introspection.TypeKind Value>","name":"Int","description":"The Int scalar type represents non-fractional signed whole numeric values. Int can represent values between -(2^31) and 2^31 - 1."},{"kind":"<introspection.TypeKind Value>","name":"Float","description":"The Float scalar type represents signed double-precision fractional values as specified by [IEEE 754](http://en.wikipedia.org/wiki/IEEE_floating_point)."},{"kind":"<introspection.TypeKind Value>","name":"ID","description":"The ID scalar type represents a unique identifier, often used to refetch an object or as key for a cache. The ID type appears in a JSON response as a String; however, it is not intended to be human-readable. When expected as an input type, any string (such as \"4\") or integer (such as 4) input value will be accepted as an ID."},{"description":"","kind":"<introspection.TypeKind Value>","name":"__Type"},{"kind":"<introspection.TypeKind Value>","name":"Empleado","description":""},{"kind":"<introspection.TypeKind Value>","name":"Cargo","description":""},{"kind":"<introspection.TypeKind Value>","name":"__Field","description":""},{"kind":"<introspection.TypeKind Value>","name":"__InputValue","description":""},{"kind":"<introspection.TypeKind Value>","name":"__TypeKind","description":""},{"kind":"<introspection.TypeKind Value>","name":"Mutations","description":""}],"types2":[{"name":"Queries"},{"name":"__EnumValue"},{"name":"Float"},{"name":"ID"},{"name":"__Type"},{"name":"InputobEmp"},{"name":"Int"},{"name":"__InputValue"},{"name":"__TypeKind"},{"name":"Mutations"},{"name":"Empleado"},{"name":"Cargo"},{"name":"__Field"},{"name":"Boolean"},{"name":"__Schema"},{"name":"__Directive"},{"name":"__DirectiveLocation"},{"name":"String"}]},"pepe":{"types":[{"name":"Int"},{"name":"Float"},{"name":"ID"},{"name":"__Type"},{"name":"InputobEmp"},{"name":"__Field"},{"name":"__InputValue"},{"name":"__TypeKind"},{"name":"Mutations"},{"name":"Empleado"},{"name":"Cargo"},{"name":"String"},{"name":"Boolean"},{"name":"__Schema"},{"name":"__Directive"},{"name":"__DirectiveLocation"},{"name":"__EnumValue"},{"name":"Queries"}]}}`;
 	}
-	
 	return prepareToSend
 }
 func(o *gql)setVariables(schema *ast.Schema, operation *ast.OperationDefinition,variables map[string]interface{}){
@@ -55,36 +106,43 @@ func(o *gql)setVariables(schema *ast.Schema, operation *ast.OperationDefinition,
 	vars,err := validator.VariableValues(o.schema,operation,variables)
 	//validar las variables con los scalar propios
 	if err != nil{
-		//responder con error
+		fmt.Println(err);
 	}
+	
 	o.variables = vars;
 }
 
-func(o *gql) selectionSetParse(parse ast.SelectionSet, parent interface{}, parentProceced interface{}) ( Response ){
+func(o *gql) selectionSetParse(operation string, parse ast.SelectionSet, parent interface{}, parentProceced interface{}, typeName *string,start int, subscriptionValue interface{}) ( Response, bool ){
 	
 	//var prepareToSend Response
+	isSubscriptionResponse := false;
 	prepareToSend := make(map[string]interface{},0);
+	send := make(map[string]interface{},0);
 	//ejecucion de las queries internas
 	for _,selection :=range parse{
 		rField := reflect.ValueOf(selection);
 		switch rField.Type(){
 		case reflect.TypeOf(&ast.Field{}):
 			field := selection.(*ast.Field);
-			prepareToSend = o.selectionParse(field, parent, parentProceced);
+			prepareToSend,isSubscriptionResponse = o.selectionParse(operation, field, parent, parentProceced,typeName, start, subscriptionValue );
 		case reflect.TypeOf(&ast.FragmentSpread{}):
 			fragment := selection.(*ast.FragmentSpread);
 			fragmentDef := fragment.Definition;
 			for _,fragmentSelection := range fragmentDef.SelectionSet{
 				field := fragmentSelection.(*ast.Field);
-				prepareToSend = o.selectionParse(field, parent, parentProceced);
+				prepareToSend,isSubscriptionResponse = o.selectionParse(operation, field, parent, parentProceced,typeName, start, subscriptionValue );
 			}
 		}
+		if start == 0{
+			maps.Copy(send, prepareToSend)
+			prepareToSend = send;
+		}
 	}
-	return prepareToSend;
+	return prepareToSend,isSubscriptionResponse;
 }
-func(o *gql) selectionParse(field *ast.Field, parent interface{}, parentProceced interface{}) (map[string]interface{}){
+func(o *gql) selectionParse( operation string, field *ast.Field, parent interface{}, parentProceced interface{}, typeName *string, start int, subscriptionValue interface{}) (map[string]interface{}, bool){
 	fieldElem := field.Definition.Type.Elem;
-	//var prepareToSend map[string]interface{};
+	isSubscriptionResponse := false;
 	prepareToSend := make(map[string]interface{},0);
 	var resolved resolvers.DataReturn;
 	var resolvedProcesed resolvers.DataReturn;
@@ -95,10 +153,30 @@ func(o *gql) selectionParse(field *ast.Field, parent interface{}, parentProceced
 			namedType = fieldElem.NamedType;
 		}
 		if o.objectTypes[namedType] != nil{	
-			args:= o.parseArguments(field.Arguments)
-			directives := resolvers.DirectiveList{};
-			resolved = o.objectTypes[namedType].Resolver( field.Name, args, parent, directives , namedType)
-			resolvedProcesed = o.dataResponse(fieldNames, resolved);
+			args:= o.parseArguments(field.Arguments,field.Definition.Arguments);
+			directives := o.parseDirectives(field.Directives,namedType, field.Name);
+			resolverInfo := resolvers.ResolverInfo{
+				Operation: operation,
+				Args: args,
+				Resolver: field.Name,
+				Parent: parent,
+				Directives: directives,
+				TypeName: namedType,
+				ParentTypeName: typeName,
+				SubscriptionValue: subscriptionValue,
+			};
+			if operation == "subscription" && start == 0{
+				if ok := o.objectTypes[namedType].Subscribe( resolverInfo ); ok{
+					resolved,_ = o.objectTypes[namedType].Resolver( resolverInfo );
+					typeName = &namedType;
+					resolvedProcesed = o.dataResponse(fieldNames, resolved);
+					isSubscriptionResponse = true;
+				}
+			} else{
+				resolved,_ = o.objectTypes[namedType].Resolver( resolverInfo );
+				typeName = &namedType;
+				resolvedProcesed = o.dataResponse(fieldNames, resolved);
+			}
 		}
 		rType :=  reflect.TypeOf(resolved);
 		if rType != nil{
@@ -107,7 +185,7 @@ func(o *gql) selectionParse(field *ast.Field, parent interface{}, parentProceced
 				case reflect.Slice:
 					var data []interface{};
 					for i,value := range resolved.([]interface{}){
-						responsed := o.selectionSetParse(field.SelectionSet,value, resolvedProcesed.([]interface{})[i]);
+						responsed,_ := o.selectionSetParse(operation, field.SelectionSet,value, resolvedProcesed.([]interface{})[i], typeName, 1, subscriptionValue );
 						data = append(data,responsed);
 					}
 					if parentProceced != nil{
@@ -115,13 +193,11 @@ func(o *gql) selectionParse(field *ast.Field, parent interface{}, parentProceced
 					}
 					prepareToSend[field.Alias] = data;
 				case reflect.Struct,reflect.Ptr:
-					responsed := o.selectionSetParse(field.SelectionSet,resolved, resolvedProcesed);
+					responsed,_ := o.selectionSetParse(operation, field.SelectionSet,resolved, resolvedProcesed, typeName, 1, subscriptionValue );
 					if parentProceced != nil{
 						prepareToSend = parentProceced.(map[string]interface{});
 					}
 					prepareToSend[field.Alias] = responsed
-				default:
-					fmt.Println("aqui")
 			}
 		} else{
 			if parentProceced != nil{
@@ -134,163 +210,19 @@ func(o *gql) selectionParse(field *ast.Field, parent interface{}, parentProceced
 	} else{
 		prepareToSend = parentProceced.(map[string]interface{});
 	}
-	return prepareToSend;
+	return prepareToSend,isSubscriptionResponse;
 }
-/*
-func(o *gql) selectionParse(field *ast.Field, storage interface{}, parentLen int, tmpPrepareToSend map[string]interface{},  parentReturn interface{}) (  map[string]interface{}, interface{}){
-	fieldElem := field.Definition.Type.Elem;
-	//definition -> Type -> Elem
-	if field.SelectionSet != nil{
-		var resolved resolvers.DataReturn;
-		namedType := field.Definition.Type.NamedType;
-		if fieldElem != nil{
-			namedType = fieldElem.NamedType;
+func(o *gql) parseDirectives(directives ast.DirectiveList, typeName string, fieldName string) (r resolvers.DirectiveList){
+	r = make(map[string]interface{},0);
+	for _,directive := range directives{
+		args:= o.parseArguments(directive.Arguments, directive.Definition.Arguments);
+		var x resolvers.DataReturn;
+		if o.directives[directive.Name] != nil{
+			x,_ = o.directives[directive.Name].Invoke(args,typeName,fieldName);
 		}
-		definition := o.schema.Types[namedType]
-		var returned resolvers.DataReturn;
-		var storaged resolvers.DataReturn;
-		fieldNames := o.getFieldNames(field.SelectionSet);
-		//se debe analizar las directivas de los fieldNames. posiblemente se anada la funcion de directivas en getFieldNames
-		if o.objectTypes[namedType] != nil{
-			o.objectTypes[namedType].SetDefinition(definition);
-			args:= o.parseArguments(field.Arguments)
-			directives := resolvers.DirectiveList{};
-			resolved = o.objectTypes[namedType].Resolver( field.Name, args, parentReturn, directives , namedType, storage)
-			returned, storaged = o.dataResponse(fieldNames,resolved);
-		}
-		if fieldElem == nil && len(returned) > 1{
-			//devolver error
-		}
-		if fieldElem == nil && len(returned) == 1{
-			if parentLen > 0{
-				tmpPrepareToSend = parentReturn.(map[string]interface{});
-			}
-			
-			tmpPrepareToSend[field.Alias] = o.selectionSetParse(field.SelectionSet, returned[0], storaged[0])
-		}
-		if fieldElem == nil && len(returned) == 0{
-			tmpPrepareToSend = parentReturn.(map[string]interface{});
-			tmpPrepareToSend[field.Alias] = nil;
-		}
-		if fieldElem != nil && len(returned) > 0{
-			prepareResponse := make([]interface{},0)
-			prepare :=false;
-			for i,value :=range returned{
-				prepare = true;
-				xy := reflect.ValueOf(resolved[i]).Type();
-				if xy != reflect.TypeOf(&resolvers.Blank{}){
-					prepareResponse =  append(prepareResponse,o.selectionSetParse(field.SelectionSet, value, storaged[i]));
-				} else {
-					//prepareResponse =  append(prepareResponse,&resolvers.Blank{});
-				}
-			}
-			
-			if(!prepare){
-				tmpPrepareToSend[field.Alias] = parentReturn.(map[string]interface{});
-			} else {
-				tmpPrepareToSend = parentReturn.(map[string]interface{});
-				tmpPrepareToSend[field.Alias] = prepareResponse;
-			}
-			
-		}
-		// tambien devolver error si es nonnull false y retuned no tiene datos
-		
-		definition = nil;
-		fieldNames = nil;
+		r[directive.Name] = x;
 	}
-	return tmpPrepareToSend , parentReturn
-}
-//*/
-func (o *gql) parseArguments(rawArgs ast.ArgumentList) map[string]interface{} {
-	// en la definicion de los Kind hay que agregar la lista entera que proporciona la broma esa
-	args := make(map[string]interface{})
-	if len(rawArgs) > 0{
-		for _,vArgs := range rawArgs{
-			if len(vArgs.Value.Children) > 0 {
-				args[vArgs.Name] = o.parseArgChildren(vArgs.Value.Children)
-			}else{
-				switch(vArgs.Value.Definition.Kind){
-				case "OBJECT":	
-					args[vArgs.Name] = vArgs.Value.Raw
-				case "INTERFACE":
-					args[vArgs.Name] = vArgs.Value.Raw
-				case "UNION":
-					args[vArgs.Name] = vArgs.Value.Raw
-				case "ENUM":
-					args[vArgs.Name] = vArgs.Value.Raw
-				case "INPUT_OBJECT":
-					args[vArgs.Name] = o.variables[vArgs.Value.Raw]
-				case "SCALAR":
-					switch(vArgs.Value.Definition.Name){
-					case "String":
-						args[vArgs.Name] = vArgs.Value.Raw
-					case "Int":
-						args[vArgs.Name] = vArgs.Value.Raw
-					case "Float":
-						args[vArgs.Name] = vArgs.Value.Raw
-					case "Boolean":
-						var data bool;
-						if vArgs.Value.Raw == "true"{
-							data = true;
-						}
-						args[vArgs.Name] = data
-					case "ID":
-						args[vArgs.Name] = vArgs.Value.Raw
-					default:
-						args[vArgs.Name] = vArgs.Value.Raw
-					}
-				default:
-					args[vArgs.Name] = vArgs.Value.Raw
-				}
-			}
-		}
-	}
-	return args;
-}
-func (o *gql) parseArgChildren(rawArgs ast.ChildValueList) map[string]interface{} {
-	args := make(map[string]interface{})
-	if len(rawArgs) > 0{
-		for _,vArgs := range rawArgs{
-			if len(vArgs.Value.Children) > 0 {
-				args[vArgs.Name] = o.parseArgChildren(vArgs.Value.Children)
-			}else{
-				switch(vArgs.Value.Definition.Kind){
-				case "OBJECT":	
-					args[vArgs.Name] = vArgs.Value.Raw
-				case "INTERFACE":
-					args[vArgs.Name] = vArgs.Value.Raw
-				case "UNION":
-					args[vArgs.Name] = vArgs.Value.Raw
-				case "ENUM":
-					args[vArgs.Name] = vArgs.Value.Raw
-				case "INPUT_OBJECT":
-					args[vArgs.Name] = o.variables[vArgs.Value.Raw]
-				case "SCALAR":
-					switch(vArgs.Value.Definition.Name){
-					case "String":
-						args[vArgs.Name] = vArgs.Value.Raw
-					case "Int":
-						args[vArgs.Name] = vArgs.Value.Raw
-					case "Float":
-						args[vArgs.Name] = vArgs.Value.Raw
-					case "Boolean":
-						var data bool;
-						if args[vArgs.Name] == "true"{
-							data = true;
-						}
-						args[vArgs.Name] = data
-					case "ID":
-						args[vArgs.Name] = vArgs.Value.Raw
-					default:
-						args[vArgs.Name] = vArgs.Value.Raw
-					}
-				default:
-					args[vArgs.Name] = vArgs.Value.Raw
-				}
-			}
-		}
-	}
-	return args;
+	return r
 }
 func(o *gql) getFieldNames(parse ast.SelectionSet) map[string]interface{}{
 	fields := make(map[string]interface{});

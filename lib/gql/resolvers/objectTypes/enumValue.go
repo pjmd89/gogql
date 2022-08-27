@@ -1,10 +1,11 @@
 package objectTypes
 
 import (
+	"github.com/pjmd89/gogql/lib/gql/definitionError"
 	"github.com/pjmd89/gogql/lib/gql/introspection"
 	"github.com/pjmd89/gogql/lib/gql/resolvers"
 	"github.com/pjmd89/gogql/lib/gql/resolvers/directives"
-	"github.com/vektah/gqlparser/v2/ast"
+	"github.com/pjmd89/gqlparser/v2/ast"
 )
 
 type Enum struct{
@@ -18,19 +19,21 @@ func NewEnumValue(schema resolvers.Schema,directives map[string]resolvers.Direct
 
 	return _type;
 }
-
-func(o *Enum) Resolver(resolver string, args resolvers.Args, parent resolvers.Parent, directives resolvers.DirectiveList,typename string) ( r resolvers.DataReturn ){
+func(o *Enum) Subscribe(info resolvers.ResolverInfo) ( r bool){
+	return r;
+}
+func(o *Enum) Resolver( info resolvers.ResolverInfo) ( r resolvers.DataReturn, err  definitionError.Error ){
 	
-	switch(resolver){
+	switch(info.Resolver){
 		case "enumValues":
-			r = o.enumValues(args, parent, directives, typename);
+			r = o.enumValues(info.Args, info.Parent);
 			break;
 		default:
 	}
 	
-	return r;
+	return r,err;
 }
-func(o *Enum) enumValues(args resolvers.Args, parent resolvers.Parent, directiveList resolvers.DirectiveList, typename string) (r resolvers.DataReturn ){	
+func(o *Enum) enumValues(args resolvers.Args, parent resolvers.Parent) (r resolvers.DataReturn ){	
 	thisParent := parent.(introspection.Type);
 	includeDeprecated := false;
 	if(args["includeDeprecated"] != nil){
@@ -65,7 +68,8 @@ func(o *Enum) setDeprecate(value *ast.EnumValueDefinition,thisParent introspecti
 		for _,directive:=range value.Directives{
 			switch directive.Name{
 				case "deprecated":
-					deprecateDirectiveResult = o.directives[directive.Name].Invoke(map[string]interface{}{},*thisParent.Name,value.Name).(directives.DeprecatedData);
+					deprecateDirectiveResults,_ := o.directives[directive.Name].Invoke(map[string]interface{}{},*thisParent.Name,value.Name);
+					deprecateDirectiveResult = deprecateDirectiveResults.(directives.DeprecatedData)
 			}
 		}
 	}
