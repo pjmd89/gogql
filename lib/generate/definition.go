@@ -11,6 +11,7 @@ type ModelDef struct {
 	Name        string
 	PackageName string
 	Attr        []AttrDef
+	IsUseID     bool
 }
 type EnumAttrDef struct {
 	Name  string
@@ -20,4 +21,13 @@ type EnumDef struct {
 	Name        string
 	PackageName string
 	Attr        []EnumAttrDef
+}
+type UnionDef struct {
+	Name        string
+	PackageName string
+	Types       []string
+}
+type ScalarDef struct {
+	Name        string
+	PackageName string
 }
