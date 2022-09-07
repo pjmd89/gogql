@@ -1,0 +1,13 @@
+package {{.PackageName}}
+
+type {{$name := .Name}}{{.Name}} string
+
+const(
+    {{- range $key, $value := .Attr }}
+    {{- if eq $key 0}}
+    {{.Name}} {{$name}} = "{{.Value}}"
+    {{- else }}
+    {{.Name}} = "{{.Value}}"
+    {{- end }}
+    {{- end }}
+)
