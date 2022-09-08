@@ -161,7 +161,7 @@ func generateSchema(scheme string, modelPath string) {
 					if pointerRegexResult {
 						attrStruct.Type = "*" + attrStruct.Type
 					}
-					if structDef.IsUseID {
+					if isID {
 						gqlTag = append(gqlTag, "objectID=true")
 						structDef.IsUseID = true
 					}
