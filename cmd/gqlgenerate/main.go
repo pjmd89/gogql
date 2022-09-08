@@ -169,9 +169,9 @@ func generateSchema(scheme string, modelPath string) {
 					structDef.Attr = append(structDef.Attr, attrStruct)
 				}
 
-				dir := filepath.Dir(modelPath + "/" + filename)
+				dir := filepath.Dir(modelPath + "/model_" + filename)
 				os.MkdirAll(dir, 0770)
-				modelFile, err := os.Create(modelPath + "/" + filename)
+				modelFile, err := os.Create(modelPath + "/model_" + filename)
 				if err != nil {
 					panic(err)
 				}
