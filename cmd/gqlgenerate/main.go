@@ -168,14 +168,12 @@ func generateSchema(scheme string, modelPath string) {
 					attrStruct.GQLTag = strings.Join(gqlTag, ",")
 					structDef.Attr = append(structDef.Attr, attrStruct)
 				}
-
 				dir := filepath.Dir(modelPath + "/model_" + filename)
 				os.MkdirAll(dir, 0770)
 				modelFile, err := os.Create(modelPath + "/model_" + filename)
 				if err != nil {
 					panic(err)
 				}
-
 				err = mt.Execute(modelFile, structDef)
 				if err != nil {
 					panic(err)
@@ -192,14 +190,12 @@ func generateSchema(scheme string, modelPath string) {
 					enumAttrDef.Value = vValue.Name
 					structDef.Attr = append(structDef.Attr, enumAttrDef)
 				}
-
 				dir := filepath.Dir(modelPath + "/enum_" + filename)
 				os.MkdirAll(dir, 0770)
 				modelFile, err := os.Create(modelPath + "/enum_" + filename)
 				if err != nil {
 					panic(err)
 				}
-
 				err = et.Execute(modelFile, structDef)
 				if err != nil {
 					panic(err)
@@ -216,7 +212,6 @@ func generateSchema(scheme string, modelPath string) {
 					if err != nil {
 						panic(err)
 					}
-
 					err = st.Execute(modelFile, scalarDef)
 					if err != nil {
 						panic(err)
@@ -236,7 +231,6 @@ func generateSchema(scheme string, modelPath string) {
 				if err != nil {
 					panic(err)
 				}
-
 				err = ut.Execute(modelFile, unionDef)
 				if err != nil {
 					panic(err)
