@@ -95,11 +95,11 @@ func generateSchema(scheme string, modelPath string) {
 	values := gql.GetTypes()
 
 	for key, value := range values {
+		key = strings.Title(key)
+		filename := strings.ToLower(key) + ".go"
 		if !slices.Contains(omitObject, key) {
 			switch value.Kind {
 			case "OBJECT":
-				key = strings.Title(key)
-				filename := strings.ToLower(key) + ".go"
 				structDef := &generate.ModelDef{}
 				structDef.Attr = make([]generate.AttrDef, 0)
 				structDef.Name = key
@@ -182,8 +182,6 @@ func generateSchema(scheme string, modelPath string) {
 				}
 				break
 			case "ENUM":
-				key = strings.Title(key)
-				filename := strings.ToLower(key) + ".go"
 				structDef := &generate.EnumDef{}
 				structDef.Attr = make([]generate.EnumAttrDef, 0)
 				structDef.Name = key
@@ -209,8 +207,6 @@ func generateSchema(scheme string, modelPath string) {
 				break
 			case "SCALAR":
 				if !slices.Contains(omitScalarTypes, key) {
-					key = strings.Title(key)
-					filename := strings.ToLower(key) + ".go"
 					scalarDef := &generate.ScalarDef{}
 					scalarDef.Name = key
 					scalarDef.PackageName = parent
@@ -228,8 +224,6 @@ func generateSchema(scheme string, modelPath string) {
 				}
 				break
 			case "UNION":
-				key = strings.Title(key)
-				filename := strings.ToLower(key) + ".go"
 				unionDef := &generate.UnionDef{}
 				unionDef.Name = key
 				unionDef.PackageName = parent
