@@ -1,8 +1,11 @@
 package main
 
 import (
+	"bytes"
 	_ "embed"
 	"flag"
+	"fmt"
+	"go/format"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -96,6 +99,7 @@ func generateSchema(scheme string, modelPath string) {
 
 	for key, value := range values {
 		key = strings.Title(key)
+		isID := false
 		filename := strings.ToLower(key) + ".go"
 		if !slices.Contains(omitObject, key) {
 			switch value.Kind {
@@ -107,7 +111,7 @@ func generateSchema(scheme string, modelPath string) {
 				for _, vValue := range value.Fields {
 					attrStruct := generate.AttrDef{}
 					attrStruct.Name = strings.Title(vValue.Name)
-					attrStruct.Type, structDef.IsUseID = getNamedType(vValue.Type.NamedType)
+					attrStruct.Type, isID = getNamedType(vValue.Type.NamedType)
 					bsonTag := make([]string, 0)
 					gqlTag := make([]string, 0)
 					var namedTyped string
@@ -124,23 +128,25 @@ func generateSchema(scheme string, modelPath string) {
 						gqlTag = append(gqlTag, "id=true")
 						structDef.IsUseID = true
 					}
-					namedTyped, structDef.IsUseID = getNamedType(vValue.Type.Elem.NamedType)
+
 					if vValue.Type.Elem != nil {
+						namedTyped, isID = getNamedType(vValue.Type.Elem.NamedType)
 						attrStruct.Type = "[]" + namedTyped
 						attrStruct.IsArray = true
 					}
 					if vValue.Type.Elem != nil && vValue.Type.Elem.NonNull == false {
+						namedTyped, isID = getNamedType(vValue.Type.Elem.NamedType)
 						attrStruct.Type = "[]" + namedTyped
 						attrStruct.IsArray = true
 					}
 					if vValue.Type.Elem != nil && vValue.Type.Elem.NonNull == true && vValue.Type.Elem.Elem != nil {
-						namedTyped, structDef.IsUseID = getNamedType(vValue.Type.Elem.Elem.NamedType)
+						namedTyped, isID = getNamedType(vValue.Type.Elem.Elem.NamedType)
 						attrStruct.Type = "[]" + namedTyped
 						attrStruct.IsArray = true
 					}
 					typeRegexResult := typeRegex.FindStringSubmatch(vValue.Description)
 					if len(typeRegexResult) > 1 {
-						namedTyped, structDef.IsUseID = getNamedType(typeRegexResult[1])
+						namedTyped, isID = getNamedType(typeRegexResult[1])
 						if attrStruct.IsArray {
 
 							attrStruct.Type = "[]" + namedTyped
@@ -148,12 +154,16 @@ func generateSchema(scheme string, modelPath string) {
 							attrStruct.Type = namedTyped
 						}
 					}
+					if isID {
+						structDef.IsUseID = true
+					}
 					pointerRegexResult := pointerRegex.MatchString(vValue.Description)
 					if pointerRegexResult {
 						attrStruct.Type = "*" + attrStruct.Type
 					}
 					if structDef.IsUseID {
 						gqlTag = append(gqlTag, "objectID=true")
+						structDef.IsUseID = true
 					}
 					defaultRegexResult := defaultRegex.FindStringSubmatch(vValue.Description)
 					if len(defaultRegexResult) > 1 {
@@ -177,10 +187,16 @@ func generateSchema(scheme string, modelPath string) {
 				if err != nil {
 					panic(err)
 				}
-				err = mt.Execute(modelFile, structDef)
+				if structDef.Name == "State" {
+					fmt.Println("")
+				}
+				var tmpl bytes.Buffer
+				err = mt.Execute(&tmpl, structDef)
 				if err != nil {
 					panic(err)
 				}
+				x, _ := format.Source(tmpl.Bytes())
+				modelFile.Write(x)
 				break
 			case "ENUM":
 				structDef := &generate.EnumDef{}
@@ -199,7 +215,13 @@ func generateSchema(scheme string, modelPath string) {
 				if err != nil {
 					panic(err)
 				}
-				err = et.Execute(modelFile, structDef)
+				var tmpl bytes.Buffer
+				err = et.Execute(&tmpl, structDef)
+				if err != nil {
+					panic(err)
+				}
+				x, _ := format.Source(tmpl.Bytes())
+				modelFile.Write(x)
 				if err != nil {
 					panic(err)
 				}
@@ -215,7 +237,13 @@ func generateSchema(scheme string, modelPath string) {
 					if err != nil {
 						panic(err)
 					}
-					err = st.Execute(modelFile, scalarDef)
+					var tmpl bytes.Buffer
+					err = st.Execute(&tmpl, scalarDef)
+					if err != nil {
+						panic(err)
+					}
+					x, _ := format.Source(tmpl.Bytes())
+					modelFile.Write(x)
 					if err != nil {
 						panic(err)
 					}
@@ -234,7 +262,13 @@ func generateSchema(scheme string, modelPath string) {
 				if err != nil {
 					panic(err)
 				}
-				err = ut.Execute(modelFile, unionDef)
+				var tmpl bytes.Buffer
+				err = ut.Execute(&tmpl, unionDef)
+				if err != nil {
+					panic(err)
+				}
+				x, _ := format.Source(tmpl.Bytes())
+				modelFile.Write(x)
 				if err != nil {
 					panic(err)
 				}
