@@ -107,9 +107,10 @@ func generateSchema(scheme string, modelPath string) {
 				for _, vValue := range value.Fields {
 					attrStruct := generate.AttrDef{}
 					attrStruct.Name = strings.Title(vValue.Name)
-					attrStruct.Type = getNamedType(vValue.Type.NamedType)
+					attrStruct.Type, structDef.IsUseID = getNamedType(vValue.Type.NamedType)
 					bsonTag := make([]string, 0)
 					gqlTag := make([]string, 0)
+					var namedTyped string
 					vValueName := vValue.Name
 					attrStruct.IsArray = false
 					if slices.Contains(indexIDName, vValue.Name) {
@@ -121,36 +122,38 @@ func generateSchema(scheme string, modelPath string) {
 					if slices.Contains(indexIDName, vValue.Name) && vValue.Type.NamedType == "ID" {
 						bsonTag = append(bsonTag, "omitempty")
 						gqlTag = append(gqlTag, "id=true")
-						gqlTag = append(gqlTag, "objectID=true")
 						structDef.IsUseID = true
 					}
-					if !slices.Contains(indexIDName, vValue.Name) && vValue.Type.NamedType == "ID" {
-						gqlTag = append(gqlTag, "objectID=true")
-						structDef.IsUseID = true
-					}
+					namedTyped, structDef.IsUseID = getNamedType(vValue.Type.Elem.NamedType)
 					if vValue.Type.Elem != nil {
-						attrStruct.Type = "[]" + getNamedType(vValue.Type.Elem.NamedType)
+						attrStruct.Type = "[]" + namedTyped
 						attrStruct.IsArray = true
 					}
 					if vValue.Type.Elem != nil && vValue.Type.Elem.NonNull == false {
-						attrStruct.Type = "[]" + getNamedType(vValue.Type.Elem.NamedType)
+						attrStruct.Type = "[]" + namedTyped
 						attrStruct.IsArray = true
 					}
 					if vValue.Type.Elem != nil && vValue.Type.Elem.NonNull == true && vValue.Type.Elem.Elem != nil {
-						attrStruct.Type = "[]" + getNamedType(vValue.Type.Elem.Elem.NamedType)
+						namedTyped, structDef.IsUseID = getNamedType(vValue.Type.Elem.Elem.NamedType)
+						attrStruct.Type = "[]" + namedTyped
 						attrStruct.IsArray = true
 					}
 					typeRegexResult := typeRegex.FindStringSubmatch(vValue.Description)
 					if len(typeRegexResult) > 1 {
+						namedTyped, structDef.IsUseID = getNamedType(typeRegexResult[1])
 						if attrStruct.IsArray {
-							attrStruct.Type = "[]" + getNamedType(typeRegexResult[1])
+
+							attrStruct.Type = "[]" + namedTyped
 						} else {
-							attrStruct.Type = getNamedType(typeRegexResult[1])
+							attrStruct.Type = namedTyped
 						}
 					}
 					pointerRegexResult := pointerRegex.MatchString(vValue.Description)
 					if pointerRegexResult {
 						attrStruct.Type = "*" + attrStruct.Type
+					}
+					if structDef.IsUseID {
+						gqlTag = append(gqlTag, "objectID=true")
 					}
 					defaultRegexResult := defaultRegex.FindStringSubmatch(vValue.Description)
 					if len(defaultRegexResult) > 1 {
@@ -241,9 +244,12 @@ func generateSchema(scheme string, modelPath string) {
 	}
 
 }
-func getNamedType(namedType string) (r string) {
+func getNamedType(namedType string) (r string, isID bool) {
 	if _, ok := typeToChange[namedType]; ok {
 		r = typeToChange[namedType]
+		if namedType == "ID" {
+			isID = true
+		}
 	} else {
 		r = strings.Title(namedType)
 	}
