@@ -1,57 +1,63 @@
 package http
 
 import (
+	"crypto/rand"
+	"encoding/base64"
+	"fmt"
+	"io"
 	"net/http"
-	"sync"
-
-	"github.com/gorilla/securecookie"
-	"github.com/gorilla/sessions"
+	"net/url"
 )
-var Session *Cookie;
-var mutex = &sync.Mutex{}
-var store = sessions.NewCookieStore(
-	securecookie.GenerateRandomKey(64),
-	securecookie.GenerateRandomKey(32),
-);
-func SessionStart(w http.ResponseWriter,r *http.Request, sessionName *[]byte, cookieName string ) *Cookie{
-	mutex.Lock()
-	Session = &Cookie{};
-	Session.r = r;
-	Session.w = w;
-	Session.cookieName = cookieName;
-	Session.sessionName = *sessionName;
-	if sessionName != nil{
-		secureCookie := false;
-		if r.TLS != nil {
-			secureCookie = true;
+
+func (o *SessionManager) Init(sessionName string, sessionLifetime int, w http.ResponseWriter, r *http.Request, sessionData interface{}) (id string, err error) {
+	o.lock.Lock()
+	cookie, err := r.Cookie(sessionName)
+	secureCookie := false
+	if err == nil {
+		id = cookie.Value
+	}
+
+	if r.TLS != nil {
+		secureCookie = true
+	}
+	if o.sessions == nil {
+		o.sessions = make(map[string]interface{})
+	}
+	if cookie != nil && o.sessions[cookie.Value] != nil {
+		fmt.Printf("session %v:", o.sessions[cookie.Value])
+	}
+
+	if err != nil {
+		id = o.sessionID()
+		cookie = &http.Cookie{
+			Name:  sessionName,
+			Value: id,
 		}
-		store.Options = &sessions.Options{ Path: "/", HttpOnly: true, Secure: secureCookie, MaxAge: 0,SameSite: http.SameSiteNoneMode};
-		session, err := store.Get(r, cookieName)
-		Session.Start = true;
-		Session.session = session
-		
-		if session.IsNew || err == nil{
-			Session.session = sessions.NewSession(store, Session.cookieName);
-			Session.session.Options = store.Options
-			Session.session.Values = make(map[interface{}]interface{});
-			Session.session.Save(Session.r, Session.w);
-		}
+		cookie.Path = "/"
+		cookie.HttpOnly = true
+		cookie.MaxAge = sessionLifetime
+		cookie.Secure = secureCookie
+		cookie.SameSite = http.SameSiteNoneMode
+		o.sessions[cookie.Value] = sessionData
+		http.SetCookie(w, cookie)
 	}
-	mutex.Unlock()
-	return Session
+	o.lock.Unlock()
+
+	return
 }
-func(o *Cookie)Set(values map[interface{}]interface{}){
-	mutex.Lock()
-	for k,v :=range values{
-		o.session.Values[k] = v;
+func (o *SessionManager) Get(sessionID string) (r interface{}) {
+	if o.sessions[sessionID] != nil {
+		r = o.sessions[sessionID]
 	}
-	o.session.Save(o.r, o.w);
-	mutex.Unlock()
+	return
 }
-func(o *Cookie)Get() map[interface{}]interface{}{
-	r := make(map[interface{}]interface{});
-	if o != nil && o.session != nil{
-		r = o.session.Values
+func (o *SessionManager) Set(sessionID string, sessionData interface{}) {
+	o.sessions[sessionID] = sessionData
+}
+func (o *SessionManager) sessionID() string {
+	id := make([]byte, 32)
+	if _, err := io.ReadFull(rand.Reader, id); err != nil {
+		return ""
 	}
-	return r;
+	return url.QueryEscape(base64.URLEncoding.EncodeToString(id))
 }

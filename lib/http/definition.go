@@ -2,24 +2,15 @@ package http
 
 import (
 	"net/http"
+	"sync"
 
 	"github.com/gorilla/mux"
-	"github.com/gorilla/sessions"
 )
 
 type Gql interface {
 	GetServerName() string
 	GQLRender(w http.ResponseWriter, r *http.Request) string
 	GQLRenderSubscription(mt int, message []byte, socketId string)
-}
-
-type Cookie struct {
-	sessionName []byte
-	session     *sessions.Session
-	cookieName  string
-	w           http.ResponseWriter
-	r           *http.Request
-	Start       bool
 }
 type URL struct {
 	Scheme     string
@@ -68,10 +59,16 @@ type Http struct {
 	httpsService mux.Router
 	router       *mux.Router
 	gql          map[string]Gql
-	CheckOrigin  func(url URL) (bool, any)
-	OnBegin      func(url URL, httpPath *Path, originData any) bool
-	OnFinish     func()
+	CheckOrigin  func(url URL) (bool, interface{})
+	OnBegin      func(url URL, httpPath *Path, originData interface{}, sessionID string) bool
+	OnFinish     func(sessionID string)
+	OnSession    func() (r interface{})
 	originData   any
 	http404      func()
 	http405      func()
+}
+type SessionManager struct {
+	lock        sync.Mutex
+	maxLifetime int
+	sessions    map[string]interface{}
 }

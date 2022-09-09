@@ -3,6 +3,7 @@ package http
 import (
 	"crypto/tls"
 	"fmt"
+	"log"
 	"net/http"
 	"net/url"
 	"os"
@@ -19,15 +20,12 @@ import (
 	"golang.org/x/exp/slices"
 )
 
-type CheckOrigin func(host *url.URL, referer *url.URL) (r bool)
-type OnBegin func(host *url.URL, referer *url.URL, mode string) (r bool)
-type OnFinish func()
-
 var upgrader = websocket.Upgrader{
 	EnableCompression: true,
 }
 var WsIds map[string]chan bool = make(map[string]chan bool)
 var WsChannels map[string]*websocket.Conn = make(map[string]*websocket.Conn)
+var Session = SessionManager{}
 
 func Init(gql ...Gql) *Http {
 	mapGQL := make(map[string]Gql)
@@ -115,7 +113,14 @@ func (o *Http) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	urlInfo.Split(r)
 	urlPath := "/"
 	var httpPathMode *Path
-
+	var sessionData interface{}
+	if o.OnSession != nil {
+		sessionData = o.OnSession()
+	}
+	sessionID, err := Session.Init(o.CookieName, 0, w, r, sessionData)
+	if err != nil {
+		log.Printf(err.Error())
+	}
 	if urlInfo.Origin.URL != "" {
 		w.Header().Set("Access-Control-Allow-Origin", urlInfo.Origin.URL)
 		w.Header().Set("Access-Control-Allow-Credentials", "true")
@@ -179,14 +184,8 @@ func (o *Http) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	if httpPathMode != nil {
-		cookie, _ := r.Cookie(o.CookieName)
-		var cookieValue []byte
-		if cookie != nil {
-			cookieValue = []byte(cookie.Value)
-		}
-		SessionStart(w, r, &cookieValue, o.CookieName)
 		if o.OnBegin != nil {
-			o.OnBegin(urlInfo, httpPathMode, o.originData)
+			o.OnBegin(urlInfo, httpPathMode, o.originData, sessionID)
 		}
 		switch httpPathMode.Mode {
 		case "file":
@@ -199,15 +198,16 @@ func (o *Http) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			o.websocketServeHTTP(w, r, httpPathMode)
 			break
 		}
-		if o.OnFinish != nil {
-			o.OnFinish()
-		}
+		/*
+			if o.OnFinish != nil {
+				o.OnFinish(sessionData)
+			}*/
 	} else {
 		fmt.Println("mode not found")
 		w.WriteHeader(http.StatusNotFound)
 	}
 	if o.OnFinish != nil {
-		o.OnFinish()
+		o.OnFinish(sessionID)
 	}
 	return
 }
