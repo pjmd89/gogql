@@ -6,10 +6,9 @@ require (
 	github.com/google/uuid v1.3.0
 	github.com/gorilla/handlers v1.5.1
 	github.com/gorilla/mux v1.8.0
-	github.com/gorilla/securecookie v1.1.1
-	github.com/gorilla/sessions v1.2.1
 	github.com/gorilla/websocket v1.5.0
 	github.com/jinzhu/copier v0.3.5
+	github.com/pjmd89/goutils v0.0.0-20220909092919-e2fa99a75445
 	github.com/pjmd89/gqlparser/v2 v2.2.1-0.20220330002356-e1babba1695a
 	golang.org/x/exp v0.0.0-20220722155223-a9213eeb770e
 )

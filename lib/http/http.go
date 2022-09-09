@@ -12,17 +12,18 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/pjmd89/gogql/lib"
-
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
+	"github.com/pjmd89/gogql/lib"
+	"github.com/pjmd89/goutils/systemutils"
 	"golang.org/x/exp/slices"
 )
 
 var upgrader = websocket.Upgrader{
 	EnableCompression: true,
 }
+var sessionIndex = map[uint64]string{}
 var WsIds map[string]chan bool = make(map[string]chan bool)
 var WsChannels map[string]*websocket.Conn = make(map[string]*websocket.Conn)
 var Session = SessionManager{}
@@ -118,6 +119,7 @@ func (o *Http) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		sessionData = o.OnSession()
 	}
 	sessionID, err := Session.Init(o.CookieName, 0, w, r, sessionData)
+	o.setSessionIndex(sessionID)
 	if err != nil {
 		log.Printf(err.Error())
 	}
@@ -212,6 +214,7 @@ func (o *Http) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	return
 }
 func (o *Http) fileServeHTTP(w http.ResponseWriter, r *http.Request, httpPath *Path) {
+	defer o.sessionDestroy()
 	file, fErr := os.Open(httpPath.Path + "/" + httpPath.pathURL)
 	fileStat, _ := file.Stat()
 
@@ -233,12 +236,14 @@ func (o *Http) fileServeHTTP(w http.ResponseWriter, r *http.Request, httpPath *P
 	http.ServeContent(w, r, httpPath.Path+"/"+r.RequestURI, time.Time{}, file)
 }
 func (o *Http) gqlServeHTTP(w http.ResponseWriter, r *http.Request, httpPath *Path) {
+	defer o.sessionDestroy()
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	//por favor, revisa que o.serverName exista, si no existe entonces devuelvele un dedito
 	rx := o.gql[httpPath.host].GQLRender(w, r)
 	fmt.Fprint(w, rx)
 }
 func (o *Http) websocketServeHTTP(w http.ResponseWriter, r *http.Request, httpPath *Path) {
+	defer o.sessionDestroy()
 	headers := http.Header{}
 	headers.Set("Sec-WebSocket-Protocol", "graphql-transport-ws")
 	headers.Set("Sec-WebSocket-Version", "13")
@@ -300,6 +305,16 @@ func (o *Http) listenHttps(channel chan bool, handler *http.Server) {
 func (o *Http) WebSocketMessage(mt int, message []byte, id string, httpPath *Path) {
 
 	o.gql[httpPath.host].GQLRenderSubscription(mt, message, id)
+}
+func (o *Http) setSessionIndex(sessionID string) {
+	routineID := systemutils.GetRoutineID()
+	sessionIndex[routineID] = sessionID
+	fmt.Println(routineID)
+
+}
+func (o *Http) sessionDestroy() {
+	routineID := systemutils.GetRoutineID()
+	delete(sessionIndex, routineID)
 }
 func WriteWebsocketMessage(mt int, id string, message []byte) {
 	if WsChannels[id] != nil {

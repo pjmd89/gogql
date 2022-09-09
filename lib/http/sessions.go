@@ -7,6 +7,8 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+
+	"github.com/pjmd89/goutils/systemutils"
 )
 
 func (o *SessionManager) Init(sessionName string, sessionLifetime int, w http.ResponseWriter, r *http.Request, sessionData interface{}) (id string, err error) {
@@ -49,6 +51,8 @@ func (o *SessionManager) Get(sessionID string) (r interface{}) {
 	if o.sessions[sessionID] != nil {
 		r = o.sessions[sessionID]
 	}
+	goID := systemutils.GetRoutineID()
+	fmt.Println("go routine x:", sessionIndex[goID])
 	return
 }
 func (o *SessionManager) Set(sessionID string, sessionData interface{}) {
