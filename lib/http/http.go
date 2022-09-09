@@ -120,6 +120,7 @@ func (o *Http) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	sessionID, err := Session.Init(o.CookieName, 0, w, r, sessionData)
 	o.setSessionIndex(sessionID)
+	defer o.sessionDestroy()
 	if err != nil {
 		log.Printf(err.Error())
 	}
@@ -187,7 +188,7 @@ func (o *Http) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	if httpPathMode != nil {
 		if o.OnBegin != nil {
-			o.OnBegin(urlInfo, httpPathMode, o.originData, sessionID)
+			o.OnBegin(urlInfo, httpPathMode, o.originData)
 		}
 		switch httpPathMode.Mode {
 		case "file":
@@ -209,12 +210,11 @@ func (o *Http) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
 	}
 	if o.OnFinish != nil {
-		o.OnFinish(sessionID)
+		o.OnFinish()
 	}
 	return
 }
 func (o *Http) fileServeHTTP(w http.ResponseWriter, r *http.Request, httpPath *Path) {
-	defer o.sessionDestroy()
 	file, fErr := os.Open(httpPath.Path + "/" + httpPath.pathURL)
 	fileStat, _ := file.Stat()
 
@@ -236,14 +236,12 @@ func (o *Http) fileServeHTTP(w http.ResponseWriter, r *http.Request, httpPath *P
 	http.ServeContent(w, r, httpPath.Path+"/"+r.RequestURI, time.Time{}, file)
 }
 func (o *Http) gqlServeHTTP(w http.ResponseWriter, r *http.Request, httpPath *Path) {
-	defer o.sessionDestroy()
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	//por favor, revisa que o.serverName exista, si no existe entonces devuelvele un dedito
 	rx := o.gql[httpPath.host].GQLRender(w, r)
 	fmt.Fprint(w, rx)
 }
 func (o *Http) websocketServeHTTP(w http.ResponseWriter, r *http.Request, httpPath *Path) {
-	defer o.sessionDestroy()
 	headers := http.Header{}
 	headers.Set("Sec-WebSocket-Protocol", "graphql-transport-ws")
 	headers.Set("Sec-WebSocket-Version", "13")
@@ -309,8 +307,6 @@ func (o *Http) WebSocketMessage(mt int, message []byte, id string, httpPath *Pat
 func (o *Http) setSessionIndex(sessionID string) {
 	routineID := systemutils.GetRoutineID()
 	sessionIndex[routineID] = sessionID
-	fmt.Println(routineID)
-
 }
 func (o *Http) sessionDestroy() {
 	routineID := systemutils.GetRoutineID()

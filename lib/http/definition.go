@@ -60,8 +60,8 @@ type Http struct {
 	router       *mux.Router
 	gql          map[string]Gql
 	CheckOrigin  func(url URL) (bool, interface{})
-	OnBegin      func(url URL, httpPath *Path, originData interface{}, sessionID string) bool
-	OnFinish     func(sessionID string)
+	OnBegin      func(url URL, httpPath *Path, originData interface{}) bool
+	OnFinish     func()
 	OnSession    func() (r interface{})
 	originData   any
 	http404      func()

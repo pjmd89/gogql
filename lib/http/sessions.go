@@ -3,7 +3,6 @@ package http
 import (
 	"crypto/rand"
 	"encoding/base64"
-	"fmt"
 	"io"
 	"net/http"
 	"net/url"
@@ -25,11 +24,8 @@ func (o *SessionManager) Init(sessionName string, sessionLifetime int, w http.Re
 	if o.sessions == nil {
 		o.sessions = make(map[string]interface{})
 	}
-	if cookie != nil && o.sessions[cookie.Value] != nil {
-		fmt.Printf("session %v:", o.sessions[cookie.Value])
-	}
 
-	if err != nil {
+	if err != nil || cookie == nil || o.sessions[cookie.Value] == nil {
 		id = o.sessionID()
 		cookie = &http.Cookie{
 			Name:  sessionName,
@@ -47,16 +43,18 @@ func (o *SessionManager) Init(sessionName string, sessionLifetime int, w http.Re
 
 	return
 }
-func (o *SessionManager) Get(sessionID string) (r interface{}) {
-	if o.sessions[sessionID] != nil {
-		r = o.sessions[sessionID]
-	}
+func (o *SessionManager) Get() (r interface{}) {
 	goID := systemutils.GetRoutineID()
-	fmt.Println("go routine x:", sessionIndex[goID])
+	if sessionIndex != nil && o.sessions[sessionIndex[goID]] != nil {
+		r = o.sessions[sessionIndex[goID]]
+	}
 	return
 }
-func (o *SessionManager) Set(sessionID string, sessionData interface{}) {
-	o.sessions[sessionID] = sessionData
+func (o *SessionManager) Set(sessionData interface{}) {
+	goID := systemutils.GetRoutineID()
+	if sessionIndex != nil {
+		o.sessions[sessionIndex[goID]] = sessionData
+	}
 }
 func (o *SessionManager) sessionID() string {
 	id := make([]byte, 32)
