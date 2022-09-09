@@ -7,28 +7,27 @@ import (
 	"github.com/pjmd89/gogql/lib/gql/resolvers"
 )
 
-type StringScalar struct{
-	
+type StringScalar struct {
 }
 
-func NewStringScalar() resolvers.Scalar{
-	var scalar resolvers.Scalar;
-	scalar = &StringScalar{};
+func NewStringScalar() resolvers.Scalar {
+	var scalar resolvers.Scalar
+	scalar = &StringScalar{}
 	return scalar
 }
-func(o *StringScalar) Assess(value interface{})( val interface{}, err definitionError.Error){
-	var er error;
+func (o *StringScalar) Assess(value interface{}) (val interface{}, err definitionError.GQLError) {
+	var er error
 
-	switch value.(type){
+	switch value.(type) {
 	case string:
-		val = value.(string);
+		val = value.(string)
 	default:
-		if value != nil{
-			er = errors.New("Invalid string type");
+		if value != nil {
+			er = errors.New("Invalid string type")
 		}
 	}
-	if value != nil && er != nil{
-		err=definitionError.NewWarning(er.Error(),nil);
+	if value != nil && er != nil {
+		err = definitionError.NewWarning(er.Error(), nil)
 	}
 	return val, err
 }

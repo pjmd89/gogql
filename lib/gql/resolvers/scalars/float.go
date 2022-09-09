@@ -8,38 +8,37 @@ import (
 	"github.com/pjmd89/gogql/lib/gql/resolvers"
 )
 
-type FloatScalar struct{
-	
+type FloatScalar struct {
 }
 
-func NewFloatScalar() resolvers.Scalar{
-	var scalar resolvers.Scalar;
-	scalar = &FloatScalar{};
+func NewFloatScalar() resolvers.Scalar {
+	var scalar resolvers.Scalar
+	scalar = &FloatScalar{}
 	return scalar
 }
-func(o *FloatScalar) Assess(value interface{})( val interface{}, err definitionError.Error){
-	var er error;
+func (o *FloatScalar) Assess(value interface{}) (val interface{}, err definitionError.GQLError) {
+	var er error
 
-	switch value.(type){
+	switch value.(type) {
 	case string:
-		val, er = strconv.ParseFloat(value.(string), 64);
+		val, er = strconv.ParseFloat(value.(string), 64)
 	case float32:
-		val = float64(value.(float32));
+		val = float64(value.(float32))
 	case float64:
-		val = float64(value.(float64));
+		val = float64(value.(float64))
 	case int:
-		val = float64(value.(int));
+		val = float64(value.(int))
 	case int32:
-		val = float64(value.(int32));
+		val = float64(value.(int32))
 	case int64:
-		val = float64(value.(int64));
+		val = float64(value.(int64))
 	default:
-		if value != nil{
-			er = errors.New("Invalid float type");
+		if value != nil {
+			er = errors.New("Invalid float type")
 		}
 	}
-	if value != nil && er != nil{
-		err=definitionError.NewWarning(er.Error(),nil);
+	if value != nil && er != nil {
+		err = definitionError.NewWarning(er.Error(), nil)
 	}
 	return val, err
 }
