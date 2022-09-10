@@ -73,10 +73,13 @@ func main() {
 
 func generateSchema(scheme string, modelPath string) {
 	typeRegex := regexp.MustCompile(`-type ([^\n]+)`)
+	omitRegex := regexp.MustCompile(`-omit[^\n]?`)
 	pointerRegex := regexp.MustCompile(`-pointer[^\n]?`)
 	defaultRegex := regexp.MustCompile(`-default ([^\n]+)`)
+	nestedRegex := regexp.MustCompile(`-nested ([^\n]+)`)
 	createdRegex := regexp.MustCompile(`-created[^\n]?`)
 	updatedRegex := regexp.MustCompile(`-updated[^\n]?`)
+
 	mt, err := template.New("model.tmpl").Parse(string(modeltmpl))
 	if err != nil {
 		panic(err)
@@ -164,6 +167,14 @@ func generateSchema(scheme string, modelPath string) {
 					if isID {
 						gqlTag = append(gqlTag, "objectID=true")
 						structDef.IsUseID = true
+					}
+					omitResult := omitRegex.MatchString(vValue.Description)
+					if omitResult {
+						gqlTag = append(gqlTag, "omit=true")
+					}
+					nestedResult := nestedRegex.MatchString(vValue.Description)
+					if nestedResult {
+						gqlTag = append(gqlTag, "nested=true")
 					}
 					defaultRegexResult := defaultRegex.FindStringSubmatch(vValue.Description)
 					if len(defaultRegexResult) > 1 {
