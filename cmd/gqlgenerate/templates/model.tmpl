@@ -13,7 +13,7 @@ import (
 )
 
 type {{.Name}} struct{
-    mongomodel.Model `bson:"-" gql:="omit=true"`
+    mongomodel.Model `bson:"-" gql:"omit=true"`
     {{- range $key, $value := .Attr }}
     {{ .Name }} {{.Type}} `bson:"{{.BSONTag}}" gql:"{{.GQLTag}}"`
     {{- end }}
