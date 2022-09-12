@@ -59,6 +59,10 @@ func (o *gql) dataResponse(fieldNames map[string]interface{}, resolved interface
 					if !isNill {
 						data := o.dataResponse(make(map[string]interface{}, 0), rValue.Field(i).Interface())
 						if fieldNames[varName] != nil {
+							y := e.Field(i).Type.Name()
+							if o.scalars[y] != nil {
+								data, _ = o.scalars[y].Assess(data)
+							}
 							r.(map[string]interface{})[fieldNames[varName].(string)] = data
 						}
 					} else {
