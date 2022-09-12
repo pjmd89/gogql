@@ -38,12 +38,17 @@ func NewModel(render generate.GqlGenerate, key string, value *ast.Definition, ty
 	unionList := []string{}
 	for _, vValue := range value.Fields {
 		attrStruct := generate.AttrDef{}
+		namedType := vValue.Type.NamedType
+		if namedType == "" {
+			namedType = vValue.Type.Elem.NamedType
+		}
 		attrStruct.Name = strings.Title(vValue.Name)
-		attrStruct.Type, isID = generate.GetNamedType(vValue.Type.NamedType)
+		attrStruct.Type, isID = generate.GetNamedType(namedType)
 		bsonTag := make([]string, 0)
 		gqlTag := make([]string, 0)
-		if types[vValue.Type.NamedType] != nil {
-			switch types[vValue.Type.NamedType].Kind {
+		unionInstance := ""
+		if types[namedType] != nil {
+			switch types[namedType].Kind {
 			case "ENUM":
 				structDef.IsUseEnum = true
 				attrStruct.Type = render.EnumPath + "." + attrStruct.Type
@@ -51,12 +56,12 @@ func NewModel(render generate.GqlGenerate, key string, value *ast.Definition, ty
 			case "UNION":
 				structDef.IsUseUnion = true
 				unionCount++
-				unionInstance := attrStruct.Type + strconv.Itoa(unionCount)
+				unionInstance = attrStruct.Type + strconv.Itoa(unionCount)
 				unionList = append(unionList, unionInstance+" "+attrStruct.Type)
 				attrStruct.Type = unionInstance
 				break
 			case "SCALAR":
-				if !slices.Contains(generate.OmitScalarTypes, vValue.Type.NamedType) {
+				if !slices.Contains(generate.OmitScalarTypes, namedType) {
 					structDef.IsUseScalar = true
 					attrStruct.Type = render.ScalarPath + "." + attrStruct.Type
 				}
@@ -73,7 +78,7 @@ func NewModel(render generate.GqlGenerate, key string, value *ast.Definition, ty
 		}
 		bsonTag = append(bsonTag, vValueName)
 		gqlTag = append(gqlTag, "name="+vValueName)
-		if slices.Contains(generate.IndexIDName, vValue.Name) && vValue.Type.NamedType == "ID" {
+		if slices.Contains(generate.IndexIDName, vValue.Name) && namedType == "ID" {
 			bsonTag = append(bsonTag, "omitempty")
 			gqlTag = append(gqlTag, "id=true")
 			structDef.IsUseID = true
@@ -81,24 +86,35 @@ func NewModel(render generate.GqlGenerate, key string, value *ast.Definition, ty
 
 		if vValue.Type.Elem != nil {
 			namedTyped, isID = generate.GetNamedType(vValue.Type.Elem.NamedType)
+			if unionInstance != "" {
+				//namedTyped = unionInstance
+			}
 			attrStruct.Type = "[]" + namedTyped
 			attrStruct.IsArray = true
 		}
 		if vValue.Type.Elem != nil && vValue.Type.Elem.NonNull == false {
 			namedTyped, isID = generate.GetNamedType(vValue.Type.Elem.NamedType)
+			if unionInstance != "" {
+				//namedTyped = unionInstance
+			}
 			attrStruct.Type = "[]" + namedTyped
 			attrStruct.IsArray = true
 		}
 		if vValue.Type.Elem != nil && vValue.Type.Elem.NonNull == true && vValue.Type.Elem.Elem != nil {
 			namedTyped, isID = generate.GetNamedType(vValue.Type.Elem.Elem.NamedType)
+			if unionInstance != "" {
+				//namedTyped = unionInstance
+			}
 			attrStruct.Type = "[]" + namedTyped
 			attrStruct.IsArray = true
 		}
 		typeRegexResult := typeRegex.FindStringSubmatch(vValue.Description)
 		if len(typeRegexResult) > 1 {
 			namedTyped, isID = generate.GetNamedType(typeRegexResult[1])
+			if unionInstance != "" {
+				//namedTyped = unionInstance
+			}
 			if attrStruct.IsArray {
-
 				attrStruct.Type = "[]" + namedTyped
 			} else {
 				attrStruct.Type = namedTyped
@@ -149,7 +165,7 @@ func NewModel(render generate.GqlGenerate, key string, value *ast.Definition, ty
 		structDef.Attr = append(structDef.Attr, attrStruct)
 	}
 	if unionCount > 0 {
-		structDef.Name = structDef.Name + "[" + strings.Join(unionList, ",") + "]"
+		//structDef.Name = structDef.Name + "[" + strings.Join(unionList, ",") + "]"
 	}
 	structDef.FilePath = render.ModulePath + "/generate/" + render.ModelPath + "/" + strings.ToLower(key) + ".go"
 	structDef.ModelPath = render.ModuleName + "/" + render.ModelPath

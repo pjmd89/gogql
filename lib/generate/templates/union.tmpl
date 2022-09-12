@@ -12,7 +12,12 @@
 package {{.PackageName}}
 
 {{- range $k, $v := .Type }}
+type {{.Name}} interface{}
+{{- end}}
+/*
+{{- range $k, $v := .Type }}
 type {{.Name}} interface{
-    {{- .Types }}
+    {{ .Types }}
 }
 {{- end}}
+*/
