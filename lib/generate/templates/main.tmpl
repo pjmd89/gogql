@@ -10,3 +10,47 @@
  * gqlgenerate no creara archivos en la carpeta raiz de tu modulo porque puedes sufrir perdida de informacion.
  */
 package main
+
+import (
+    {{- range .ObjectType}}
+    "{{.DefinitionPath}}"
+    {{- end}}
+
+	"github.com/pjmd89/gogql/lib/gql"
+	"github.com/pjmd89/gogql/lib/http"
+	"github.com/pjmd89/mongomodel/mongomodel"
+)
+
+var db = mongomodel.NewConn(nil)
+var schema = gql.Init("your-api-domain", "schema")
+var myHttp = http.Init(schema)
+
+func main() {
+	myHttp.Start()
+}
+func OnDB(currentDB string, currentCollection string) (r string) {
+	r = currentDB
+	return
+}
+func httpOnSession() (r interface{}) {
+	return
+}
+func httpCheckOrigin(url http.URL) (r bool, info interface{}) {
+    r = true
+	return
+}
+func httpOnBegin(url http.URL, httpPath *http.Path, originData interface{}) (r bool) {
+	return true
+}
+func httpOnFinish() {}
+func init(){
+    db.(*mongomodel.MongoDBConn).OnDatabase = OnDB
+    myHttp.OnSession = httpOnSession
+	myHttp.CheckOrigin = httpCheckOrigin
+	myHttp.OnBegin = httpOnBegin
+	myHttp.OnFinish = httpOnFinish
+    
+    {{- range .ObjectType}}
+    schema.ObjectType("{{.RealName}}", {{.PackageName}}.New{{.Name}}(db))
+    {{- end}}
+}

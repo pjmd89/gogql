@@ -156,7 +156,7 @@ func NewModel(render generate.GqlGenerate, key string, value *ast.Definition, ty
 	structDef.ScalarPath = render.ModuleName + "/" + render.ResolverPath + "/" + render.ScalarPath
 	structDef.UnionPath = render.ModuleName + "/" + render.ModelPath + "/" + render.UnionPath
 	structDef.EnumPath = render.ModuleName + "/" + render.ModelPath + "/" + render.EnumPath
-	objectTypeBase := render.ModulePath + "/generate/" + render.ResolverPath + "/objecttypes/" + strings.ToLower(key)
+	objectTypeBase := render.ModulePath + "/generate/" + render.ResolverPath + "/" + render.ObjecttypePath + "/" + strings.ToLower(key)
 	structDef.ObjectTypePath = objectTypeBase + "/definition.go"
 	structDef.QueryPath = objectTypeBase + "/queries.go"
 	structDef.MutationPath = objectTypeBase + "/mutations.go"

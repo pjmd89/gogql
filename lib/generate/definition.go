@@ -22,12 +22,15 @@ type RenderTypes struct {
 	EnumType   []EnumDef
 	UnionType  UnionDef
 	ScalarType []ScalarDef
+	MainPath   string
 }
 type ObjectTypeDef struct {
 	Name                  string
 	PackageName           string
+	RealName              string
 	ModelPath             string
 	ModuleName            string
+	DefinitionPath        string
 	FilePath              string
 	QueryPath             string
 	MutationPath          string
@@ -109,6 +112,8 @@ var (
 	Mutationstmpl []byte
 	//go:embed templates/subscriptions.tmpl
 	Subscriptionstmpl []byte
+	//go:embed templates/main.tmpl
+	Maintmpl []byte
 )
 var OmitObject = []string{
 	"__Directive",

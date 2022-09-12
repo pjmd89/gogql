@@ -20,7 +20,7 @@ func main() {
 		unionPath             = "unions"
 		scalarPath            = "scalars"
 		enumPath              = "enums"
-		objecttypePath        = "objecttypes"
+		objecttypePath        = "objectTypes"
 	)
 
 	flag.StringVar(&schemaPath, "schema", "", "Ruta de la carpeta contenedora del esquema de GraphQL")
@@ -58,6 +58,7 @@ func generateSchema(render generate.GqlGenerate) {
 		EnumType:   make([]generate.EnumDef, 0),
 		ScalarType: make([]generate.ScalarDef, 0),
 	}
+	types.MainPath = render.ModulePath + "/generate/main.go"
 	gql := gql.Init("", render.SchemaPath)
 
 	if gql.GetSchema().Query != nil {
@@ -100,6 +101,7 @@ func generateSchema(render generate.GqlGenerate) {
 	gqltypes.EnumTmpl(types)
 	gqltypes.ScalarTmpl(types)
 	gqltypes.UnionTmpl(types)
+	gqltypes.Maintmpl(types)
 }
 
 //go:generate go run main.go -scheme=$SCHEME -model-path=$MODELPATH

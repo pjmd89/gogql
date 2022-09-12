@@ -19,7 +19,9 @@ func NewObjectType(render generate.GqlGenerate, value generate.ModelDef, schema 
 	oType.MutationPath = value.MutationPath
 	oType.SubscriptionPath = value.SubscriptionPath
 	oType.Name = strings.Title(value.RealName)
+	oType.RealName = value.RealName
 	oType.PackageName = strings.ToLower(value.RealName)
+	oType.DefinitionPath = render.ModuleName + "/resolvers/" + render.ObjecttypePath + "/" + oType.PackageName
 	oType.ModelPath = render.ModelPath
 	oType.ModuleName = render.ModuleName
 
