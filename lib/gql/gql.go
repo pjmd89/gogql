@@ -43,8 +43,8 @@ func Init(serverName string, path string) *gql {
 	gql.scalars["Float"] = scalars.NewFloatScalar()
 	return gql
 }
-func (o *gql) GetTypes() map[string]*ast.Definition {
-	return o.schema.Types
+func (o *gql) GetSchema() *ast.Schema {
+	return o.schema
 }
 func (o *gql) ObjectType(resolver string, object resolvers.ObjectTypeInterface) {
 	o.objectTypes[resolver] = object

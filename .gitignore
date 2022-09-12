@@ -4,5 +4,6 @@ htdocs/
 vendor/
 .vscode/
 subscriptions/
+generate/
 resolvers/
 __debug_bin

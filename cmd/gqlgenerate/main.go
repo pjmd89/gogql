@@ -1,304 +1,101 @@
 package main
 
 import (
-	"bytes"
-	_ "embed"
 	"flag"
-	"fmt"
-	"go/format"
-	"os"
-	"path/filepath"
-	"regexp"
-	"strings"
-	"text/template"
+	"log"
 
 	"github.com/pjmd89/gogql/lib/generate"
+	"github.com/pjmd89/gogql/lib/generate/gqltypes"
 	"github.com/pjmd89/gogql/lib/gql"
 	"golang.org/x/exp/slices"
 )
 
-var (
-	//go:embed templates/model.tmpl
-	modeltmpl []byte
-	//go:embed templates/enum.tmpl
-	enumtmpl []byte
-	//go:embed templates/union.tmpl
-	uniontmpl []byte
-	//go:embed templates/scalar.tmpl
-	scalartmpl []byte
-)
-var omitObject = []string{
-	"__Directive",
-	"__EnumValue",
-	"__Field",
-	"__InputValue",
-	"__Schema",
-	"__Type",
-	"__TypeKind",
-	"__DirectiveLocation",
-	"Query",
-	"Mutation",
-	"query",
-	"mutation",
-}
-var typeToChange = map[string]string{
-	"Int":     "int64",
-	"Float":   "float64",
-	"ID":      "primitive.ObjectID",
-	"String":  "string",
-	"Boolean": "bool",
-}
-var omitScalarTypes = []string{
-	"Int",
-	"Float",
-	"ID",
-	"String",
-	"Boolean",
-}
-var indexIDName = []string{
-	"_id",
-	"id",
-}
-
 func main() {
-	var scheme string
-	var modelPath string
-	flag.StringVar(&scheme, "scheme", "", "Ruta de la carpeta contenedora del esquema de GraphQL")
-	flag.StringVar(&modelPath, "model-path", "", "Ruta donde se guardaran los modelos generados")
+	var (
+		schemaPath     string = ""
+		moduleName            = ""
+		modulePath            = ""
+		modelPath             = "models"
+		resolverPath          = "resolvers"
+		unionPath             = "unions"
+		scalarPath            = "scalars"
+		enumPath              = "enums"
+		objecttypePath        = "objecttypes"
+	)
+
+	flag.StringVar(&schemaPath, "schema", "", "Ruta de la carpeta contenedora del esquema de GraphQL")
+	flag.StringVar(&modulePath, "module-path", "", "Ruta donde se guardaran los modelos generados")
+	flag.StringVar(&moduleName, "module-name", "", "Ruta donde se guardaran los modelos generados")
+	flag.StringVar(&unionPath, "union-path", unionPath, "Ruta donde se guardaran los modelos generados")
+	flag.StringVar(&scalarPath, "scalar-path", scalarPath, "Ruta donde se guardaran los modelos generados")
+	flag.StringVar(&enumPath, "enum-path", enumPath, "Ruta donde se guardaran los modelos generados")
+	flag.StringVar(&modelPath, "model-path", modelPath, "Ruta donde se guardaran los modelos generados")
+	flag.StringVar(&resolverPath, "resolver-path", resolverPath, "Ruta donde se guardaran los modelos generados")
+	flag.StringVar(&objecttypePath, "objecttype-path", objecttypePath, "Ruta donde se guardaran los modelos generados")
 	flag.Parse()
-	if scheme != "" && modelPath != "" {
-		generateSchema(scheme, modelPath)
+	render := generate.GqlGenerate{
+		SchemaPath:     schemaPath,
+		ModuleName:     moduleName,
+		ModulePath:     modulePath,
+		ModelPath:      modelPath,
+		ResolverPath:   resolverPath,
+		UnionPath:      unionPath,
+		ScalarPath:     scalarPath,
+		EnumPath:       enumPath,
+		ObjecttypePath: objecttypePath,
+	}
+	if schemaPath != "" && modulePath != "" && moduleName != "" {
+		generateSchema(render)
+	} else {
+		log.Fatal("debes indicar el path del schema, la carpeta raiz del proyecto y el nombre del modulo (-schema, -module-path, -module-name)")
 	}
 }
 
-func generateSchema(scheme string, modelPath string) {
-	typeRegex := regexp.MustCompile(`-type ([^\n]+)`)
-	omitRegex := regexp.MustCompile(`-omit[^\n]?`)
-	pointerRegex := regexp.MustCompile(`-pointer[^\n]?`)
-	defaultRegex := regexp.MustCompile(`-default ([^\n]+)`)
-	nestedRegex := regexp.MustCompile(`-nested ([^\n]+)`)
-	createdRegex := regexp.MustCompile(`-created[^\n]?`)
-	updatedRegex := regexp.MustCompile(`-updated[^\n]?`)
+func generateSchema(render generate.GqlGenerate) {
+	types := generate.RenderTypes{
+		ModelType:  make([]generate.ModelDef, 0),
+		ObjectType: make(map[string]generate.ObjectTypeDef),
+		EnumType:   make([]generate.EnumDef, 0),
+		ScalarType: make([]generate.ScalarDef, 0),
+	}
+	gql := gql.Init("", render.SchemaPath)
 
-	mt, err := template.New("model.tmpl").Parse(string(modeltmpl))
-	if err != nil {
-		panic(err)
+	if gql.GetSchema().Query != nil {
+		generate.OmitObject = append(generate.OmitObject, gql.GetSchema().Query.Name)
 	}
-	et, err := template.New("enum.tmpl").Parse(string(enumtmpl))
-	if err != nil {
-		panic(err)
+	if gql.GetSchema().Mutation != nil {
+		generate.OmitObject = append(generate.OmitObject, gql.GetSchema().Mutation.Name)
 	}
-	ut, err := template.New("union.tmpl").Parse(string(uniontmpl))
-	if err != nil {
-		panic(err)
+	if gql.GetSchema().Subscription != nil {
+		generate.OmitObject = append(generate.OmitObject, gql.GetSchema().Subscription.Name)
 	}
-	st, err := template.New("scalar.tmpl").Parse(string(scalartmpl))
-	if err != nil {
-		panic(err)
-	}
-	gql := gql.Init("", scheme)
-	parent := filepath.Base(modelPath)
-	values := gql.GetTypes()
-
-	for key, value := range values {
-		key = strings.Title(key)
-		isID := false
-		filename := strings.ToLower(key) + ".go"
-		if !slices.Contains(omitObject, key) {
-			switch value.Kind {
+	for k, v := range gql.GetSchema().Types {
+		if !slices.Contains(generate.OmitObject, k) {
+			switch v.Kind {
 			case "OBJECT":
-				structDef := &generate.ModelDef{}
-				structDef.Attr = make([]generate.AttrDef, 0)
-				structDef.Name = key
-				structDef.PackageName = parent
-				for _, vValue := range value.Fields {
-					attrStruct := generate.AttrDef{}
-					attrStruct.Name = strings.Title(vValue.Name)
-					attrStruct.Type, isID = getNamedType(vValue.Type.NamedType)
-					bsonTag := make([]string, 0)
-					gqlTag := make([]string, 0)
-					var namedTyped string
-					vValueName := vValue.Name
-					attrStruct.IsArray = false
-					if slices.Contains(indexIDName, vValue.Name) {
-						attrStruct.Name = "Id"
-						vValueName = "_id"
-					}
-					bsonTag = append(bsonTag, vValueName)
-					gqlTag = append(gqlTag, "name="+vValueName)
-					if slices.Contains(indexIDName, vValue.Name) && vValue.Type.NamedType == "ID" {
-						bsonTag = append(bsonTag, "omitempty")
-						gqlTag = append(gqlTag, "id=true")
-						structDef.IsUseID = true
-					}
-
-					if vValue.Type.Elem != nil {
-						namedTyped, isID = getNamedType(vValue.Type.Elem.NamedType)
-						attrStruct.Type = "[]" + namedTyped
-						attrStruct.IsArray = true
-					}
-					if vValue.Type.Elem != nil && vValue.Type.Elem.NonNull == false {
-						namedTyped, isID = getNamedType(vValue.Type.Elem.NamedType)
-						attrStruct.Type = "[]" + namedTyped
-						attrStruct.IsArray = true
-					}
-					if vValue.Type.Elem != nil && vValue.Type.Elem.NonNull == true && vValue.Type.Elem.Elem != nil {
-						namedTyped, isID = getNamedType(vValue.Type.Elem.Elem.NamedType)
-						attrStruct.Type = "[]" + namedTyped
-						attrStruct.IsArray = true
-					}
-					typeRegexResult := typeRegex.FindStringSubmatch(vValue.Description)
-					if len(typeRegexResult) > 1 {
-						namedTyped, isID = getNamedType(typeRegexResult[1])
-						if attrStruct.IsArray {
-
-							attrStruct.Type = "[]" + namedTyped
-						} else {
-							attrStruct.Type = namedTyped
-						}
-					}
-					if isID {
-						structDef.IsUseID = true
-					}
-					pointerRegexResult := pointerRegex.MatchString(vValue.Description)
-					if pointerRegexResult {
-						attrStruct.Type = "*" + attrStruct.Type
-					}
-					if isID {
-						gqlTag = append(gqlTag, "objectID=true")
-						structDef.IsUseID = true
-					}
-					omitResult := omitRegex.MatchString(vValue.Description)
-					if omitResult {
-						gqlTag = append(gqlTag, "omit=true")
-					}
-					nestedResult := nestedRegex.MatchString(vValue.Description)
-					if nestedResult {
-						gqlTag = append(gqlTag, "nested=true")
-					}
-					defaultRegexResult := defaultRegex.FindStringSubmatch(vValue.Description)
-					if len(defaultRegexResult) > 1 {
-						gqlTag = append(gqlTag, "default="+defaultRegexResult[1])
-					}
-					createdRegexResult := createdRegex.MatchString(vValue.Description)
-					if createdRegexResult {
-						gqlTag = append(gqlTag, "created=true")
-					}
-					updatedRegexResult := updatedRegex.MatchString(vValue.Description)
-					if updatedRegexResult {
-						gqlTag = append(gqlTag, "updated=true")
-					}
-					attrStruct.BSONTag = strings.Join(bsonTag, ",")
-					attrStruct.GQLTag = strings.Join(gqlTag, ",")
-					structDef.Attr = append(structDef.Attr, attrStruct)
-				}
-				dir := filepath.Dir(modelPath + "/model_" + filename)
-				os.MkdirAll(dir, 0770)
-				modelFile, err := os.Create(modelPath + "/model_" + filename)
-				if err != nil {
-					panic(err)
-				}
-				if structDef.Name == "State" {
-					fmt.Println("")
-				}
-				var tmpl bytes.Buffer
-				err = mt.Execute(&tmpl, structDef)
-				if err != nil {
-					panic(err)
-				}
-				x, _ := format.Source(tmpl.Bytes())
-				modelFile.Write(x)
+				types.ModelType = append(types.ModelType, gqltypes.NewModel(render, k, v, gql.GetSchema().Types))
 				break
 			case "ENUM":
-				structDef := &generate.EnumDef{}
-				structDef.Attr = make([]generate.EnumAttrDef, 0)
-				structDef.Name = key
-				structDef.PackageName = parent
-				for _, vValue := range value.EnumValues {
-					enumAttrDef := generate.EnumAttrDef{}
-					enumAttrDef.Name = strings.ToUpper(key + "_" + vValue.Name)
-					enumAttrDef.Value = vValue.Name
-					structDef.Attr = append(structDef.Attr, enumAttrDef)
-				}
-				dir := filepath.Dir(modelPath + "/enum_" + filename)
-				os.MkdirAll(dir, 0770)
-				modelFile, err := os.Create(modelPath + "/enum_" + filename)
-				if err != nil {
-					panic(err)
-				}
-				var tmpl bytes.Buffer
-				err = et.Execute(&tmpl, structDef)
-				if err != nil {
-					panic(err)
-				}
-				x, _ := format.Source(tmpl.Bytes())
-				modelFile.Write(x)
-				if err != nil {
-					panic(err)
-				}
+				types.EnumType = append(types.EnumType, gqltypes.NewEnum(render, k, v))
 				break
 			case "SCALAR":
-				if !slices.Contains(omitScalarTypes, key) {
-					scalarDef := &generate.ScalarDef{}
-					scalarDef.Name = key
-					scalarDef.PackageName = parent
-					dir := filepath.Dir(modelPath + "/scalar_" + filename)
-					os.MkdirAll(dir, 0770)
-					modelFile, err := os.Create(modelPath + "/scalar_" + filename)
-					if err != nil {
-						panic(err)
-					}
-					var tmpl bytes.Buffer
-					err = st.Execute(&tmpl, scalarDef)
-					if err != nil {
-						panic(err)
-					}
-					x, _ := format.Source(tmpl.Bytes())
-					modelFile.Write(x)
-					if err != nil {
-						panic(err)
-					}
+				scalar := gqltypes.NewScalar(render, k, v)
+				if scalar != nil {
+					types.ScalarType = append(types.ScalarType, *scalar)
 				}
 				break
 			case "UNION":
-				unionDef := &generate.UnionDef{}
-				unionDef.Name = key
-				unionDef.PackageName = parent
-				for _, vValue := range value.Types {
-					unionDef.Types = append(unionDef.Types, strings.Title(vValue))
-				}
-				dir := filepath.Dir(modelPath + "/union_" + filename)
-				os.MkdirAll(dir, 0770)
-				modelFile, err := os.Create(modelPath + "/union_" + filename)
-				if err != nil {
-					panic(err)
-				}
-				var tmpl bytes.Buffer
-				err = ut.Execute(&tmpl, unionDef)
-				if err != nil {
-					panic(err)
-				}
-				x, _ := format.Source(tmpl.Bytes())
-				modelFile.Write(x)
-				if err != nil {
-					panic(err)
-				}
+				types.UnionType.PackageName = render.ModelPath
+				types.UnionType.Type = append(types.UnionType.Type, gqltypes.NewUnion(k, v))
+				types.UnionType.FilePath = render.ModulePath + "/generate/" + render.ModelPath + "/union_definition.go"
 				break
 			}
 		}
 	}
-
-}
-func getNamedType(namedType string) (r string, isID bool) {
-	if _, ok := typeToChange[namedType]; ok {
-		r = typeToChange[namedType]
-		if namedType == "ID" {
-			isID = true
-		}
-	} else {
-		r = strings.Title(namedType)
-	}
-	return
+	gqltypes.ModelTmpl(types)
+	gqltypes.EnumTmpl(types)
+	gqltypes.ScalarTmpl(types)
+	gqltypes.UnionTmpl(types)
 }
 
 //go:generate go run main.go -scheme=$SCHEME -model-path=$MODELPATH
