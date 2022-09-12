@@ -38,9 +38,9 @@ type ObjectTypeDef struct {
 	HasQueries            bool
 	HasMutations          bool
 	HasSubscriptions      bool
-	QueryResolvers        []string
-	MutationResolvers     []string
-	SubscriptionResolvers []string
+	QueryResolvers        []map[string]string
+	MutationResolvers     []map[string]string
+	SubscriptionResolvers []map[string]string
 }
 type ModelDef struct {
 	Name             string

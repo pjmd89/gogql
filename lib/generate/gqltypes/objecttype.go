@@ -32,7 +32,8 @@ func NewObjectType(render generate.GqlGenerate, value generate.ModelDef, schema 
 		}
 		if value.RealName == typeName {
 			oType.HasQueries = true
-			oType.QueryResolvers = append(oType.QueryResolvers, v.Name+"Query")
+
+			oType.QueryResolvers = append(oType.QueryResolvers, map[string]string{"Name": v.Name, "Resolver": v.Name + "Query"})
 		}
 	}
 	for _, v := range schema.Mutation.Fields {
@@ -42,7 +43,7 @@ func NewObjectType(render generate.GqlGenerate, value generate.ModelDef, schema 
 		}
 		if value.RealName == typeName {
 			oType.HasMutations = true
-			oType.MutationResolvers = append(oType.MutationResolvers, v.Name+"Mutation")
+			oType.MutationResolvers = append(oType.MutationResolvers, map[string]string{"Name": v.Name, "Resolver": v.Name + "Mutation"})
 		}
 	}
 	for _, v := range schema.Subscription.Fields {
@@ -52,7 +53,7 @@ func NewObjectType(render generate.GqlGenerate, value generate.ModelDef, schema 
 		}
 		if value.RealName == typeName {
 			oType.HasSubscriptions = true
-			oType.SubscriptionResolvers = append(oType.SubscriptionResolvers, v.Name+"Subscription")
+			oType.SubscriptionResolvers = append(oType.SubscriptionResolvers, map[string]string{"Name": v.Name, "Resolver": v.Name + "Subscription"})
 		}
 	}
 	return
@@ -87,11 +88,14 @@ func ObjectTypeTmpl(types generate.RenderTypes) {
 		if err != nil {
 			panic(err)
 		}
-		x, err := format.Source(tmpl.Bytes())
-		if err != nil {
-			log.Fatal(err.Error())
-		}
-		file.Write(x)
+		/*
+			x, err := format.Source(tmpl.Bytes())
+			if err != nil {
+				log.Fatal(err.Error())
+			}
+			file.Write(x)
+			//*/
+		file.Write(tmpl.Bytes())
 
 		//queries
 		if len(v.QueryResolvers) > 0 {

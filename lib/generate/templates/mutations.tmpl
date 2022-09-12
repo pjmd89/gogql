@@ -16,7 +16,7 @@ import (
 	"github.com/pjmd89/gogql/lib/gql/resolvers"
 )
 {{- range .MutationResolvers}}
-func (o *{{$.Name}}) {{.}}(info resolvers.ResolverInfo) (r resolvers.DataReturn, err definitionError.GQLError) {
+func (o *{{$.Name}}) {{.Resolver}}(info resolvers.ResolverInfo) (r resolvers.DataReturn, err definitionError.GQLError) {
 
 	return
 }

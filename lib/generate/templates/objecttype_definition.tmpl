@@ -34,9 +34,9 @@ func (o *{{.Name}}) Resolver(info resolvers.ResolverInfo) (r resolvers.DataRetur
 	case "query":
 		{{- if .HasQueries}}
 		switch info.Resolver {
-		{{- range $key, $value := .QueryResolvers}}
-		case "{{.}}":
-			r, err = o.{{.}}(info)
+		{{- range .QueryResolvers}}
+		case "{{.Name}}":
+			r, err = o.{{.Resolver}}(info)
 			break
 		{{- end}}
 		}
@@ -45,9 +45,9 @@ func (o *{{.Name}}) Resolver(info resolvers.ResolverInfo) (r resolvers.DataRetur
 	case "mutation":
 		{{- if .HasMutations}}
 		switch info.Resolver {
-		{{- range $key, $value := .MutationResolvers}}
-		case "{{.}}":
-			r, err = o.{{.}}(info)
+		{{- range .MutationResolvers}}
+		case "{{.Name}}":
+			r, err = o.{{.Resolver}}(info)
 			break
 		{{- end}}
 		}
@@ -59,9 +59,9 @@ func (o *{{.Name}}) Resolver(info resolvers.ResolverInfo) (r resolvers.DataRetur
 func (o *{{.Name}}) Subscribe(info resolvers.ResolverInfo) (r bool) {
 	{{- if .HasSubscriptions}}
 	switch info.Resolver {
-	{{- range $key, $value := .SubscriptionResolvers}}
-	case "{{.}}":
-		r= o.{{.}}(info)
+	{{- range .SubscriptionResolvers}}
+	case "{{.Name}}":
+		r= o.{{.Resolver}}(info)
 		break
 	{{- end}}
 	}
