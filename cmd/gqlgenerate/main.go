@@ -54,7 +54,7 @@ func main() {
 func generateSchema(render generate.GqlGenerate) {
 	types := generate.RenderTypes{
 		ModelType:  make([]generate.ModelDef, 0),
-		ObjectType: make(map[string]generate.ObjectTypeDef),
+		ObjectType: make([]generate.ObjectTypeDef, 0),
 		EnumType:   make([]generate.EnumDef, 0),
 		ScalarType: make([]generate.ScalarDef, 0),
 	}
@@ -92,7 +92,11 @@ func generateSchema(render generate.GqlGenerate) {
 			}
 		}
 	}
+	for _, v := range types.ModelType {
+		types.ObjectType = append(types.ObjectType, gqltypes.NewObjectType(render, v, gql.GetSchema()))
+	}
 	gqltypes.ModelTmpl(types)
+	gqltypes.ObjectTypeTmpl(types)
 	gqltypes.EnumTmpl(types)
 	gqltypes.ScalarTmpl(types)
 	gqltypes.UnionTmpl(types)

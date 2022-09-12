@@ -18,24 +18,45 @@ type GqlGenerate struct {
 }
 type RenderTypes struct {
 	ModelType  []ModelDef
-	ObjectType map[string]ObjectTypeDef
+	ObjectType []ObjectTypeDef
 	EnumType   []EnumDef
 	UnionType  UnionDef
 	ScalarType []ScalarDef
 }
-type ObjectTypeDef struct{}
+type ObjectTypeDef struct {
+	Name                  string
+	PackageName           string
+	ModelPath             string
+	ModuleName            string
+	FilePath              string
+	QueryPath             string
+	MutationPath          string
+	SubscriptionPath      string
+	HasQueries            bool
+	HasMutations          bool
+	HasSubscriptions      bool
+	QueryResolvers        []string
+	MutationResolvers     []string
+	SubscriptionResolvers []string
+}
 type ModelDef struct {
-	Name        string
-	PackageName string
-	Attr        []AttrDef
-	IsUseID     bool
-	IsUseUnion  bool
-	IsUseScalar bool
-	IsUseEnum   bool
-	FilePath    string
-	ScalarPath  string
-	UnionPath   string
-	EnumPath    string
+	Name             string
+	RealName         string
+	PackageName      string
+	Attr             []AttrDef
+	IsUseID          bool
+	IsUseUnion       bool
+	IsUseScalar      bool
+	IsUseEnum        bool
+	FilePath         string
+	ModelPath        string
+	ScalarPath       string
+	UnionPath        string
+	EnumPath         string
+	ObjectTypePath   string
+	QueryPath        string
+	MutationPath     string
+	SubscriptionPath string
 }
 
 type AttrDef struct {
@@ -82,6 +103,12 @@ var (
 	Scalartmpl []byte
 	//go:embed templates/objecttype_definition.tmpl
 	Objecttypetmpl []byte
+	//go:embed templates/queries.tmpl
+	Queriestmpl []byte
+	//go:embed templates/mutations.tmpl
+	Mutationstmpl []byte
+	//go:embed templates/subscriptions.tmpl
+	Subscriptionstmpl []byte
 )
 var OmitObject = []string{
 	"__Directive",
