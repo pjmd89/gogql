@@ -1,6 +1,9 @@
 package objectTypes
 
 import (
+	"reflect"
+	"strconv"
+
 	"github.com/pjmd89/gogql/lib/gql/definitionError"
 	"github.com/pjmd89/gogql/lib/gql/introspection"
 	"github.com/pjmd89/gogql/lib/gql/resolvers"
@@ -39,7 +42,15 @@ func (o *Field) fields(args resolvers.Args, parent resolvers.Parent) (r resolver
 	r = nil
 	includeDeprecated := false
 	if args["includeDeprecated"] != nil {
-		includeDeprecated = args["includeDeprecated"].(bool)
+		rType := reflect.TypeOf(args["includeDeprecated"])
+		switch rType.Kind() {
+		case reflect.String:
+			includeDeprecated, _ = strconv.ParseBool(args["includeDeprecated"].(string))
+			break
+		case reflect.Bool:
+			includeDeprecated = args["includeDeprecated"].(bool)
+			break
+		}
 	}
 	switch thisParent.Kind {
 	case introspection.TYPEKIND_OBJECT, introspection.TYPEKIND_INTERFACE:
