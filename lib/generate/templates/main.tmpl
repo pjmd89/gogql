@@ -53,4 +53,9 @@ func init(){
     {{- range .ObjectType}}
     schema.ObjectType("{{.RealName}}", {{.PackageName}}.New{{.Name}}(db))
     {{- end}}
+	
+	{{- range .ScalarType}}
+	var {{.VarName}} *scalars.{{.Name}}
+	schema.Scalar("{{.Name}}", {{.VarName}})
+	{{- end}}
 }

@@ -20,6 +20,7 @@ func NewScalar(render generate.GqlGenerate, key string, value *ast.Definition) (
 		typeRegex := regexp.MustCompile(`-type ([^\n]+)`)
 		scalarDef = &generate.ScalarDef{}
 		scalarDef.Name = strings.Title(key)
+		scalarDef.VarName = strings.ToLower(key) + "Scalar"
 		scalarDef.PackageName = render.ScalarPath
 		typeRegexResult := typeRegex.FindStringSubmatch(value.Description)
 		namedTyped := "string"

@@ -90,6 +90,7 @@ type UnionAttrDef struct {
 }
 type ScalarDef struct {
 	Name        string
+	VarName     string
 	PackageName string
 	TypeName    string
 	FilePath    string
