@@ -22,6 +22,8 @@ type RenderTypes struct {
 	EnumType   []EnumDef
 	UnionType  UnionDef
 	ScalarType []ScalarDef
+	IsScalar   bool
+	ScalarPath string
 	MainPath   string
 }
 type ObjectTypeDef struct {

@@ -15,7 +15,9 @@ import (
     {{- range .ObjectType}}
     "{{.DefinitionPath}}"
     {{- end}}
-
+	{{- if .IsScalar }}
+	"{{.ScalarPath}}"
+	{{- end }}
 	"github.com/pjmd89/gogql/lib/gql"
 	"github.com/pjmd89/gogql/lib/http"
 	"github.com/pjmd89/mongomodel/mongomodel"

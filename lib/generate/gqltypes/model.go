@@ -31,12 +31,12 @@ func NewModel(render generate.GqlGenerate, key string, value *ast.Definition, ty
 	structDef.Name = strings.Title(key)
 	structDef.RealName = key
 	structDef.PackageName = render.ModelPath
-	bsonOmit := false
-	gqlOmit := false
 	isID := false
 	unionCount := 0
 	unionList := []string{}
 	for _, vValue := range value.Fields {
+		bsonOmit := false
+		gqlOmit := false
 		attrStruct := generate.AttrDef{}
 		namedType := vValue.Type.NamedType
 		if namedType == "" {

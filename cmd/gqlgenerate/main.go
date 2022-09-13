@@ -96,6 +96,7 @@ func generateSchema(render generate.GqlGenerate) {
 	for _, v := range types.ModelType {
 		types.ObjectType = append(types.ObjectType, gqltypes.NewObjectType(render, v, gql.GetSchema()))
 	}
+	types.ScalarPath = render.ModuleName + "/" + render.ResolverPath + "/" + render.ScalarPath
 	gqltypes.ModelTmpl(types)
 	gqltypes.ObjectTypeTmpl(types)
 	gqltypes.EnumTmpl(types)

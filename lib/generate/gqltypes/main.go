@@ -14,6 +14,9 @@ func Maintmpl(types generate.RenderTypes) {
 	if err != nil {
 		panic(err)
 	}
+	if len(types.ScalarType) > 0 {
+		types.IsScalar = true
+	}
 	dir := filepath.Dir(types.MainPath)
 	os.MkdirAll(dir, 0770)
 	modelFile, err := os.Create(types.MainPath)
