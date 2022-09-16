@@ -34,8 +34,7 @@ func NewModel(render generate.GqlGenerate, key string, value *ast.Definition, ty
 	isID := false
 	unionCount := 0
 	unionList := []string{}
-	structDef.GQLFile, _ = filepath.Abs(value.Position.Src.Name)
-	structDef.GQLFile = structDef.GQLFile + ":" + strconv.Itoa(value.Position.Line)
+	structDef.GQLFile = strings.Replace(value.Position.Src.Name, "../../", "../", 1) + ":" + strconv.Itoa(value.Position.Line)
 	for _, vValue := range value.Fields {
 		bsonOmit := false
 		gqlOmit := false
