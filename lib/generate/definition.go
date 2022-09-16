@@ -62,6 +62,7 @@ type ModelDef struct {
 	QueryPath        string
 	MutationPath     string
 	SubscriptionPath string
+	GQLFile          string
 }
 
 type AttrDef struct {
