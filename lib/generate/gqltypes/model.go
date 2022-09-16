@@ -110,7 +110,14 @@ func NewModel(render generate.GqlGenerate, key string, value *ast.Definition, ty
 		}
 		typeRegexResult := typeRegex.FindStringSubmatch(vValue.Description)
 		if len(typeRegexResult) > 1 {
-			namedTyped, isID = generate.GetNamedType(typeRegexResult[1])
+			xtypeRegex := regexp.MustCompile(`\[([^\]]+)\]`)
+			xtypeRegexResult := xtypeRegex.FindStringSubmatch(typeRegexResult[1])
+			newNamedType := typeRegexResult[1]
+			if len(xtypeRegexResult) > 1 {
+				newNamedType = xtypeRegexResult[1]
+				attrStruct.IsArray = true
+			}
+			namedTyped, isID = generate.GetNamedType(newNamedType)
 			if unionInstance != "" {
 				//namedTyped = unionInstance
 			}
