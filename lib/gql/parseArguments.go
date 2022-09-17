@@ -1,6 +1,9 @@
 package gql
 
 import (
+	"fmt"
+	"strconv"
+
 	"github.com/pjmd89/gqlparser/v2/ast"
 )
 
@@ -10,6 +13,13 @@ import (
 3. verificar los valores que sean array para parsearlos
 4. validar el tipo de datos de cada argumento
 */
+type varDef interface {
+	*ast.Argument | *ast.ChildValue
+}
+type variableDef[T varDef] struct {
+	data T
+}
+
 func (o *gql) parseArguments(argsRaw ast.ArgumentList, argsDefinition ast.ArgumentDefinitionList) map[string]interface{} {
 	args := make(map[string]*DefaultArguments)
 	for _, val := range argsDefinition {
@@ -32,13 +42,14 @@ func (o *gql) parseArguments(argsRaw ast.ArgumentList, argsDefinition ast.Argume
 	for _, argRaw := range argsRaw {
 		switch argRaw.Value.Kind {
 		case 0:
-			if o.variables[argRaw.Value.Raw] != nil {
+			if argRaw.Value.VariableDefinition != nil {
 				args[argRaw.Name].Value = o.variables[argRaw.Value.Raw]
 			}
+			args[argRaw.Name].Value = o.setValue(argRaw)
 		case 8, 9:
 			args[argRaw.Name].Value = o.parseArgChildren(argRaw.Value.Children)
 		default:
-			args[argRaw.Name].Value = argRaw.Value.Raw
+			args[argRaw.Name].Value = o.setValue(argRaw)
 		}
 	}
 	r := o.validateArguments(args)
@@ -131,7 +142,7 @@ func (o *gql) parseArgChildren(rawArgs ast.ChildValueList) interface{} {
 	if len(rawArgs) > 0 {
 		for _, vArgs := range rawArgs {
 			if vArgs.Name != "" {
-				mapArgs[vArgs.Name] = vArgs.Value.Raw
+				mapArgs[vArgs.Name] = o.setValue(vArgs)
 				if len(vArgs.Value.Children) > 0 {
 					mapArgs[vArgs.Name] = o.parseArgChildren(vArgs.Value.Children)
 				}
@@ -139,7 +150,7 @@ func (o *gql) parseArgChildren(rawArgs ast.ChildValueList) interface{} {
 				if len(vArgs.Value.Children) > 0 {
 					sliceArgs = append(sliceArgs, o.parseArgChildren(vArgs.Value.Children))
 				} else {
-					sliceArgs = append(sliceArgs, vArgs.Value.Raw)
+					sliceArgs = append(sliceArgs, o.setValue(vArgs))
 				}
 			}
 		}
@@ -150,4 +161,39 @@ func (o *gql) parseArgChildren(rawArgs ast.ChildValueList) interface{} {
 		args = sliceArgs
 	}
 	return args
+}
+func (o *gql) setValue(vArgs any) (r any) {
+	switch vArgs.(type) {
+	case *ast.ChildValue:
+		nArgs := vArgs.(*ast.ChildValue)
+		r = nArgs.Value.Raw
+		if nArgs.Value.VariableDefinition != nil {
+			r = o.typedValue(nArgs.Value.Raw, nArgs.Value.VariableDefinition.Type.NamedType)
+		}
+	case *ast.Argument:
+		nArgs := vArgs.(*ast.Argument)
+		r = nArgs.Value.Raw
+		if nArgs.Value.VariableDefinition != nil {
+			r = o.typedValue(nArgs.Value.Raw, nArgs.Value.VariableDefinition.Type.NamedType)
+		}
+	}
+	return
+}
+func (o *gql) typedValue(name string, typed string) (r interface{}) {
+	r = fmt.Sprintf("%v", o.variables[name])
+	switch typed {
+	case "String":
+		break
+	case "Int":
+		r, _ = strconv.ParseInt(r.(string), 10, 64)
+	case "Boolean":
+		r, _ = strconv.ParseBool(r.(string))
+	case "Float":
+		r, _ = strconv.ParseFloat(r.(string), 64)
+	default:
+		if o.OnScalarArgument != nil {
+			r = o.OnScalarArgument(typed, o.variables[name])
+		}
+	}
+	return
 }

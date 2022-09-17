@@ -28,12 +28,13 @@ type SourceEvents struct {
 	operationEvents    map[OperationID]map[EventID]*Subscription
 }
 type gql struct {
-	serverName  string
-	schema      *ast.Schema
-	objectTypes ObjectTypes
-	variables   variables
-	directives  Directives
-	scalars     Scalars
+	serverName       string
+	schema           *ast.Schema
+	objectTypes      ObjectTypes
+	variables        variables
+	directives       Directives
+	scalars          Scalars
+	OnScalarArgument func(scalarType string, value interface{}) (r interface{})
 }
 type HttpRequest struct {
 	Query         string                 `json:"query"`
