@@ -20,7 +20,7 @@ func (o *gql) dataResponse(fieldNames map[string]interface{}, resolved interface
 			switch rType {
 			case reflect.TypeOf(primitive.ObjectID{}):
 				rValue := reflect.ValueOf(resolved)
-				id := rValue.Interface().(primitive.ObjectID).String()
+				id := rValue.Interface().(primitive.ObjectID).Hex()
 				r = reflect.ValueOf(id).Interface()
 				break
 			default:
