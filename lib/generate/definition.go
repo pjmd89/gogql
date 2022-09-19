@@ -132,7 +132,6 @@ var OmitObject = []string{
 var OmitScalarTypes = []string{
 	"Int",
 	"Float",
-	"ID",
 	"String",
 	"Boolean",
 }
@@ -143,7 +142,6 @@ var IndexIDName = []string{
 var typeToChange = map[string]string{
 	"Int":     "int64",
 	"Float":   "float64",
-	"ID":      "primitive.ObjectID",
 	"String":  "string",
 	"Boolean": "bool",
 }
@@ -151,10 +149,10 @@ var typeToChange = map[string]string{
 func GetNamedType(namedType string) (r string, isID bool) {
 	if _, ok := typeToChange[namedType]; ok {
 		r = typeToChange[namedType]
+	} else {
 		if namedType == "ID" {
 			isID = true
 		}
-	} else {
 		r = strings.Title(namedType)
 	}
 	return

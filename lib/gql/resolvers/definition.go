@@ -37,4 +37,5 @@ type ObjectTypeInterface interface {
 }
 type Scalar interface {
 	Assess(value interface{}) (r interface{}, err definitionError.GQLError)
+	Set(value interface{}) (r interface{}, err definitionError.GQLError)
 }

@@ -2,21 +2,29 @@ package scalars
 
 import (
 	"errors"
+	"fmt"
 	"strconv"
 
 	"github.com/pjmd89/gogql/lib/gql/definitionError"
 	"github.com/pjmd89/gogql/lib/gql/resolvers"
 )
 
-type FloatScalar struct {
-}
+type Float float64
 
-func NewFloatScalar() resolvers.Scalar {
-	var scalar resolvers.Scalar
-	scalar = &FloatScalar{}
-	return scalar
+func NewFloatScalar() (r resolvers.Scalar) {
+	var scalar *Float
+	r = scalar
+	return
 }
-func (o *FloatScalar) Assess(value interface{}) (val interface{}, err definitionError.GQLError) {
+func (o *Float) Set(value interface{}) (r interface{}, err definitionError.GQLError) {
+	s := fmt.Sprintf("%v", value)
+	r, rerr := strconv.ParseFloat(s, 64)
+	if rerr != nil {
+		err = definitionError.NewFatal(rerr.Error(), nil)
+	}
+	return
+}
+func (o *Float) Assess(value interface{}) (val interface{}, err definitionError.GQLError) {
 	var er error
 
 	switch value.(type) {

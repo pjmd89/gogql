@@ -13,9 +13,21 @@ package {{.PackageName}}
 
 import (
 	"github.com/pjmd89/gogql/lib/gql/definitionError"
+	"github.com/pjmd89/gogql/lib/gql/resolvers"
 )
 
 type {{.Name}} {{.TypeName}}
+
+func New{{.Name}}Scalar() (r resolvers.Scalar) {
+	var scalar *{{.Name}}
+	r = scalar
+	return
+}
+
+func (o *{{.Name}}) Set(value interface{}) (r interface{}, err definitionError.GQLError) {
+	r = value
+	return
+}
 
 func (o *{{.Name}}) Assess(value interface{}) (r interface{}, err definitionError.GQLError) {
 	r = value

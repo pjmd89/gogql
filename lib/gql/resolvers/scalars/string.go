@@ -2,20 +2,25 @@ package scalars
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/pjmd89/gogql/lib/gql/definitionError"
 	"github.com/pjmd89/gogql/lib/gql/resolvers"
 )
 
-type StringScalar struct {
-}
+type String string
 
-func NewStringScalar() resolvers.Scalar {
-	var scalar resolvers.Scalar
-	scalar = &StringScalar{}
-	return scalar
+func NewStringScalar() (r resolvers.Scalar) {
+	var scalar *String
+	r = scalar
+	return
 }
-func (o *StringScalar) Assess(value interface{}) (val interface{}, err definitionError.GQLError) {
+func (o *String) Set(value interface{}) (r interface{}, err definitionError.GQLError) {
+	s := fmt.Sprintf("%v", value)
+	r = s
+	return
+}
+func (o *String) Assess(value interface{}) (val interface{}, err definitionError.GQLError) {
 	var er error
 
 	switch value.(type) {

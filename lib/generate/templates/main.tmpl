@@ -57,7 +57,6 @@ func init(){
     {{- end}}
 	
 	{{- range .ScalarType}}
-	var {{.VarName}} *scalars.{{.Name}}
-	schema.Scalar("{{.Name}}", {{.VarName}})
+	schema.Scalar("{{.Name}}", scalars.New{{.Name}}Scalar())
 	{{- end}}
 }

@@ -1,8 +1,7 @@
 package gql
 
 import (
-	"fmt"
-	"strconv"
+	"log"
 
 	"github.com/pjmd89/gqlparser/v2/ast"
 )
@@ -62,15 +61,12 @@ func (o *gql) validateArguments(args map[string]*DefaultArguments) map[string]in
 		case "INPUT_OBJECT":
 			r[k] = o.parseInputObject(v)
 		case "SCALAR":
-			r[k] = v.Value
-			/*
-				if o.scalars[v.Type] != nil {
-					r[k], _ = o.scalars[v.Type].Assess(v.Value)
-				} else {
-					r[k] = v.Value
-					log.Println("Scalar not found: ", v.Type)
-				}
-			*/
+			if o.scalars[v.Type] != nil {
+				r[k], _ = o.scalars[v.Type].Set(v.Value)
+			} else {
+				r[k] = v.Value
+				log.Println("Scalar not found: ", v.Type)
+			}
 		default:
 			r[k] = v.Value
 		}
@@ -180,20 +176,6 @@ func (o *gql) setValue(vArgs any) (r any) {
 	return
 }
 func (o *gql) typedValue(name string, typed string) (r interface{}) {
-	r = fmt.Sprintf("%v", o.variables[name])
-	switch typed {
-	case "String":
-		break
-	case "Int":
-		r, _ = strconv.ParseInt(r.(string), 10, 64)
-	case "Boolean":
-		r, _ = strconv.ParseBool(r.(string))
-	case "Float":
-		r, _ = strconv.ParseFloat(r.(string), 64)
-	default:
-		if o.OnScalarArgument != nil {
-			r = o.OnScalarArgument(typed, o.variables[name])
-		}
-	}
+	r, _ = o.scalars[typed].Set(o.variables[name])
 	return
 }
