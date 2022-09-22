@@ -82,6 +82,7 @@ func NewModel(render generate.GqlGenerate, key string, value *ast.Definition, ty
 		if slices.Contains(generate.IndexIDName, vValue.Name) && namedType == "ID" {
 			bsonTag = append(bsonTag, "omitempty")
 			gqlTag = append(gqlTag, "id=true")
+			attrStruct.Type = renderID(render.ScalarPath, "ID")
 			structDef.IsUseID = true
 		}
 
@@ -90,7 +91,7 @@ func NewModel(render generate.GqlGenerate, key string, value *ast.Definition, ty
 			if unionInstance != "" {
 				//namedTyped = unionInstance
 			}
-			attrStruct.Type = "[]" + namedTyped
+			attrStruct.Type = "[]" + renderID(render.ScalarPath, namedTyped)
 			attrStruct.IsArray = true
 		}
 		if vValue.Type.Elem != nil && vValue.Type.Elem.NonNull == false {
@@ -98,7 +99,7 @@ func NewModel(render generate.GqlGenerate, key string, value *ast.Definition, ty
 			if unionInstance != "" {
 				//namedTyped = unionInstance
 			}
-			attrStruct.Type = "[]" + namedTyped
+			attrStruct.Type = "[]" + renderID(render.ScalarPath, namedTyped)
 			attrStruct.IsArray = true
 		}
 		if vValue.Type.Elem != nil && vValue.Type.Elem.NonNull == true && vValue.Type.Elem.Elem != nil {
@@ -106,7 +107,7 @@ func NewModel(render generate.GqlGenerate, key string, value *ast.Definition, ty
 			if unionInstance != "" {
 				//namedTyped = unionInstance
 			}
-			attrStruct.Type = "[]" + namedTyped
+			attrStruct.Type = "[]" + renderID(render.ScalarPath, namedTyped)
 			attrStruct.IsArray = true
 		}
 		typeRegexResult := typeRegex.FindStringSubmatch(vValue.Description)
@@ -123,9 +124,9 @@ func NewModel(render generate.GqlGenerate, key string, value *ast.Definition, ty
 				//namedTyped = unionInstance
 			}
 			if attrStruct.IsArray {
-				attrStruct.Type = "[]" + namedTyped
+				attrStruct.Type = "[]" + renderID(render.ScalarPath, namedTyped)
 			} else {
-				attrStruct.Type = namedTyped
+				attrStruct.Type = renderID(render.ScalarPath, namedTyped)
 			}
 		}
 		if isID {
@@ -186,6 +187,13 @@ func NewModel(render generate.GqlGenerate, key string, value *ast.Definition, ty
 	structDef.MutationPath = objectTypeBase + "/mutations.go"
 	structDef.SubscriptionPath = objectTypeBase + "/subscriptions.go"
 	return structDef
+}
+func renderID(scalarPath string, attrName string) (r string) {
+	r = attrName
+	if attrName == "ID" {
+		r = scalarPath + "." + attrName
+	}
+	return
 }
 func ModelTmpl(types generate.RenderTypes) {
 	mt, err := template.New("model.tmpl").Parse(string(generate.Modeltmpl))

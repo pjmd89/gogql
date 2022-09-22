@@ -169,13 +169,13 @@ func (o *gql) selectionParse(operation string, field *ast.Field, parent interfac
 				if ok := o.objectTypes[namedType].Subscribe(resolverInfo); ok {
 					resolved, _ = o.objectTypes[namedType].Resolver(resolverInfo)
 					typeName = &namedType
-					resolvedProcesed = o.dataResponse(fieldNames, resolved)
+					resolvedProcesed = o.dataResponse(fieldNames, resolved, namedType)
 					isSubscriptionResponse = true
 				}
 			} else {
 				resolved, _ = o.objectTypes[namedType].Resolver(resolverInfo)
 				typeName = &namedType
-				resolvedProcesed = o.dataResponse(fieldNames, resolved)
+				resolvedProcesed = o.dataResponse(fieldNames, resolved, namedType)
 			}
 		}
 		rType := reflect.TypeOf(resolved)

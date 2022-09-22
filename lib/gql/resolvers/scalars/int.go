@@ -24,28 +24,28 @@ func (o *Int) Set(value interface{}) (r interface{}, err definitionError.GQLErro
 	}
 	return
 }
-func (o *Int) Assess(value interface{}) (val interface{}, err definitionError.GQLError) {
+func (o *Int) Assess(resolved resolvers.ScalarResolved) (val interface{}, err definitionError.GQLError) {
 	var er error
 
-	switch value.(type) {
+	switch resolved.Value.(type) {
 	case string:
-		val, er = strconv.ParseInt(value.(string), 10, 64)
+		val, er = strconv.ParseInt(resolved.Value.(string), 10, 64)
 	case int:
-		val = value.(int)
+		val = resolved.Value.(int)
 	case int32:
-		val = int(value.(int32))
+		val = int(resolved.Value.(int32))
 	case int64:
-		val = int(value.(int64))
+		val = int(resolved.Value.(int64))
 	case float32:
-		val = int(value.(float32))
+		val = int(resolved.Value.(float32))
 	case float64:
-		val = int(value.(float64))
+		val = int(resolved.Value.(float64))
 	default:
-		if value != nil {
+		if resolved.Value != nil {
 			er = errors.New("Invalid int type")
 		}
 	}
-	if value != nil && er != nil {
+	if resolved.Value != nil && er != nil {
 		err = definitionError.NewWarning(er.Error(), nil)
 	}
 	return val, err

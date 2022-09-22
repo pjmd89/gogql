@@ -6,12 +6,14 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/fatih/structs"
+	"github.com/pjmd89/gogql/lib/gql/resolvers"
 	"github.com/pjmd89/goutils/dbutils"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 // *
-func (o *gql) dataResponse(fieldNames map[string]interface{}, resolved interface{}) (r interface{}) {
+func (o *gql) dataResponse(fieldNames map[string]interface{}, resolved interface{}, resolverName string) (r interface{}) {
 	rType := reflect.TypeOf(resolved)
 	if rType != nil {
 		rKind := rType.Kind()
@@ -28,14 +30,14 @@ func (o *gql) dataResponse(fieldNames map[string]interface{}, resolved interface
 				rValue := reflect.ValueOf(resolved)
 
 				for i := 0; i < rValue.Len(); i++ {
-					value := o.dataResponse(fieldNames, rValue.Index(i).Interface())
-					r = append(r.([]interface{}), o.dataResponse(fieldNames, value))
+					value := o.dataResponse(fieldNames, rValue.Index(i).Interface(), resolverName)
+					r = append(r.([]interface{}), o.dataResponse(fieldNames, value, resolverName))
 				}
 			}
 		case reflect.Ptr:
 			rValue := reflect.ValueOf(resolved)
 			if !rValue.IsNil() {
-				r = o.dataResponse(fieldNames, rValue.Elem().Interface())
+				r = o.dataResponse(fieldNames, rValue.Elem().Interface(), resolverName)
 			}
 
 		case reflect.Struct:
@@ -57,11 +59,16 @@ func (o *gql) dataResponse(fieldNames map[string]interface{}, resolved interface
 					}
 
 					if !isNill {
-						data := o.dataResponse(make(map[string]interface{}, 0), rValue.Field(i).Interface())
+						data := o.dataResponse(make(map[string]interface{}, 0), rValue.Field(i).Interface(), resolverName)
 						if fieldNames[varName] != nil {
 							y := e.Field(i).Type.Name()
 							if o.scalars[y] != nil {
-								data, _ = o.scalars[y].Assess(data)
+								resolvedData := resolvers.ScalarResolved{
+									Value:        data,
+									ResolverName: resolverName,
+									Resolved:     structs.New(resolved),
+								}
+								data, _ = o.scalars[y].Assess(resolvedData)
 							}
 							r.(map[string]interface{})[fieldNames[varName].(string)] = data
 						}

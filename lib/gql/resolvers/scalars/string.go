@@ -20,18 +20,18 @@ func (o *String) Set(value interface{}) (r interface{}, err definitionError.GQLE
 	r = s
 	return
 }
-func (o *String) Assess(value interface{}) (val interface{}, err definitionError.GQLError) {
+func (o *String) Assess(resolved resolvers.ScalarResolved) (val interface{}, err definitionError.GQLError) {
 	var er error
 
-	switch value.(type) {
+	switch resolved.Value.(type) {
 	case string:
-		val = value.(string)
+		val = resolved.Value.(string)
 	default:
-		if value != nil {
+		if resolved.Value != nil {
 			er = errors.New("Invalid string type")
 		}
 	}
-	if value != nil && er != nil {
+	if resolved.Value != nil && er != nil {
 		err = definitionError.NewWarning(er.Error(), nil)
 	}
 	return val, err

@@ -1,6 +1,7 @@
 package resolvers
 
 import (
+	"github.com/fatih/structs"
 	"github.com/pjmd89/gogql/lib/gql/definitionError"
 	"github.com/pjmd89/gqlparser/v2/ast"
 )
@@ -36,6 +37,11 @@ type ObjectTypeInterface interface {
 	Subscribe(ResolverInfo) bool
 }
 type Scalar interface {
-	Assess(value interface{}) (r interface{}, err definitionError.GQLError)
+	Assess(resolved ScalarResolved) (r interface{}, err definitionError.GQLError)
 	Set(value interface{}) (r interface{}, err definitionError.GQLError)
+}
+type ScalarResolved struct {
+	Value        interface{}
+	ResolverName string
+	Resolved     *structs.Struct
 }

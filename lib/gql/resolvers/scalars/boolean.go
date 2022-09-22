@@ -25,21 +25,21 @@ func (o *Bool) Set(value interface{}) (r interface{}, err definitionError.GQLErr
 	}
 	return
 }
-func (o *Bool) Assess(value interface{}) (val interface{}, err definitionError.GQLError) {
+func (o *Bool) Assess(resolved resolvers.ScalarResolved) (val interface{}, err definitionError.GQLError) {
 	var er error
 
-	switch value.(type) {
+	switch resolved.Value.(type) {
 	case string:
-		val, er = strconv.ParseBool(value.(string))
+		val, er = strconv.ParseBool(resolved.Value.(string))
 	case bool:
-		val = value.(bool)
+		val = resolved.Value.(bool)
 	default:
-		if value != nil {
+		if resolved.Value != nil {
 			er = errors.New("Invalid bool type")
 
 		}
 	}
-	if value != nil && er != nil {
+	if resolved.Value != nil && er != nil {
 		err = definitionError.NewWarning(er.Error(), nil)
 
 	}

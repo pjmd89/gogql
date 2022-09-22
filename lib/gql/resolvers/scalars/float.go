@@ -24,28 +24,28 @@ func (o *Float) Set(value interface{}) (r interface{}, err definitionError.GQLEr
 	}
 	return
 }
-func (o *Float) Assess(value interface{}) (val interface{}, err definitionError.GQLError) {
+func (o *Float) Assess(resolved resolvers.ScalarResolved) (val interface{}, err definitionError.GQLError) {
 	var er error
 
-	switch value.(type) {
+	switch resolved.Value.(type) {
 	case string:
-		val, er = strconv.ParseFloat(value.(string), 64)
+		val, er = strconv.ParseFloat(resolved.Value.(string), 64)
 	case float32:
-		val = float64(value.(float32))
+		val = float64(resolved.Value.(float32))
 	case float64:
-		val = float64(value.(float64))
+		val = float64(resolved.Value.(float64))
 	case int:
-		val = float64(value.(int))
+		val = float64(resolved.Value.(int))
 	case int32:
-		val = float64(value.(int32))
+		val = float64(resolved.Value.(int32))
 	case int64:
-		val = float64(value.(int64))
+		val = float64(resolved.Value.(int64))
 	default:
-		if value != nil {
+		if resolved.Value != nil {
 			er = errors.New("Invalid float type")
 		}
 	}
-	if value != nil && er != nil {
+	if resolved.Value != nil && er != nil {
 		err = definitionError.NewWarning(er.Error(), nil)
 	}
 	return val, err
