@@ -16,8 +16,11 @@ func NewIDScalar() (r resolvers.Scalar) {
 	return
 }
 func (o *ID) Set(value interface{}) (r interface{}, err definitionError.GQLError) {
-	s := fmt.Sprintf("%v", value)
-	r = s
+	if value != nil {
+		s := fmt.Sprintf("%v", value)
+		r = s
+	}
+
 	return
 }
 func (o *ID) Assess(resolved resolvers.ScalarResolved) (val interface{}, err definitionError.GQLError) {

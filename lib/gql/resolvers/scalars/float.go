@@ -17,10 +17,13 @@ func NewFloatScalar() (r resolvers.Scalar) {
 	return
 }
 func (o *Float) Set(value interface{}) (r interface{}, err definitionError.GQLError) {
-	s := fmt.Sprintf("%v", value)
-	r, rerr := strconv.ParseFloat(s, 64)
-	if rerr != nil {
-		err = definitionError.NewFatal(rerr.Error(), nil)
+	if value != nil {
+		var rerr error
+		s := fmt.Sprintf("%v", value)
+		r, rerr = strconv.ParseFloat(s, 64)
+		if rerr != nil {
+			err = definitionError.NewFatal(rerr.Error(), nil)
+		}
 	}
 	return
 }
