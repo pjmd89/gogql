@@ -172,7 +172,9 @@ func (o *gql) setValue(vArgs any) (r any) {
 		if nArgs.Value.VariableDefinition != nil && nArgs.Value.VariableDefinition.Definition.Kind == "SCALAR" {
 			r = o.typedValue(nArgs.Value.Raw, nArgs.Value.VariableDefinition.Type.NamedType)
 		} else {
-			r = o.variables[nArgs.Value.Raw]
+			if o.variables[nArgs.Value.Raw] != nil {
+				r = o.variables[nArgs.Value.Raw]
+			}
 		}
 	}
 	return
