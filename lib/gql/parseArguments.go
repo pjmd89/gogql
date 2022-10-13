@@ -169,8 +169,10 @@ func (o *gql) setValue(vArgs any) (r any) {
 	case *ast.Argument:
 		nArgs := vArgs.(*ast.Argument)
 		r = nArgs.Value.Raw
-		if nArgs.Value.VariableDefinition != nil {
+		if nArgs.Value.VariableDefinition != nil && nArgs.Value.VariableDefinition.Definition.Kind == "SCALAR" {
 			r = o.typedValue(nArgs.Value.Raw, nArgs.Value.VariableDefinition.Type.NamedType)
+		} else {
+			r = o.variables[nArgs.Value.Raw]
 		}
 	}
 	return
