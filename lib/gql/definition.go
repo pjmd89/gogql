@@ -1,6 +1,7 @@
 package gql
 
 import (
+	"github.com/pjmd89/gogql/lib/gql/definitionError"
 	"github.com/pjmd89/gogql/lib/gql/resolvers"
 	"github.com/pjmd89/gqlparser/v2/ast"
 )
@@ -48,8 +49,8 @@ type WebSocketRequest struct {
 }
 
 type HttpResponse struct {
-	Data string `json:"data"`
-	//Errors  		[]*lib.GqlError `json:"errors,omitempty"`
+	Data   string                     `json:"data,omitempty"`
+	Errors []definitionError.GQLError `json:"errors,omitempty"`
 }
 
 type DefaultArguments struct {

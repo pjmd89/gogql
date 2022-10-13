@@ -15,8 +15,7 @@ import (
 
 type Response interface{}
 
-func (o *gql) response(request HttpRequest) *HttpResponse {
-	response := &HttpResponse{}
+func (o *gql) response(request HttpRequest) (response HttpResponse) {
 	document, err := gqlparser.LoadQuery(o.schema, request.Query)
 
 	if err != nil {

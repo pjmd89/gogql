@@ -5,21 +5,27 @@ type ErrorLocation struct {
 	column int
 }
 type ExtensionError map[string]interface{}
-type errorStruct struct {
-	message    string
-	location   []ErrorLocation
-	path       []interface{}
-	extensions ExtensionError
+
+type GQLErrorLocation struct {
+	Line   int `json:"line"`
+	Column int `json:"column"`
 }
+type ErrorStruct struct {
+	Message    string             `json:"message"`
+	Locations  []GQLErrorLocation `json:"locations,omitempty"`
+	Path       []interface{}      `json:"path,omitempty"`
+	Extensions ExtensionError     `json:"extensions,omitempty"`
+}
+
 type GQLError interface {
-	GetError() errorStruct
+	GetError() ErrorStruct
 }
 type ErrorList []GQLError
 type Fatal struct {
 	GQLError
-	errorStruct
+	ErrorStruct
 }
 type Warning struct {
 	GQLError
-	errorStruct
+	ErrorStruct
 }
