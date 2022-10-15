@@ -128,9 +128,6 @@ func (o *gql) parseInputObject(argInput *DefaultArguments) (r interface{}) {
 	}
 	return r
 }
-func (o *gql) validateScalar(arg DefaultArguments) {
-
-}
 func (o *gql) parseArgChildren(rawArgs ast.ChildValueList) interface{} {
 	var args interface{}
 	mapArgs := make(map[string]interface{}, 0)
