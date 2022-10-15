@@ -94,14 +94,14 @@ func (o *gql) parseInputObject(argInput *DefaultArguments) (r interface{}) {
 		}
 		if argInput.IsArray {
 			re := make([]interface{}, 0)
-			newArgs := make(map[string]*DefaultArguments, 0)
-			for k, v := range args {
-				var x *DefaultArguments = &DefaultArguments{}
-				*x = *v
-				newArgs[k] = x
-			}
 			if argInput.Value != nil {
 				for _, v := range argInput.Value.([]interface{}) {
+					newArgs := make(map[string]*DefaultArguments, 0)
+					for k, v := range args {
+						var x *DefaultArguments = &DefaultArguments{}
+						*x = *v
+						newArgs[k] = x
+					}
 					for name, val := range v.(map[string]interface{}) {
 						if args[name] != nil {
 							newArgs[name].Value = val
