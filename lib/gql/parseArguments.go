@@ -88,7 +88,11 @@ func (o *gql) parseInputObject(argInput *DefaultArguments) (r interface{}) {
 			}
 			arg.Kind = string(o.schema.Types[arg.Type].Kind)
 			if val.DefaultValue != nil {
+				valueType := o.schema.Types[val.Type.NamedType]
 				arg.Value = val.DefaultValue.Raw
+				if valueType.Kind == "SCALAR" {
+					arg.Value, _ = o.scalars[valueType.Name].Set(arg.Value)
+				}
 			}
 			args[val.Name] = arg
 		}

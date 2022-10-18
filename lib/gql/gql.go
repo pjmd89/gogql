@@ -43,6 +43,9 @@ func Init(serverName string, path string) *gql {
 	gql.scalars["Float"] = scalars.NewFloatScalar()
 	return gql
 }
+func (o *gql) GetScalars() Scalars {
+	return o.scalars
+}
 func (o *gql) GetSchema() *ast.Schema {
 	return o.schema
 }
