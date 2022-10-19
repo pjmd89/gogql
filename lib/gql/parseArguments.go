@@ -62,7 +62,17 @@ func (o *gql) validateArguments(args map[string]*DefaultArguments) map[string]in
 			r[k] = o.parseInputObject(v)
 		case "SCALAR":
 			if o.scalars[v.Type] != nil {
-				r[k], _ = o.scalars[v.Type].Set(v.Value)
+				if v.IsArray && v.Value != nil {
+					parsedValue := []any{}
+					for _, vV := range v.Value.([]any) {
+						vScalar, _ := o.scalars[v.Type].Set(vV)
+						parsedValue = append(parsedValue, vScalar)
+					}
+					r[k] = parsedValue
+				} else {
+					r[k], _ = o.scalars[v.Type].Set(v.Value)
+				}
+
 			} else {
 				r[k] = v.Value
 				log.Println("Scalar not found: ", v.Type)
@@ -87,10 +97,19 @@ func (o *gql) parseInputObject(argInput *DefaultArguments) (r interface{}) {
 				arg.IsArray = true
 			}
 			arg.Kind = string(o.schema.Types[arg.Type].Kind)
+			valueType := o.schema.Types[val.Type.NamedType]
 			if val.DefaultValue != nil {
-				valueType := o.schema.Types[val.Type.NamedType]
 				arg.Value = val.DefaultValue.Raw
-				if valueType.Kind == "SCALAR" {
+			}
+			if valueType != nil && valueType.Kind == "SCALAR" {
+				if arg.IsArray {
+					parsedValue := []any{}
+					for _, vV := range arg.Value.([]any) {
+						vScalar, _ := o.scalars[arg.Type].Set(vV)
+						parsedValue = append(parsedValue, vScalar)
+					}
+					arg.Value = parsedValue
+				} else {
 					arg.Value, _ = o.scalars[valueType.Name].Set(arg.Value)
 				}
 			}
@@ -165,22 +184,20 @@ func (o *gql) setValue(vArgs any) (r any) {
 		nArgs := vArgs.(*ast.ChildValue)
 		r = nArgs.Value.Raw
 		if nArgs.Value.VariableDefinition != nil {
-			r = o.typedValue(nArgs.Value.Raw, nArgs.Value.VariableDefinition.Type.NamedType)
+			r = o.variables[nArgs.Value.Raw]
+			//r = o.typedValue(nArgs.Value.Raw, nArgs.Value.VariableDefinition.Type.NamedType)
 		}
 	case *ast.Argument:
 		nArgs := vArgs.(*ast.Argument)
 		r = nArgs.Value.Raw
 		if nArgs.Value.VariableDefinition != nil && nArgs.Value.VariableDefinition.Definition.Kind == "SCALAR" {
-			r = o.typedValue(nArgs.Value.Raw, nArgs.Value.VariableDefinition.Type.NamedType)
+			r = o.variables[nArgs.Value.Raw]
+			//r = o.typedValue(nArgs.Value.Raw, nArgs.Value.VariableDefinition.Type.NamedType)
 		} else {
 			if o.variables[nArgs.Value.Raw] != nil {
 				r = o.variables[nArgs.Value.Raw]
 			}
 		}
 	}
-	return
-}
-func (o *gql) typedValue(name string, typed string) (r interface{}) {
-	r, _ = o.scalars[typed].Set(o.variables[name])
 	return
 }

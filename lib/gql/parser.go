@@ -131,6 +131,12 @@ func (o *gql) selectionSetParse(operation string, parse ast.SelectionSet, parent
 				field := fragmentSelection.(*ast.Field)
 				prepareToSend, isSubscriptionResponse = o.selectionParse(operation, field, parent, parentProceced, typeName, start, subscriptionValue)
 			}
+		case reflect.TypeOf(&ast.InlineFragment{}):
+			fragment := selection.(*ast.InlineFragment)
+			for _, fragmentSelection := range fragment.SelectionSet {
+				field := fragmentSelection.(*ast.Field)
+				prepareToSend, isSubscriptionResponse = o.selectionParse(operation, field, parent, parentProceced, typeName, start, subscriptionValue)
+			}
 		}
 		if start == 0 {
 			maps.Copy(send, prepareToSend)
@@ -147,9 +153,12 @@ func (o *gql) selectionParse(operation string, field *ast.Field, parent interfac
 	var resolvedProcesed resolvers.DataReturn
 	if field.SelectionSet != nil {
 		namedType := field.Definition.Type.NamedType
-		fieldNames := o.getFieldNames(field.SelectionSet)
+		fieldNames, typeCondition := o.getFieldNames(field.SelectionSet)
 		if fieldElem != nil {
 			namedType = fieldElem.NamedType
+		}
+		if typeCondition {
+			//namedType = typeCondition
 		}
 		if o.objectTypes[namedType] != nil {
 			args := o.parseArguments(field.Arguments, field.Definition.Arguments)
@@ -209,6 +218,7 @@ func (o *gql) selectionParse(operation string, field *ast.Field, parent interfac
 
 	} else {
 		prepareToSend = parentProceced.(map[string]interface{})
+
 	}
 	return prepareToSend, isSubscriptionResponse
 }
@@ -224,8 +234,8 @@ func (o *gql) parseDirectives(directives ast.DirectiveList, typeName string, fie
 	}
 	return r
 }
-func (o *gql) getFieldNames(parse ast.SelectionSet) map[string]interface{} {
-	fields := make(map[string]interface{})
+func (o *gql) getFieldNames(parse ast.SelectionSet) (fields map[string]interface{}, typeCondition bool) {
+	fields = make(map[string]interface{})
 	//debo anadir la consulta al
 	for _, selection := range parse {
 		rValue := reflect.ValueOf(selection)
@@ -243,11 +253,20 @@ func (o *gql) getFieldNames(parse ast.SelectionSet) map[string]interface{} {
 				field := fragmentSelection.(*ast.Field)
 				fields[field.Name] = field.Alias
 			}
+		case reflect.TypeOf(&ast.InlineFragment{}):
 
-		case reflect.TypeOf(ast.InlineFragment{}):
+			fragment := selection.(*ast.InlineFragment)
+			fields[fragment.TypeCondition] = fragment.TypeCondition
+			typeCondition = true
+			/*
+				for _, fragmentSelection := range fragment.SelectionSet {
+					field := fragmentSelection.(*ast.Field)
+					fields[field.Name] = field.Alias
+				}
+			*/
 		}
 
 	}
 
-	return fields
+	return
 }

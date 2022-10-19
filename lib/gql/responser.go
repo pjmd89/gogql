@@ -45,6 +45,12 @@ func (o *gql) dataResponse(fieldNames map[string]interface{}, resolved interface
 			e := rValue.Type()
 
 			r = make(map[string]interface{}, 0)
+			for _, field := range fieldNames {
+				if field == "__typename" {
+					r.(map[string]interface{})["__typename"] = resolverName
+					break
+				}
+			}
 			for i := 0; i < e.NumField(); i++ {
 				tagsContent := dbutils.GetTags(e.Field(i))
 				varName := e.Field(i).Name
@@ -57,7 +63,6 @@ func (o *gql) dataResponse(fieldNames map[string]interface{}, resolved interface
 					case reflect.Ptr:
 						isNill = rValue.Field(i).IsNil()
 					}
-
 					if !isNill {
 						data := o.dataResponse(make(map[string]interface{}, 0), rValue.Field(i).Interface(), resolverName)
 						if fieldNames[varName] != nil {
@@ -126,6 +131,8 @@ func (o *gql) prepareJson(data interface{}) interface{} {
 			r = ""
 			if len(x) > 0 {
 				r = "{" + strings.Join(x, ",") + "}"
+			} else {
+				r = "null"
 			}
 
 		case reflect.Struct:
