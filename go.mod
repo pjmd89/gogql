@@ -3,6 +3,7 @@ module github.com/pjmd89/gogql
 go 1.19
 
 require (
+	github.com/barkimedes/go-deepcopy v0.0.0-20220514131651-17c30cfc62df
 	github.com/fatih/structs v1.1.0
 	github.com/google/uuid v1.3.0
 	github.com/gorilla/handlers v1.5.1
