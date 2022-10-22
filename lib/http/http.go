@@ -11,7 +11,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/barkimedes/go-deepcopy"
 	"github.com/google/uuid"
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
@@ -239,10 +238,7 @@ func (o *Http) fileServeHTTP(w http.ResponseWriter, r *http.Request, httpPath *P
 func (o *Http) gqlServeHTTP(w http.ResponseWriter, r *http.Request, httpPath *Path) {
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	//por favor, revisa que o.serverName exista, si no existe entonces devuelvele un dedito
-	x, _ := deepcopy.Anything(o.gql[httpPath.host])
-
-	rx := x.(Gql).GQLRender(w, r)
-	//rx := o.gql[httpPath.host].GQLRender(w, r)
+	rx := o.gql[httpPath.host].GQLRender(w, r)
 	fmt.Fprint(w, rx)
 }
 func (o *Http) websocketServeHTTP(w http.ResponseWriter, r *http.Request, httpPath *Path) {
