@@ -3,14 +3,13 @@ module github.com/pjmd89/gogql
 go 1.19
 
 require (
-	github.com/barkimedes/go-deepcopy v0.0.0-20220514131651-17c30cfc62df
 	github.com/fatih/structs v1.1.0
 	github.com/google/uuid v1.3.0
 	github.com/gorilla/handlers v1.5.1
 	github.com/gorilla/mux v1.8.0
 	github.com/gorilla/websocket v1.5.0
 	github.com/jinzhu/copier v0.3.5
-	github.com/pjmd89/goutils v0.0.0-20221008161635-108cef2dc3c4
+	github.com/pjmd89/goutils v0.0.0-20221022221732-211af09d08e9
 	github.com/pjmd89/gqlparser/v2 v2.2.1-0.20220330002356-e1babba1695a
 	go.mongodb.org/mongo-driver v1.10.2
 	golang.org/x/exp v0.0.0-20220722155223-a9213eeb770e
