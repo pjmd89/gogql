@@ -71,13 +71,13 @@ func (o *gql) websocketOperationParse(operation *ast.OperationDefinition, variab
 			while = false
 			break
 		default:
-			o.setVariables(o.schema, operation, variables)
+			vars := o.setVariables(o.schema, operation, variables)
 			var dataReturn resolvers.DataReturn
 			data := make(map[string]interface{}, 0)
 			isSubscriptionResponse := false
 			switch operation.Operation {
 			case ast.Subscription:
-				data["data"], isSubscriptionResponse = o.selectionSetParse(string(operation.Operation), operation.SelectionSet, dataReturn, dataReturn, nil, 0, listen)
+				data["data"], isSubscriptionResponse = o.selectionSetParse(string(operation.Operation), operation.SelectionSet, dataReturn, dataReturn, nil, 0, listen, vars)
 			}
 			if isSubscriptionResponse {
 				response.Data = fmt.Sprintf("%v", o.jsonResponse(data))
@@ -89,29 +89,28 @@ func (o *gql) websocketOperationParse(operation *ast.OperationDefinition, variab
 func (o *gql) operationParse(parse ast.OperationList, variables map[string]interface{}) map[string]interface{} {
 	prepareToSend := make(map[string]interface{}, 0)
 	for _, operation := range parse {
-		o.setVariables(o.schema, operation, variables)
+		vars := o.setVariables(o.schema, operation, variables)
 		var dataReturn resolvers.DataReturn
 		data := make(map[string]interface{}, 0)
 		switch operation.Operation {
 		case ast.Query, ast.Mutation:
-			data["data"], _ = o.selectionSetParse(string(operation.Operation), operation.SelectionSet, dataReturn, dataReturn, nil, 0, nil)
+			data["data"], _ = o.selectionSetParse(string(operation.Operation), operation.SelectionSet, dataReturn, dataReturn, nil, 0, nil, vars)
 		}
 		prepareToSend["data"] = o.jsonResponse(data)
 	}
 	return prepareToSend
 }
-func (o *gql) setVariables(schema *ast.Schema, operation *ast.OperationDefinition, variables map[string]interface{}) {
+func (o *gql) setVariables(schema *ast.Schema, operation *ast.OperationDefinition, variables map[string]interface{}) (r map[string]any) {
 	//las operaciones tambien pueden tener directivas
 	vars, err := validator.VariableValues(o.schema, operation, variables)
 	//validar las variables con los scalar propios
 	if err != nil {
 		fmt.Println(err)
 	}
-
-	o.variables = vars
+	return vars
 }
 
-func (o *gql) selectionSetParse(operation string, parse ast.SelectionSet, parent interface{}, parentProceced interface{}, typeName *string, start int, subscriptionValue interface{}) (Response, bool) {
+func (o *gql) selectionSetParse(operation string, parse ast.SelectionSet, parent interface{}, parentProceced interface{}, typeName *string, start int, subscriptionValue interface{}, vars map[string]any) (Response, bool) {
 
 	//var prepareToSend Response
 	isSubscriptionResponse := false
@@ -123,19 +122,19 @@ func (o *gql) selectionSetParse(operation string, parse ast.SelectionSet, parent
 		switch rField.Type() {
 		case reflect.TypeOf(&ast.Field{}):
 			field := selection.(*ast.Field)
-			prepareToSend, isSubscriptionResponse = o.selectionParse(operation, field, parent, parentProceced, typeName, start, subscriptionValue)
+			prepareToSend, isSubscriptionResponse = o.selectionParse(operation, field, parent, parentProceced, typeName, start, subscriptionValue, vars)
 		case reflect.TypeOf(&ast.FragmentSpread{}):
 			fragment := selection.(*ast.FragmentSpread)
 			fragmentDef := fragment.Definition
 			for _, fragmentSelection := range fragmentDef.SelectionSet {
 				field := fragmentSelection.(*ast.Field)
-				prepareToSend, isSubscriptionResponse = o.selectionParse(operation, field, parent, parentProceced, typeName, start, subscriptionValue)
+				prepareToSend, isSubscriptionResponse = o.selectionParse(operation, field, parent, parentProceced, typeName, start, subscriptionValue, vars)
 			}
 		case reflect.TypeOf(&ast.InlineFragment{}):
 			fragment := selection.(*ast.InlineFragment)
 			for _, fragmentSelection := range fragment.SelectionSet {
 				field := fragmentSelection.(*ast.Field)
-				prepareToSend, isSubscriptionResponse = o.selectionParse(operation, field, parent, parentProceced, typeName, start, subscriptionValue)
+				prepareToSend, isSubscriptionResponse = o.selectionParse(operation, field, parent, parentProceced, typeName, start, subscriptionValue, vars)
 			}
 		}
 		if start == 0 {
@@ -145,7 +144,7 @@ func (o *gql) selectionSetParse(operation string, parse ast.SelectionSet, parent
 	}
 	return prepareToSend, isSubscriptionResponse
 }
-func (o *gql) selectionParse(operation string, field *ast.Field, parent interface{}, parentProceced interface{}, typeName *string, start int, subscriptionValue interface{}) (map[string]interface{}, bool) {
+func (o *gql) selectionParse(operation string, field *ast.Field, parent interface{}, parentProceced interface{}, typeName *string, start int, subscriptionValue interface{}, vars map[string]any) (map[string]interface{}, bool) {
 	fieldElem := field.Definition.Type.Elem
 	isSubscriptionResponse := false
 	prepareToSend := make(map[string]interface{}, 0)
@@ -161,8 +160,8 @@ func (o *gql) selectionParse(operation string, field *ast.Field, parent interfac
 			//namedType = typeCondition
 		}
 		if o.objectTypes[namedType] != nil {
-			args := o.parseArguments(field.Arguments, field.Definition.Arguments)
-			directives := o.parseDirectives(field.Directives, namedType, field.Name)
+			args := o.parseArguments(field.Arguments, field.Definition.Arguments, vars)
+			directives := o.parseDirectives(field.Directives, namedType, field.Name, vars)
 			resolverInfo := resolvers.ResolverInfo{
 				Operation:         operation,
 				Args:              args,
@@ -194,7 +193,7 @@ func (o *gql) selectionParse(operation string, field *ast.Field, parent interfac
 				var data []interface{}
 				rValue := reflect.ValueOf(resolved)
 				for i := 0; i < rValue.Len(); i++ {
-					responsed, _ := o.selectionSetParse(operation, field.SelectionSet, rValue.Index(i).Interface(), resolvedProcesed.([]interface{})[i], typeName, 1, subscriptionValue)
+					responsed, _ := o.selectionSetParse(operation, field.SelectionSet, rValue.Index(i).Interface(), resolvedProcesed.([]interface{})[i], typeName, 1, subscriptionValue, vars)
 					data = append(data, responsed)
 				}
 				if parentProceced != nil {
@@ -202,7 +201,7 @@ func (o *gql) selectionParse(operation string, field *ast.Field, parent interfac
 				}
 				prepareToSend[field.Alias] = data
 			case reflect.Struct, reflect.Ptr:
-				responsed, _ := o.selectionSetParse(operation, field.SelectionSet, resolved, resolvedProcesed, typeName, 1, subscriptionValue)
+				responsed, _ := o.selectionSetParse(operation, field.SelectionSet, resolved, resolvedProcesed, typeName, 1, subscriptionValue, vars)
 				if parentProceced != nil {
 					prepareToSend = parentProceced.(map[string]interface{})
 				}
@@ -222,10 +221,10 @@ func (o *gql) selectionParse(operation string, field *ast.Field, parent interfac
 	}
 	return prepareToSend, isSubscriptionResponse
 }
-func (o *gql) parseDirectives(directives ast.DirectiveList, typeName string, fieldName string) (r resolvers.DirectiveList) {
+func (o *gql) parseDirectives(directives ast.DirectiveList, typeName string, fieldName string, vars map[string]any) (r resolvers.DirectiveList) {
 	r = make(map[string]interface{}, 0)
 	for _, directive := range directives {
-		args := o.parseArguments(directive.Arguments, directive.Definition.Arguments)
+		args := o.parseArguments(directive.Arguments, directive.Definition.Arguments, vars)
 		var x resolvers.DataReturn
 		if o.directives[directive.Name] != nil {
 			x, _ = o.directives[directive.Name].Invoke(args, typeName, fieldName)

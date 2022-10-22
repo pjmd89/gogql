@@ -8,7 +8,6 @@ import (
 
 type ObjectTypes map[string]resolvers.ObjectTypeInterface
 type Directives map[string]resolvers.Directive
-type variables map[string]interface{}
 type Scalars map[string]resolvers.Scalar
 type OperationID string
 type SocketID string
@@ -32,7 +31,6 @@ type gql struct {
 	serverName       string
 	schema           *ast.Schema
 	objectTypes      ObjectTypes
-	variables        variables
 	directives       Directives
 	scalars          Scalars
 	OnScalarArgument func(scalarType string, value interface{}) (r interface{})

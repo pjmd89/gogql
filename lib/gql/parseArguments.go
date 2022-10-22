@@ -19,7 +19,7 @@ type variableDef[T varDef] struct {
 	data T
 }
 
-func (o *gql) parseArguments(argsRaw ast.ArgumentList, argsDefinition ast.ArgumentDefinitionList) map[string]interface{} {
+func (o *gql) parseArguments(argsRaw ast.ArgumentList, argsDefinition ast.ArgumentDefinitionList, vars map[string]any) map[string]interface{} {
 	args := make(map[string]*DefaultArguments)
 	for _, val := range argsDefinition {
 		if args[val.Name] == nil {
@@ -42,13 +42,13 @@ func (o *gql) parseArguments(argsRaw ast.ArgumentList, argsDefinition ast.Argume
 		switch argRaw.Value.Kind {
 		case 0:
 			if argRaw.Value.VariableDefinition != nil {
-				args[argRaw.Name].Value = o.variables[argRaw.Value.Raw]
+				args[argRaw.Name].Value = vars[argRaw.Value.Raw]
 			}
-			args[argRaw.Name].Value = o.setValue(argRaw)
+			args[argRaw.Name].Value = o.setValue(argRaw, vars)
 		case 8, 9:
-			args[argRaw.Name].Value = o.parseArgChildren(argRaw.Value.Children)
+			args[argRaw.Name].Value = o.parseArgChildren(argRaw.Value.Children, vars)
 		default:
-			args[argRaw.Name].Value = o.setValue(argRaw)
+			args[argRaw.Name].Value = o.setValue(argRaw, vars)
 		}
 	}
 	r := o.validateArguments(args)
@@ -151,22 +151,22 @@ func (o *gql) parseInputObject(argInput *DefaultArguments) (r interface{}) {
 	}
 	return r
 }
-func (o *gql) parseArgChildren(rawArgs ast.ChildValueList) interface{} {
+func (o *gql) parseArgChildren(rawArgs ast.ChildValueList, vars map[string]any) interface{} {
 	var args interface{}
 	mapArgs := make(map[string]interface{}, 0)
 	sliceArgs := make([]interface{}, 0)
 	if len(rawArgs) > 0 {
 		for _, vArgs := range rawArgs {
 			if vArgs.Name != "" {
-				mapArgs[vArgs.Name] = o.setValue(vArgs)
+				mapArgs[vArgs.Name] = o.setValue(vArgs, vars)
 				if len(vArgs.Value.Children) > 0 {
-					mapArgs[vArgs.Name] = o.parseArgChildren(vArgs.Value.Children)
+					mapArgs[vArgs.Name] = o.parseArgChildren(vArgs.Value.Children, vars)
 				}
 			} else {
 				if len(vArgs.Value.Children) > 0 {
-					sliceArgs = append(sliceArgs, o.parseArgChildren(vArgs.Value.Children))
+					sliceArgs = append(sliceArgs, o.parseArgChildren(vArgs.Value.Children, vars))
 				} else {
-					sliceArgs = append(sliceArgs, o.setValue(vArgs))
+					sliceArgs = append(sliceArgs, o.setValue(vArgs, vars))
 				}
 			}
 		}
@@ -178,24 +178,24 @@ func (o *gql) parseArgChildren(rawArgs ast.ChildValueList) interface{} {
 	}
 	return args
 }
-func (o *gql) setValue(vArgs any) (r any) {
+func (o *gql) setValue(vArgs any, vars map[string]any) (r any) {
 	switch vArgs.(type) {
 	case *ast.ChildValue:
 		nArgs := vArgs.(*ast.ChildValue)
 		r = nArgs.Value.Raw
 		if nArgs.Value.VariableDefinition != nil {
-			r = o.variables[nArgs.Value.Raw]
+			r = vars[nArgs.Value.Raw]
 			//r = o.typedValue(nArgs.Value.Raw, nArgs.Value.VariableDefinition.Type.NamedType)
 		}
 	case *ast.Argument:
 		nArgs := vArgs.(*ast.Argument)
 		r = nArgs.Value.Raw
 		if nArgs.Value.VariableDefinition != nil && nArgs.Value.VariableDefinition.Definition.Kind == "SCALAR" {
-			r = o.variables[nArgs.Value.Raw]
+			r = vars[nArgs.Value.Raw]
 			//r = o.typedValue(nArgs.Value.Raw, nArgs.Value.VariableDefinition.Type.NamedType)
 		} else {
-			if o.variables[nArgs.Value.Raw] != nil {
-				r = o.variables[nArgs.Value.Raw]
+			if vars[nArgs.Value.Raw] != nil {
+				r = vars[nArgs.Value.Raw]
 			}
 		}
 	}
