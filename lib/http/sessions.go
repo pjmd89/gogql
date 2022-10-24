@@ -56,6 +56,13 @@ func (o *SessionManager) Set(sessionData interface{}) {
 		o.sessions[sessionIndex[goID]] = sessionData
 	}
 }
+func (o *SessionManager) Destroy() {
+	goID := systemutils.GetRoutineID()
+	if sessionIndex != nil && o.sessions[sessionIndex[goID]] != nil {
+		o.sessions[sessionIndex[goID]] = nil
+	}
+	delete(sessionIndex, goID)
+}
 func (o *SessionManager) sessionID() string {
 	id := make([]byte, 32)
 	if _, err := io.ReadFull(rand.Reader, id); err != nil {

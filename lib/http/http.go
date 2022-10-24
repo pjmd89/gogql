@@ -312,6 +312,7 @@ func (o *Http) sessionDestroy() {
 	routineID := systemutils.GetRoutineID()
 	delete(sessionIndex, routineID)
 }
+
 func WriteWebsocketMessage(mt int, id string, message []byte) {
 	if WsChannels[id] != nil {
 		WsChannels[id].WriteMessage(mt, message)
