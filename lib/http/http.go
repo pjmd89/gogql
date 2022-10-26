@@ -34,7 +34,7 @@ func Init(gql ...Gql) *Http {
 		mapGQL[v.GetServerName()] = v
 	}
 	o := &Http{HttpPort: "8080", HttpsPort: "8443", gql: mapGQL}
-	lib.GetJson("http/httpx.json", &o)
+	lib.GetJson("http/http.json", &o)
 
 	if strings.Trim(o.HttpPort, " ") == "" {
 		o.HttpPort = "8080"
@@ -170,8 +170,8 @@ func (o *Http) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		if serverBreak {
 			mode := 0
 			if len(httpModes) > 0 {
-				for i, httpMode := range httpModes[1:] {
-					if httpMode.len < httpModes[mode].len {
+				for i, httpMode := range httpModes {
+					if httpMode.len > httpModes[mode].len {
 						mode = i
 					}
 				}
@@ -215,7 +215,11 @@ func (o *Http) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	return
 }
 func (o *Http) fileServeHTTP(w http.ResponseWriter, r *http.Request, httpPath *Path) {
-	file, fErr := os.Open(httpPath.Path + "/" + httpPath.pathURL)
+	path := httpPath.Path
+	if strings.Trim(path, " ") == "" {
+		path = "."
+	}
+	file, fErr := os.Open(path + httpPath.pathURL)
 	fileStat, _ := file.Stat()
 
 	if fErr != nil || fileStat.IsDir() {
