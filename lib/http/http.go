@@ -17,7 +17,6 @@ import (
 	"github.com/gorilla/websocket"
 	"github.com/pjmd89/goutils/jsonutils"
 	"github.com/pjmd89/goutils/systemutils"
-	"github.com/pjmd89/goutils/systemutils/debugmode"
 	"golang.org/x/exp/slices"
 )
 
@@ -29,17 +28,14 @@ var WsIds map[string]chan bool = make(map[string]chan bool)
 var WsChannels map[string]*websocket.Conn = make(map[string]*websocket.Conn)
 var Session = SessionManager{}
 
-func Init(gql ...Gql) *Http {
+func Init(configFile string, gql ...Gql) *Http {
 	mapGQL := make(map[string]Gql)
 	for _, v := range gql {
 		mapGQL[v.GetServerName()] = v
 	}
 	o := &Http{HttpPort: "8080", HttpsPort: "8443", gql: mapGQL}
-	if debugmode.Enabled {
-		jsonutils.GetJson("etc/http/http.json", &o)
-	} else {
-		jsonutils.GetJson("/etc/cp/http/http.json", &o)
-	}
+
+	jsonutils.GetJson(configFile, &o)
 
 	if strings.Trim(o.HttpPort, " ") == "" {
 		o.HttpPort = "8080"
