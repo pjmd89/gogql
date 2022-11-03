@@ -1,12 +1,12 @@
 package gql
 
 import (
+	"embed"
 	"encoding/json"
 	"io/ioutil"
 	"log"
 	"net/http"
 
-	"github.com/pjmd89/gogql/lib"
 	"github.com/pjmd89/gogql/lib/gql/resolvers"
 	"github.com/pjmd89/gogql/lib/gql/resolvers/directives"
 	"github.com/pjmd89/gogql/lib/gql/resolvers/objectTypes"
@@ -17,10 +17,10 @@ import (
 	"github.com/pjmd89/gqlparser/v2/ast"
 )
 
-func Init(serverName string, path string) *gql {
+func Init(serverName string, embedFS embed.FS, folder string) *gql {
 	gql := &gql{}
 	gql.serverName = serverName
-	gql.loadSchema(path)
+	gql.loadSchema(embedFS, folder)
 	gql.objectTypes = make(map[string]resolvers.ObjectTypeInterface)
 	gql.directives = make(map[string]resolvers.Directive)
 	gql.scalars = make(map[string]resolvers.Scalar)
@@ -58,9 +58,21 @@ func (o *gql) Directive(resolver string, object resolvers.Directive) {
 func (o *gql) Scalar(resolver string, object resolvers.Scalar) {
 	o.scalars[resolver] = object
 }
-func (o *gql) loadSchema(path string) {
+func (o *gql) scanSchema(embedFS embed.FS, folder string) (r []string) {
+	files, _ := embedFS.ReadDir(folder)
+	for _, file := range files {
+		if file.IsDir() {
+			r = append(r, o.scanSchema(embedFS, folder+"/"+file.Name())...)
+		} else {
+			r = append(r, folder+"/"+file.Name())
+		}
+	}
+	return
+}
+func (o *gql) loadSchema(embedFS embed.FS, folder string) {
 	var schema []*ast.Source
-	files := lib.ScanDir(path)
+
+	files := o.scanSchema(embedFS, folder)
 
 	for _, file := range files {
 		content, err := ioutil.ReadFile(file)
@@ -85,6 +97,7 @@ func (o *gql) loadSchema(path string) {
 	if err != nil {
 		log.Fatal(err)
 	}
+
 	o.schema = parser
 }
 func (o *gql) GQLRenderSubscription(mt int, message []byte, socketId string) {

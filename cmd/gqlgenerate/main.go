@@ -1,6 +1,7 @@
 package main
 
 import (
+	"embed"
 	"flag"
 	"log"
 
@@ -8,6 +9,11 @@ import (
 	"github.com/pjmd89/gogql/lib/generate/gqltypes"
 	"github.com/pjmd89/gogql/lib/gql"
 	"golang.org/x/exp/slices"
+)
+
+var (
+	//go:embed schema
+	embedFS embed.FS
 )
 
 func main() {
@@ -34,7 +40,7 @@ func main() {
 	flag.StringVar(&objecttypePath, "objecttype-path", objecttypePath, "Ruta donde se guardaran los modelos generados")
 	flag.Parse()
 	render := generate.GqlGenerate{
-		SchemaPath:     schemaPath,
+		SchemaPath:     "schema",
 		ModuleName:     moduleName,
 		ModulePath:     modulePath,
 		ModelPath:      modelPath,
@@ -59,7 +65,7 @@ func generateSchema(render generate.GqlGenerate) {
 		ScalarType: make([]generate.ScalarDef, 0),
 	}
 	types.MainPath = render.ModulePath + "/generate/main.go"
-	gql := gql.Init("", render.SchemaPath)
+	gql := gql.Init("", embedFS, render.SchemaPath)
 
 	if gql.GetSchema().Query != nil {
 		generate.OmitObject = append(generate.OmitObject, gql.GetSchema().Query.Name)
