@@ -183,9 +183,11 @@ func (o *gql) setValue(vArgs any, vars map[string]any) (r any) {
 	case *ast.ChildValue:
 		nArgs := vArgs.(*ast.ChildValue)
 		r = nArgs.Value.Raw
-		if nArgs.Value.VariableDefinition != nil {
+		if vars[nArgs.Value.Raw] != nil && nArgs.Value.VariableDefinition != nil {
 			r = vars[nArgs.Value.Raw]
 			//r = o.typedValue(nArgs.Value.Raw, nArgs.Value.VariableDefinition.Type.NamedType)
+		} else {
+			r = nil
 		}
 	case *ast.Argument:
 		nArgs := vArgs.(*ast.Argument)

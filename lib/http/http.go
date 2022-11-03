@@ -17,6 +17,7 @@ import (
 	"github.com/gorilla/websocket"
 	"github.com/pjmd89/gogql/lib"
 	"github.com/pjmd89/goutils/systemutils"
+	"github.com/pjmd89/goutils/systemutils/debugmode"
 	"golang.org/x/exp/slices"
 )
 
@@ -34,7 +35,11 @@ func Init(gql ...Gql) *Http {
 		mapGQL[v.GetServerName()] = v
 	}
 	o := &Http{HttpPort: "8080", HttpsPort: "8443", gql: mapGQL}
-	lib.GetJson("http/http.json", &o)
+	if debugmode.Enabled {
+		lib.GetJson("http/http.json", &o)
+	} else {
+		lib.GetJson("/etc/cp/http/http.json", &o)
+	}
 
 	if strings.Trim(o.HttpPort, " ") == "" {
 		o.HttpPort = "8080"
