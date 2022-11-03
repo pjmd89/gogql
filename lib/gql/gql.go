@@ -3,7 +3,6 @@ package gql
 import (
 	"embed"
 	"encoding/json"
-	"io/ioutil"
 	"log"
 	"net/http"
 
@@ -75,7 +74,7 @@ func (o *gql) loadSchema(embedFS embed.FS, folder string) {
 	files := o.scanSchema(embedFS, folder)
 
 	for _, file := range files {
-		content, err := ioutil.ReadFile(file)
+		content, err := embedFS.ReadFile(file)
 		if err != nil {
 			log.Fatal(err)
 		}
