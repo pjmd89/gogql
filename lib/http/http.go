@@ -77,7 +77,7 @@ func (o *Http) Start() {
 			isTls = true
 		}
 		if server.EnableHttps {
-			tmp, certErr := tls.LoadX509KeyPair("etc/http/certs/"+server.Cert, "etc/http/certs/"+server.Key)
+			tmp, certErr := tls.LoadX509KeyPair(server.Cert, server.Key)
 			if certErr != nil {
 				fmt.Println(certErr)
 				err = fmt.Errorf("Error on certificate. " + server.Cert)
