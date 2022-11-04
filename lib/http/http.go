@@ -3,7 +3,6 @@ package http
 import (
 	"crypto/tls"
 	"fmt"
-	"log"
 	"net/http"
 	"net/url"
 	"os"
@@ -27,8 +26,10 @@ var sessionIndex = map[uint64]string{}
 var WsIds map[string]chan bool = make(map[string]chan bool)
 var WsChannels map[string]*websocket.Conn = make(map[string]*websocket.Conn)
 var Session = SessionManager{}
+var logs systemutils.Logs
 
-func Init(configFile string, gql ...Gql) *Http {
+func Init(sytemlogs systemutils.Logs, configFile string, gql ...Gql) *Http {
+	logs = sytemlogs
 	mapGQL := make(map[string]Gql)
 	for _, v := range gql {
 		mapGQL[v.GetServerName()] = v
@@ -75,14 +76,14 @@ func (o *Http) Start() {
 		if server.EnableHttps {
 			tmp, certErr := tls.LoadX509KeyPair(server.Cert, server.Key)
 			if certErr != nil {
-				fmt.Println(certErr)
-				err = fmt.Errorf("Error on certificate. " + server.Cert)
+				logs.System.Error().Println(err.Error())
+				logs.System.Fatal().Fatal("Error on certificate. " + server.Cert)
 				stop = true
 			}
 			tlsConfig.Certificates = append(tlsConfig.Certificates, tmp)
 		}
 	}
-	fmt.Println("http server start")
+	logs.System.Info().Println("http server start")
 	go o.listenHttp(channel, hTTPService)
 	if isTls {
 		go o.listenHttps(channel, hTTPSService)
@@ -95,11 +96,6 @@ func (o *Http) Start() {
 			hTTPService.Shutdown(nil)
 		}
 	}
-
-	if err != nil {
-		fmt.Println(err)
-	}
-
 }
 func (o *Http) MatcherFunc(hr *http.Request, hm *mux.RouteMatch) (r bool) {
 	r = true
@@ -108,6 +104,7 @@ func (o *Http) MatcherFunc(hr *http.Request, hm *mux.RouteMatch) (r bool) {
 	if o.CheckOrigin != nil {
 		r, o.originData = o.CheckOrigin(url)
 	}
+	logs.Access.Info().Printf("Access to %s is %v", url.URL, r)
 	return r
 }
 func (o *Http) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -123,7 +120,7 @@ func (o *Http) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	o.setSessionIndex(sessionID)
 	defer o.sessionDestroy()
 	if err != nil {
-		log.Printf(err.Error())
+		logs.System.Error().Println(err.Error())
 	}
 	if urlInfo.Origin.URL != "" {
 		w.Header().Set("Access-Control-Allow-Origin", urlInfo.Origin.URL)
@@ -202,12 +199,8 @@ func (o *Http) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			o.websocketServeHTTP(w, r, httpPathMode)
 			break
 		}
-		/*
-			if o.OnFinish != nil {
-				o.OnFinish(sessionData)
-			}*/
 	} else {
-		fmt.Println("mode not found")
+		logs.System.Error().Println("mode not found")
 		w.WriteHeader(http.StatusNotFound)
 	}
 	if o.OnFinish != nil {
@@ -217,25 +210,35 @@ func (o *Http) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 func (o *Http) fileServeHTTP(w http.ResponseWriter, r *http.Request, httpPath *Path) {
 	path := httpPath.Path
+	var filePath = path + httpPath.pathURL
+	if strings.Trim(httpPath.Redirect.From, " ") != "" && httpPath.Redirect.From == httpPath.pathURL {
+		http.Redirect(w, r, httpPath.Redirect.To, http.StatusSeeOther)
+		return
+	}
+	if strings.Trim(httpPath.Redirect.From, " ") == "" && strings.Trim(httpPath.Redirect.To, " ") != "" {
+		http.Redirect(w, r, httpPath.Redirect.To, http.StatusSeeOther)
+		return
+	}
 	if strings.Trim(path, " ") == "" {
 		path = "."
 	}
-	file, fErr := os.Open(path + httpPath.pathURL)
+	file, fErr := os.Open(filePath)
 	fileStat, _ := file.Stat()
 
-	if fErr != nil || fileStat.IsDir() {
-		file, fErr = os.Open(httpPath.Path + httpPath.pathURL + "/index.html")
+	if fileStat == nil || fileStat.IsDir() {
+		filePath = httpPath.Path + httpPath.pathURL + "/" + httpPath.FileDefault
+		file, fErr = os.Open(filePath)
 		fileStat, _ = file.Stat()
+		if fErr != nil && httpPath.Rewrite {
+			file, fErr = os.Open(httpPath.Path + httpPath.RewriteTo)
+			fileStat, _ = file.Stat()
+		}
 	}
 
-	if false && fErr != nil {
-		file, fErr = os.Open(httpPath.Path + "/index.html")
-		fileStat, _ = file.Stat()
-	}
-
-	if fErr != nil || fileStat.IsDir() {
-		w.WriteHeader(http.StatusNotFound)
+	if fErr != nil {
+		logs.System.Error().Printf("el archivo %s no se encuentra.", filePath)
 		fmt.Fprint(w, "file not found, archivo no se encuentra")
+		w.WriteHeader(http.StatusNotFound)
 		return
 	}
 	http.ServeContent(w, r, httpPath.Path+"/"+r.RequestURI, time.Time{}, file)
@@ -287,7 +290,7 @@ func (o *Http) listenHttp(channel chan bool, handler *http.Server) {
 	channel <- false
 	err := handler.ListenAndServe()
 	if err != nil {
-		fmt.Println("http server start error: " + err.Error())
+		logs.System.Error().Println("http server start error: " + err.Error())
 		channel <- true
 	}
 }
@@ -295,13 +298,13 @@ func (o *Http) listenHttps(channel chan bool, handler *http.Server) {
 	channel <- false
 	listener, tlsErr := tls.Listen("tcp", handler.Addr, handler.TLSConfig)
 	if tlsErr != nil {
-		fmt.Println("https server start error: " + tlsErr.Error())
+		logs.System.Error().Println("http server start error: " + tlsErr.Error())
 		channel <- true
 	}
 
 	err := handler.Serve(listener)
 	if err != nil {
-		fmt.Println("https server error: " + err.Error())
+		logs.System.Error().Println("http server start error: " + err.Error())
 		channel <- true
 	}
 }

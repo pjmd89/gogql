@@ -29,13 +29,21 @@ type URL struct {
 	}
 }
 type Path struct {
-	Mode     string `json:"mode,omitempty"`
-	Path     string `json:"path,omitempty"`
-	Endpoint string `json:"endpoint,omitempty"`
-	len      int
-	pathURL  string
-	host     string
-	origin   string
+	Mode        string   `json:"mode,omitempty"`
+	Path        string   `json:"path,omitempty"`
+	Endpoint    string   `json:"endpoint,omitempty"`
+	Rewrite     bool     `json:"rewrite,omitempty"`
+	RewriteTo   string   `json:"rewriteTo,omitempty"`
+	Redirect    Redirect `json:"redirect,omitempty"`
+	FileDefault string   `json:"fileDefault,omitempty"`
+	len         int
+	pathURL     string
+	host        string
+	origin      string
+}
+type Redirect struct {
+	From string `json:"from,omitempty"`
+	To   string `json:"to,omitempty"`
 }
 type server struct {
 	Host            string   `json:"host,omitempty"`
@@ -45,9 +53,6 @@ type server struct {
 	LetsEncrypt     bool     `json:"letsEncrypt,omitempty"`
 	RedirectToHttps bool     `json:"redirectToHttps,omitempty"`
 	EnableHttps     bool     `json:"enableHttps,omitempty"`
-	RewriteTo       string   `json:"rewriteTo,omitempty"`
-	Rewrite         bool     `json:"rewrite,omitempty"`
-	FileDefault     string   `json:"fileDefault,omitempty"`
 	Path            []Path   `json:"path,omitempty"`
 }
 type Http struct {
