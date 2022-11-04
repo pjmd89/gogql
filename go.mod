@@ -9,7 +9,7 @@ require (
 	github.com/gorilla/mux v1.8.0
 	github.com/gorilla/websocket v1.5.0
 	github.com/jinzhu/copier v0.3.5
-	github.com/pjmd89/goutils v0.0.0-20221022221732-211af09d08e9
+	github.com/pjmd89/goutils v0.0.0-20221104015642-0420e4d74108
 	github.com/pjmd89/gqlparser/v2 v2.2.1-0.20220330002356-e1babba1695a
 	go.mongodb.org/mongo-driver v1.10.2
 	golang.org/x/exp v0.0.0-20220722155223-a9213eeb770e
