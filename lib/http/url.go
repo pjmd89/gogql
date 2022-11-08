@@ -10,19 +10,27 @@ import (
 func (o *URL) Split(r *http.Request) {
 	port := ""
 	var splitError error
-	o.Host, o.Port, splitError = net.SplitHostPort(r.Host)
-	if splitError != nil {
+	isURI := false
+	if _, err := url.ParseRequestURI(r.Host); err == nil {
+		isURI = true
+		o.Host, o.Port, splitError = net.SplitHostPort(r.Host)
+	} else {
+		_, _, splitError = net.SplitHostPort(r.Host)
+	}
+
+	if splitError != nil && isURI {
 		tmpPort := ":80"
 		if r.TLS != nil {
 			tmpPort = ":443"
 		}
 		o.Host, o.Port, splitError = net.SplitHostPort(r.Host + tmpPort)
-		if splitError != nil {
-			log.Println(splitError.Error())
-		}
+	}
+	if splitError != nil {
+		log.Println(splitError.Error())
 	}
 	o.RequestURI = r.RequestURI
 	o.TLS = false
+	isURI = false
 	o.Scheme = "http"
 
 	for _, header := range r.Header["Upgrade"] {
@@ -54,16 +62,22 @@ func (o *URL) Split(r *http.Request) {
 	if o.Origin.URL != "" {
 		origin, _ := url.Parse(o.Origin.URL)
 		o.Origin.Scheme = origin.Scheme
+		if _, err := url.ParseRequestURI(origin.Host); err == nil {
+			isURI = true
+			o.Origin.Host, o.Origin.Port, splitError = net.SplitHostPort(origin.Host)
+		} else {
+			_, _, splitError = net.SplitHostPort(r.Host)
+		}
 		o.Origin.Host, o.Origin.Port, splitError = net.SplitHostPort(origin.Host)
-		if splitError != nil {
+		if splitError != nil && isURI {
 			tmpPort := ":80"
 			if r.TLS != nil {
 				tmpPort = ":443"
 			}
 			o.Origin.Host, o.Origin.Port, splitError = net.SplitHostPort(origin.Host + tmpPort)
-			if splitError != nil {
-				log.Println(splitError.Error())
-			}
+		}
+		if splitError != nil {
+			log.Println(splitError.Error())
 		}
 	}
 }
