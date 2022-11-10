@@ -66,6 +66,7 @@ func (o *URL) Split(r *http.Request) {
 			isURI = true
 			o.Origin.Host, o.Origin.Port, splitError = net.SplitHostPort(origin.Host)
 		} else {
+			log.Println("ParseRequestURI", origin.Host, err.Error())
 			_, _, splitError = net.SplitHostPort(r.Host)
 		}
 		//o.Origin.Host, o.Origin.Port, splitError = net.SplitHostPort(origin.Host)
