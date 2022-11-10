@@ -68,16 +68,17 @@ func (o *URL) Split(r *http.Request) {
 		} else {
 			_, _, splitError = net.SplitHostPort(r.Host)
 		}
-		o.Origin.Host, o.Origin.Port, splitError = net.SplitHostPort(origin.Host)
+		//o.Origin.Host, o.Origin.Port, splitError = net.SplitHostPort(origin.Host)
+		tmpPort := ":80"
+		if r.TLS != nil {
+			tmpPort = ":443"
+		}
 		if splitError != nil && isURI {
-			tmpPort := ":80"
-			if r.TLS != nil {
-				tmpPort = ":443"
-			}
+
 			o.Origin.Host, o.Origin.Port, splitError = net.SplitHostPort(origin.Host + tmpPort)
 		}
 		if splitError != nil {
-			log.Println(splitError.Error())
+			log.Println(splitError.Error(), origin.Host+tmpPort)
 		}
 	}
 }
