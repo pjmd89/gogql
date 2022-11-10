@@ -15,6 +15,7 @@ func (o *URL) Split(r *http.Request) {
 		isURI = true
 		o.Host, o.Port, splitError = net.SplitHostPort(r.Host)
 	} else {
+		log.Println("18", err.Error())
 		_, _, splitError = net.SplitHostPort(r.Host)
 	}
 
@@ -26,7 +27,7 @@ func (o *URL) Split(r *http.Request) {
 		o.Host, o.Port, splitError = net.SplitHostPort(r.Host + tmpPort)
 	}
 	if splitError != nil {
-		log.Println(splitError.Error())
+		log.Println("29", "splitError", splitError.Error())
 	}
 	o.RequestURI = r.RequestURI
 	o.TLS = false
