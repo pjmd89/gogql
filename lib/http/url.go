@@ -16,7 +16,7 @@ func (o *URL) Split(r *http.Request) {
 	log.Println(o.Host, o.URL)
 	log.Println(o.Origin.Host, o.Origin.URL)
 	log.Println("----------------------------------")
-	if _, err := url.Parse(r.Host); err == nil {
+	if _, err := url.ParseRequestURI("http://" + r.Host); err == nil {
 		isURI = true
 		o.Host, o.Port, splitError = net.SplitHostPort(r.Host)
 	} else {
@@ -66,7 +66,7 @@ func (o *URL) Split(r *http.Request) {
 	o.Origin.URL = r.Header.Get("Origin")
 
 	if o.Origin.URL != "" {
-		origin, err := url.Parse(o.Origin.URL)
+		origin, err := url.ParseRequestURI(o.Origin.URL)
 		o.Origin.Scheme = origin.Scheme
 		if err == nil {
 			isURI = true
