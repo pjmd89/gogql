@@ -1,7 +1,6 @@
 package main
 
 import (
-	"embed"
 	"flag"
 	"log"
 
@@ -9,11 +8,6 @@ import (
 	"github.com/pjmd89/gogql/lib/generate/gqltypes"
 	"github.com/pjmd89/gogql/lib/gql"
 	"golang.org/x/exp/slices"
-)
-
-var (
-	//go:embed schema
-	embedFS embed.FS
 )
 
 func main() {
@@ -28,7 +22,6 @@ func main() {
 		enumPath              = "enums"
 		objecttypePath        = "objectTypes"
 	)
-
 	flag.StringVar(&schemaPath, "schema", "", "Ruta de la carpeta contenedora del esquema de GraphQL")
 	flag.StringVar(&modulePath, "module-path", "", "Ruta donde se guardaran los modelos generados")
 	flag.StringVar(&moduleName, "module-name", "", "Ruta donde se guardaran los modelos generados")
@@ -40,7 +33,7 @@ func main() {
 	flag.StringVar(&objecttypePath, "objecttype-path", objecttypePath, "Ruta donde se guardaran los modelos generados")
 	flag.Parse()
 	render := generate.GqlGenerate{
-		SchemaPath:     "schema",
+		SchemaPath:     schemaPath,
 		ModuleName:     moduleName,
 		ModulePath:     modulePath,
 		ModelPath:      modelPath,
@@ -56,7 +49,6 @@ func main() {
 		log.Fatal("debes indicar el path del schema, la carpeta raiz del proyecto y el nombre del modulo (-schema, -module-path, -module-name)")
 	}
 }
-
 func generateSchema(render generate.GqlGenerate) {
 	types := generate.RenderTypes{
 		ModelType:  make([]generate.ModelDef, 0),
@@ -65,8 +57,7 @@ func generateSchema(render generate.GqlGenerate) {
 		ScalarType: make([]generate.ScalarDef, 0),
 	}
 	types.MainPath = render.ModulePath + "/generate/main.go"
-	gql := gql.Init("", embedFS, render.SchemaPath)
-
+	gql := gql.GenerateInit("", render.SchemaPath)
 	if gql.GetSchema().Query != nil {
 		generate.OmitObject = append(generate.OmitObject, gql.GetSchema().Query.Name)
 	}
@@ -110,5 +101,3 @@ func generateSchema(render generate.GqlGenerate) {
 	gqltypes.UnionTmpl(types)
 	gqltypes.Maintmpl(types)
 }
-
-//go:generate go run main.go -scheme=$SCHEME -model-path=$MODELPATH
