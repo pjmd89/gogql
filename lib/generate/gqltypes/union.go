@@ -27,18 +27,20 @@ func UnionTmpl(types generate.RenderTypes) {
 	if err != nil {
 		panic(err)
 	}
-	dir := filepath.Dir(types.UnionType.FilePath)
-	os.MkdirAll(dir, 0770)
-	modelFile, err := os.Create(types.UnionType.FilePath)
-	if err != nil {
-		panic(err)
-	}
+	if types.UnionType.FilePath != "" {
+		dir := filepath.Dir(types.UnionType.FilePath)
+		os.MkdirAll(dir, 0770)
+		modelFile, err := os.Create(types.UnionType.FilePath)
+		if err != nil {
+			panic(err.Error() + " - " + types.UnionType.FilePath)
+		}
 
-	var tmpl bytes.Buffer
-	err = et.Execute(&tmpl, types.UnionType)
-	if err != nil {
-		panic(err)
+		var tmpl bytes.Buffer
+		err = et.Execute(&tmpl, types.UnionType)
+		if err != nil {
+			panic(err)
+		}
+		x, _ := format.Source(tmpl.Bytes())
+		modelFile.Write(x)
 	}
-	x, _ := format.Source(tmpl.Bytes())
-	modelFile.Write(x)
 }

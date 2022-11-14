@@ -29,7 +29,7 @@ func (o *{{.Name}}) Set(value interface{}) (r interface{}, err definitionError.G
 	return
 }
 
-func (o *{{.Name}}) Assess(value interface{}) (r interface{}, err definitionError.GQLError) {
-	r = value
+func (o *{{.Name}}) Assess(resolved resolvers.ScalarResolved) (r interface{}, err definitionError.GQLError) {
+	r = resolved.Value
 	return
 }

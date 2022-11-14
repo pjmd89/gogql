@@ -46,16 +46,19 @@ func NewObjectType(render generate.GqlGenerate, value generate.ModelDef, schema 
 			oType.MutationResolvers = append(oType.MutationResolvers, map[string]string{"Name": v.Name, "Resolver": v.Name + "Mutation"})
 		}
 	}
-	for _, v := range schema.Subscription.Fields {
-		typeName := v.Type.NamedType
-		if typeName == "" {
-			typeName = v.Type.Elem.NamedType
-		}
-		if value.RealName == typeName {
-			oType.HasSubscriptions = true
-			oType.SubscriptionResolvers = append(oType.SubscriptionResolvers, map[string]string{"Name": v.Name, "Resolver": v.Name + "Subscription"})
+	if schema.Subscription != nil {
+		for _, v := range schema.Subscription.Fields {
+			typeName := v.Type.NamedType
+			if typeName == "" {
+				typeName = v.Type.Elem.NamedType
+			}
+			if value.RealName == typeName {
+				oType.HasSubscriptions = true
+				oType.SubscriptionResolvers = append(oType.SubscriptionResolvers, map[string]string{"Name": v.Name, "Resolver": v.Name + "Subscription"})
+			}
 		}
 	}
+
 	return
 }
 func ObjectTypeTmpl(types generate.RenderTypes) {
