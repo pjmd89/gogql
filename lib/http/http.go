@@ -260,6 +260,7 @@ func (o *Http) websocketServeHTTP(w http.ResponseWriter, r *http.Request, httpPa
 	id := uuid.New().String()
 	WsIds[id] = make(chan bool, 1)
 	var upgraderError error
+	upgrader.CheckOrigin = func(r *http.Request) bool { return true }
 	WsChannels[id], upgraderError = upgrader.Upgrade(w, r, headers)
 	if upgraderError != nil {
 		select {
