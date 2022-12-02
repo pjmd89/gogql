@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"github.com/google/uuid"
-	"github.com/pjmd89/gogql/lib/gql/resolvers"
+	"github.com/pjmd89/gogql/lib/resolvers"
 	"github.com/pjmd89/gqlparser/v2"
 	"github.com/pjmd89/gqlparser/v2/ast"
 	"github.com/pjmd89/gqlparser/v2/validator"

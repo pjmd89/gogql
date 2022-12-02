@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	"github.com/fatih/structs"
-	"github.com/pjmd89/gogql/lib/gql/resolvers"
+	"github.com/pjmd89/gogql/lib/resolvers"
 	"github.com/pjmd89/goutils/dbutils"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )

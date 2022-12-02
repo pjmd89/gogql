@@ -8,11 +8,11 @@ import (
 	"net/http"
 
 	"github.com/pjmd89/gogql/lib"
-	"github.com/pjmd89/gogql/lib/gql/resolvers"
-	"github.com/pjmd89/gogql/lib/gql/resolvers/directives"
-	"github.com/pjmd89/gogql/lib/gql/resolvers/objectTypes"
-	"github.com/pjmd89/gogql/lib/gql/resolvers/scalars"
 	gqlHttp "github.com/pjmd89/gogql/lib/http"
+	"github.com/pjmd89/gogql/lib/resolvers"
+	"github.com/pjmd89/gogql/lib/resolvers/directives"
+	"github.com/pjmd89/gogql/lib/resolvers/objectTypes"
+	"github.com/pjmd89/gogql/lib/resolvers/scalars"
 
 	"github.com/pjmd89/gqlparser/v2"
 	"github.com/pjmd89/gqlparser/v2/ast"

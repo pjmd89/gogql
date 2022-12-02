@@ -191,13 +191,12 @@ func (o *Http) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		switch httpPathMode.Mode {
 		case "file":
 			o.fileServeHTTP(w, r, httpPathMode)
-			break
 		case "gql":
 			o.gqlServeHTTP(w, r, httpPathMode)
-			break
 		case "websocket":
 			o.websocketServeHTTP(w, r, httpPathMode)
-			break
+		case "rest":
+			o.restServeHTTP(w, r, httpPathMode)
 		}
 	} else {
 		logs.System.Error().Println("mode not found")
@@ -245,6 +244,12 @@ func (o *Http) fileServeHTTP(w http.ResponseWriter, r *http.Request, httpPath *P
 }
 func (o *Http) gqlServeHTTP(w http.ResponseWriter, r *http.Request, httpPath *Path) {
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+	//por favor, revisa que o.serverName exista, si no existe entonces devuelvele un dedito
+	rx := o.gql[httpPath.host].GQLRender(w, r)
+	fmt.Fprint(w, rx)
+}
+func (o *Http) restServeHTTP(w http.ResponseWriter, r *http.Request, httpPath *Path) {
+	//w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	//por favor, revisa que o.serverName exista, si no existe entonces devuelvele un dedito
 	rx := o.gql[httpPath.host].GQLRender(w, r)
 	fmt.Fprint(w, rx)

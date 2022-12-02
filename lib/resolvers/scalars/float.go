@@ -6,7 +6,7 @@ import (
 	"strconv"
 
 	"github.com/pjmd89/gogql/lib/gql/definitionError"
-	"github.com/pjmd89/gogql/lib/gql/resolvers"
+	"github.com/pjmd89/gogql/lib/resolvers"
 )
 
 type Float float64

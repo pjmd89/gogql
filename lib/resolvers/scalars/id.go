@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/pjmd89/gogql/lib/gql/definitionError"
-	"github.com/pjmd89/gogql/lib/gql/resolvers"
+	"github.com/pjmd89/gogql/lib/resolvers"
 )
 
 type ID string

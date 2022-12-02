@@ -5,7 +5,7 @@ import (
 
 	"github.com/pjmd89/gogql/lib/gql/definitionError"
 	"github.com/pjmd89/gogql/lib/gql/introspection"
-	"github.com/pjmd89/gogql/lib/gql/resolvers"
+	"github.com/pjmd89/gogql/lib/resolvers"
 	"github.com/pjmd89/gqlparser/v2/ast"
 )
 
