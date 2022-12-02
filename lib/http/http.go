@@ -28,13 +28,9 @@ var WsChannels map[string]*websocket.Conn = make(map[string]*websocket.Conn)
 var Session = SessionManager{}
 var logs systemutils.Logs
 
-func Init(sytemlogs systemutils.Logs, configFile string, gql ...Gql) *Http {
+func Init(sytemlogs systemutils.Logs, configFile string) *Http {
 	logs = sytemlogs
-	mapGQL := make(map[string]Gql)
-	for _, v := range gql {
-		mapGQL[v.GetServerName()] = v
-	}
-	o := &Http{HttpPort: "8080", HttpsPort: "8443", gql: mapGQL}
+	o := &Http{HttpPort: "8080", HttpsPort: "8443"}
 
 	jsonutils.GetJson(configFile, &o)
 
@@ -49,8 +45,23 @@ func Init(sytemlogs systemutils.Logs, configFile string, gql ...Gql) *Http {
 	}
 	return o
 }
+func (o *Http) SetRest(rest ...Rest) *Http {
+	mapRest := make(map[string]Rest)
+	for _, v := range rest {
+		mapRest[v.GetServerName()] = v
+	}
+	o.rest = mapRest
+	return o
+}
+func (o *Http) SetGql(gql ...Gql) *Http {
+	mapGql := make(map[string]Gql)
+	for _, v := range gql {
+		mapGql[v.GetServerName()] = v
+	}
+	o.gql = mapGql
+	return o
+}
 func (o *Http) Start() {
-	var err error
 	channel := make(chan bool)
 	stop := false
 	isTls := false
@@ -76,7 +87,7 @@ func (o *Http) Start() {
 		if server.EnableHttps {
 			tmp, certErr := tls.LoadX509KeyPair(server.Cert, server.Key)
 			if certErr != nil {
-				logs.System.Error().Println(err.Error())
+				logs.System.Error().Println(certErr.Error())
 				logs.System.Fatal().Fatal("Error on certificate. " + server.Cert)
 				stop = true
 			}
@@ -190,13 +201,13 @@ func (o *Http) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 		switch httpPathMode.Mode {
 		case "file":
-			o.fileServeHTTP(w, r, httpPathMode)
+			o.fileServeHTTP(w, r, httpPathMode, sessionID)
 		case "gql":
-			o.gqlServeHTTP(w, r, httpPathMode)
+			o.gqlServeHTTP(w, r, httpPathMode, sessionID)
 		case "websocket":
-			o.websocketServeHTTP(w, r, httpPathMode)
+			o.websocketServeHTTP(w, r, httpPathMode, sessionID)
 		case "rest":
-			o.restServeHTTP(w, r, httpPathMode)
+			o.restServeHTTP(w, r, httpPathMode, sessionID)
 		}
 	} else {
 		logs.System.Error().Println("mode not found")
@@ -207,7 +218,7 @@ func (o *Http) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	return
 }
-func (o *Http) fileServeHTTP(w http.ResponseWriter, r *http.Request, httpPath *Path) {
+func (o *Http) fileServeHTTP(w http.ResponseWriter, r *http.Request, httpPath *Path, sessionID string) {
 	path := httpPath.Path
 	var filePath = path + httpPath.pathURL
 	if strings.Trim(httpPath.Redirect.From, " ") != "" && httpPath.Redirect.From == httpPath.pathURL {
@@ -242,19 +253,27 @@ func (o *Http) fileServeHTTP(w http.ResponseWriter, r *http.Request, httpPath *P
 	}
 	http.ServeContent(w, r, httpPath.Path+"/"+r.RequestURI, time.Time{}, file)
 }
-func (o *Http) gqlServeHTTP(w http.ResponseWriter, r *http.Request, httpPath *Path) {
+func (o *Http) gqlServeHTTP(w http.ResponseWriter, r *http.Request, httpPath *Path, sessionID string) {
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	//por favor, revisa que o.serverName exista, si no existe entonces devuelvele un dedito
-	rx := o.gql[httpPath.host].GQLRender(w, r)
-	fmt.Fprint(w, rx)
+	if o.gql[httpPath.host] != nil {
+		rx := o.gql[httpPath.host].GQLRender(w, r, sessionID)
+		fmt.Fprint(w, rx)
+	} else {
+		logs.System.Fatal().Printf("%s domain do not exists.", httpPath.host)
+	}
+
 }
-func (o *Http) restServeHTTP(w http.ResponseWriter, r *http.Request, httpPath *Path) {
+func (o *Http) restServeHTTP(w http.ResponseWriter, r *http.Request, httpPath *Path, sessionID string) {
 	//w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	//por favor, revisa que o.serverName exista, si no existe entonces devuelvele un dedito
-	rx := o.gql[httpPath.host].GQLRender(w, r)
-	fmt.Fprint(w, rx)
+	if o.rest[httpPath.host] != nil {
+		o.rest[httpPath.host].RestRender(w, r, sessionID)
+	} else {
+		logs.System.Fatal().Printf("%s domain do not exists.", httpPath.host)
+	}
 }
-func (o *Http) websocketServeHTTP(w http.ResponseWriter, r *http.Request, httpPath *Path) {
+func (o *Http) websocketServeHTTP(w http.ResponseWriter, r *http.Request, httpPath *Path, sessionID string) {
 	headers := http.Header{}
 	headers.Set("Sec-WebSocket-Protocol", "graphql-transport-ws")
 	headers.Set("Sec-WebSocket-Version", "13")
@@ -289,7 +308,7 @@ func (o *Http) websocketServeHTTP(w http.ResponseWriter, r *http.Request, httpPa
 			while = false
 			break
 		}
-		go o.WebSocketMessage(mt, message, id, httpPath)
+		go o.WebSocketMessage(mt, message, id, httpPath, sessionID)
 	}
 }
 func (o *Http) listenHttp(channel chan bool, handler *http.Server) {
@@ -314,9 +333,9 @@ func (o *Http) listenHttps(channel chan bool, handler *http.Server) {
 		channel <- true
 	}
 }
-func (o *Http) WebSocketMessage(mt int, message []byte, id string, httpPath *Path) {
+func (o *Http) WebSocketMessage(mt int, message []byte, id string, httpPath *Path, sessionID string) {
 
-	o.gql[httpPath.host].GQLRenderSubscription(mt, message, id)
+	o.gql[httpPath.host].GQLRenderSubscription(mt, message, id, sessionID)
 }
 func (o *Http) setSessionIndex(sessionID string) {
 	routineID := systemutils.GetRoutineID()

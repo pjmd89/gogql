@@ -50,6 +50,12 @@ func (o *SessionManager) Get() (r interface{}) {
 	}
 	return
 }
+func (o *SessionManager) GetByID(sessionID string) (r interface{}) {
+	if sessionIndex != nil && o.sessions[sessionID] != nil {
+		r = o.sessions[sessionID]
+	}
+	return
+}
 func (o *SessionManager) Set(sessionData interface{}) {
 	goID := systemutils.GetRoutineID()
 	if sessionIndex != nil {

@@ -152,7 +152,7 @@ func (o *gql) loadSchema(embedFS embed.FS, folder string) {
 
 	o.schema = parser
 }
-func (o *gql) GQLRenderSubscription(mt int, message []byte, socketId string) {
+func (o *gql) GQLRenderSubscription(mt int, message []byte, socketId, sessionID string) {
 	var request WebSocketRequest
 	json.Unmarshal(message, &request)
 	//var response *HttpResponse = &HttpResponse{};
@@ -161,7 +161,7 @@ func (o *gql) GQLRenderSubscription(mt int, message []byte, socketId string) {
 		r := `{"type":"connection_ack","payload":{}}`
 		gqlHttp.WriteWebsocketMessage(mt, socketId, []byte(r))
 	case "subscribe":
-		o.WebsocketResponse(request.Payload, socketId, RequestID(request.Id), mt)
+		o.WebsocketResponse(request.Payload, socketId, RequestID(request.Id), mt, sessionID)
 		//r = `{"id":"`+request.Id+`","type":"next","payload":`+response.Data+`}`;
 	case "ping":
 		r := `{"type":"pong","payload":{}}`
@@ -173,10 +173,10 @@ func (o *gql) GQLRenderSubscription(mt int, message []byte, socketId string) {
 
 	}
 }
-func (o *gql) GQLRender(w http.ResponseWriter, r *http.Request) string {
+func (o *gql) GQLRender(w http.ResponseWriter, r *http.Request, sessionID string) string {
 	var request HttpRequest
 	json.NewDecoder(r.Body).Decode(&request)
-	response := o.response(request)
+	response := o.response(request, sessionID)
 	rx := response.Data
 
 	return rx

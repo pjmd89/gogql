@@ -7,3 +7,4 @@ subscriptions/
 generate/
 /resolvers/
 __debug_bin
+main.go

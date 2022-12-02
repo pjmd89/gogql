@@ -1,6 +1,8 @@
 package resolvers
 
 import (
+	"net/http"
+
 	"github.com/fatih/structs"
 	"github.com/pjmd89/gogql/lib/gql/definitionError"
 	"github.com/pjmd89/gqlparser/v2/ast"
@@ -17,6 +19,14 @@ type Directive interface {
 type DirectiveList map[string]interface{}
 
 type Definition *ast.Definition
+type RestInfo struct {
+	Path      string
+	PathSplit []string
+	GET       map[string][]string
+	POST      map[string][]string
+	headers   map[string]string
+	r         *http.Request
+}
 type Subscription struct {
 	socketId       string
 	resolverId     string
@@ -31,6 +41,8 @@ type ResolverInfo struct {
 	TypeName          string
 	ParentTypeName    *string
 	SubscriptionValue interface{}
+	SessionID         string
+	RestInfo          *RestInfo
 }
 type ObjectTypeInterface interface {
 	Resolver(ResolverInfo) (DataReturn, definitionError.GQLError)
