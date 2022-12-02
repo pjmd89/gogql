@@ -118,19 +118,25 @@ func (o *gql) parseInputObject(argInput *DefaultArguments) (r interface{}) {
 		if argInput.IsArray {
 			re := make([]interface{}, 0)
 			if argInput.Value != nil {
-				for _, v := range argInput.Value.([]interface{}) {
-					newArgs := make(map[string]*DefaultArguments, 0)
-					for k, v := range args {
-						var x *DefaultArguments = &DefaultArguments{}
-						*x = *v
-						newArgs[k] = x
-					}
-					for name, val := range v.(map[string]interface{}) {
-						if args[name] != nil {
-							newArgs[name].Value = val
+				switch argInput.Value.(type) {
+				case []any:
+					for _, v := range argInput.Value.([]interface{}) {
+						newArgs := make(map[string]*DefaultArguments, 0)
+						for k, v := range args {
+							var x *DefaultArguments = &DefaultArguments{}
+							*x = *v
+							newArgs[k] = x
 						}
+						for name, val := range v.(map[string]interface{}) {
+							if args[name] != nil {
+								newArgs[name].Value = val
+							}
+						}
+						re = append(re, o.validateArguments(newArgs))
 					}
-					re = append(re, o.validateArguments(newArgs))
+				default:
+					log.Printf("variable %s is not an array ", argInput.Name)
+					re = nil
 				}
 			}
 			r = re
