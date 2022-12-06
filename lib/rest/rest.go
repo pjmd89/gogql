@@ -35,6 +35,7 @@ func (o *rest) RestRender(w http.ResponseWriter, r *http.Request, sessionID stri
 						PathSplit: strings.Split(r.URL.Path, "/"),
 						GET:       r.URL.Query(),
 						POST:      post,
+						Writer:    w,
 					},
 				}
 				resolverInfo.RestInfo.SetHTTPRequest(r)
@@ -43,7 +44,9 @@ func (o *rest) RestRender(w http.ResponseWriter, r *http.Request, sessionID stri
 				for header, value := range resolverInfo.RestInfo.GetHeaders() {
 					w.Header().Set(header, value)
 				}
-				fmt.Fprint(w, response)
+				if response != nil {
+					fmt.Fprint(w, response)
+				}
 				break
 			}
 		}

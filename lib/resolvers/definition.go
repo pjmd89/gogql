@@ -26,6 +26,7 @@ type RestInfo struct {
 	POST      map[string][]string
 	headers   map[string]string
 	r         *http.Request
+	Writer    http.ResponseWriter
 }
 type Subscription struct {
 	socketId       string
