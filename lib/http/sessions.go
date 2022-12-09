@@ -3,6 +3,7 @@ package http
 import (
 	"crypto/rand"
 	"encoding/base64"
+	"fmt"
 	"io"
 	"net/http"
 	"net/url"
@@ -43,16 +44,21 @@ func (o *SessionManager) Init(sessionName string, sessionLifetime int, w http.Re
 
 	return
 }
-func (o *SessionManager) Get() (r interface{}) {
+func (o *SessionManager) Get() (r interface{}, err error) {
 	goID := systemutils.GetRoutineID()
 	if sessionIndex != nil && o.sessions[sessionIndex[goID]] != nil {
 		r = o.sessions[sessionIndex[goID]]
+	} else {
+		err = fmt.Errorf("session is no seted.")
 	}
+
 	return
 }
-func (o *SessionManager) GetByID(sessionID string) (r interface{}) {
+func (o *SessionManager) GetByID(sessionID string) (r interface{}, err error) {
 	if sessionIndex != nil && o.sessions[sessionID] != nil {
 		r = o.sessions[sessionID]
+	} else {
+		err = fmt.Errorf("session is no seted.")
 	}
 	return
 }
