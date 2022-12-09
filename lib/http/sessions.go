@@ -70,6 +70,7 @@ func (o *SessionManager) Set(sessionData interface{}) {
 			o.sessions[sessionIndex[goID]] = sessionData
 		} else {
 			sessionIndex[goID] = fmt.Sprintf("%s", xid.New())
+			fmt.Println(goID, sessionIndex[goID], sessionData)
 			o.sessions[sessionIndex[goID]] = sessionData
 		}
 	}
