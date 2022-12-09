@@ -65,12 +65,14 @@ func (o *SessionManager) GetByID(sessionID string) (r interface{}, err error) {
 }
 func (o *SessionManager) Set(sessionData interface{}) {
 	goID := systemutils.GetRoutineID()
+	if o.sessions == nil {
+		o.sessions = map[string]any{}
+	}
 	if sessionIndex != nil {
 		if _, ok := sessionIndex[goID]; ok {
 			o.sessions[sessionIndex[goID]] = sessionData
 		} else {
 			sessionIndex[goID] = fmt.Sprintf("%s", xid.New())
-			fmt.Println(goID, sessionIndex[goID], sessionData)
 			o.sessions[sessionIndex[goID]] = sessionData
 		}
 	}
