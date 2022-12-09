@@ -9,6 +9,7 @@ import (
 	"net/url"
 
 	"github.com/pjmd89/goutils/systemutils"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 func (o *SessionManager) Init(sessionName string, sessionLifetime int, w http.ResponseWriter, r *http.Request, sessionData interface{}) (id string, err error) {
@@ -65,7 +66,13 @@ func (o *SessionManager) GetByID(sessionID string) (r interface{}, err error) {
 func (o *SessionManager) Set(sessionData interface{}) {
 	goID := systemutils.GetRoutineID()
 	if sessionIndex != nil {
-		o.sessions[sessionIndex[goID]] = sessionData
+		if _, ok := sessionIndex[goID]; ok {
+			o.sessions[sessionIndex[goID]] = sessionData
+		} else {
+			sessionIndex[goID] = primitive.NewObjectID().Hex()
+			o.sessions[sessionIndex[goID]] = sessionData
+		}
+
 	}
 }
 func (o *SessionManager) Destroy() {
