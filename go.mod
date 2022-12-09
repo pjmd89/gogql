@@ -11,6 +11,7 @@ require (
 	github.com/jinzhu/copier v0.3.5
 	github.com/pjmd89/goutils v0.0.0-20221104092756-9a457e4a9262
 	github.com/pjmd89/gqlparser/v2 v2.2.1-0.20220330002356-e1babba1695a
+	github.com/rs/xid v1.4.0
 	go.mongodb.org/mongo-driver v1.10.2
 	golang.org/x/exp v0.0.0-20220722155223-a9213eeb770e
 )
