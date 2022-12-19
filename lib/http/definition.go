@@ -67,8 +67,8 @@ type Http struct {
 	httpService  mux.Router
 	httpsService mux.Router
 	router       *mux.Router
-	gql          map[string]Gql
-	rest         map[string]Rest
+	gql          Gql
+	rest         Rest
 	CheckOrigin  func(url URL) (bool, interface{})
 	OnBegin      func(url URL, httpPath *Path, originData interface{}) bool
 	OnFinish     func()

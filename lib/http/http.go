@@ -45,20 +45,24 @@ func Init(sytemlogs systemutils.Logs, configFile string) *Http {
 	}
 	return o
 }
-func (o *Http) SetRest(rest ...Rest) *Http {
-	mapRest := make(map[string]Rest)
-	for _, v := range rest {
-		mapRest[v.GetServerName()] = v
-	}
-	o.rest = mapRest
+func (o *Http) SetRest(rest Rest) *Http {
+	/*
+		mapRest := make(map[string]Rest)
+		for _, v := range rest {
+			mapRest[v.GetServerName()] = v
+		}
+	*/
+	o.rest = rest
 	return o
 }
-func (o *Http) SetGql(gql ...Gql) *Http {
-	mapGql := make(map[string]Gql)
-	for _, v := range gql {
-		mapGql[v.GetServerName()] = v
-	}
-	o.gql = mapGql
+func (o *Http) SetGql(gql Gql) *Http {
+	/*
+		mapGql := make(map[string]Gql)
+		for _, v := range gql {
+			mapGql[v.GetServerName()] = v
+		}
+	*/
+	o.gql = gql
 	return o
 }
 func (o *Http) Start() {
@@ -256,22 +260,29 @@ func (o *Http) fileServeHTTP(w http.ResponseWriter, r *http.Request, httpPath *P
 func (o *Http) gqlServeHTTP(w http.ResponseWriter, r *http.Request, httpPath *Path, sessionID string) {
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	//por favor, revisa que o.serverName exista, si no existe entonces devuelvele un dedito
-	if o.gql[httpPath.host] != nil {
-		rx := o.gql[httpPath.host].GQLRender(w, r, sessionID)
-		fmt.Fprint(w, rx)
-	} else {
-		logs.System.Fatal().Printf("%s domain do not exists.", httpPath.host)
-	}
+	/*
+		if o.gql[httpPath.host] != nil {
+			rx := o.gql[httpPath.host].GQLRender(w, r, sessionID)
+			fmt.Fprint(w, rx)
+		} else {
+			logs.System.Fatal().Printf("%s domain do not exists.", httpPath.host)
+		}
+	*/
 
+	rx := o.gql.GQLRender(w, r, sessionID)
+	fmt.Fprint(w, rx)
 }
 func (o *Http) restServeHTTP(w http.ResponseWriter, r *http.Request, httpPath *Path, sessionID string) {
 	//w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	//por favor, revisa que o.serverName exista, si no existe entonces devuelvele un dedito
-	if o.rest[httpPath.host] != nil {
-		o.rest[httpPath.host].RestRender(w, r, sessionID)
-	} else {
-		logs.System.Fatal().Printf("%s domain do not exists.", httpPath.host)
-	}
+	/*
+		if o.rest[httpPath.host] != nil {
+			o.rest[httpPath.host].RestRender(w, r, sessionID)
+		} else {
+			logs.System.Fatal().Printf("%s domain do not exists.", httpPath.host)
+		}
+	*/
+	o.rest.RestRender(w, r, sessionID)
 }
 func (o *Http) websocketServeHTTP(w http.ResponseWriter, r *http.Request, httpPath *Path, sessionID string) {
 	headers := http.Header{}
@@ -335,7 +346,8 @@ func (o *Http) listenHttps(channel chan bool, handler *http.Server) {
 }
 func (o *Http) WebSocketMessage(mt int, message []byte, id string, httpPath *Path, sessionID string) {
 
-	o.gql[httpPath.host].GQLRenderSubscription(mt, message, id, sessionID)
+	//o.gql[httpPath.host].GQLRenderSubscription(mt, message, id, sessionID)
+	o.gql.GQLRenderSubscription(mt, message, id, sessionID)
 }
 func (o *Http) setSessionIndex(sessionID string) {
 	routineID := systemutils.GetRoutineID()
