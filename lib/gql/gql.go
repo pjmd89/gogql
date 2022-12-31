@@ -3,11 +3,13 @@ package gql
 import (
 	"embed"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
 
 	"github.com/pjmd89/gogql/lib"
+	"github.com/pjmd89/gogql/lib/gql/definitionError"
 	gqlHttp "github.com/pjmd89/gogql/lib/http"
 	"github.com/pjmd89/gogql/lib/resolvers"
 	"github.com/pjmd89/gogql/lib/resolvers/directives"
@@ -68,7 +70,11 @@ func Init(serverName string, embedFS embed.FS, folder string) *gql {
 	gql.scalars["String"] = scalars.NewStringScalar()
 	gql.scalars["Int"] = scalars.NewIntScalar()
 	gql.scalars["Float"] = scalars.NewFloatScalar()
+	gql.OnAuthenticate = OnAuthenticate
 	return gql
+}
+func OnAuthenticate(namedTyped, resolver string) (err definitionError.GQLError) {
+	return
 }
 func (o *gql) GetScalars() Scalars {
 	return o.scalars
@@ -173,13 +179,16 @@ func (o *gql) GQLRenderSubscription(mt int, message []byte, socketId, sessionID 
 
 	}
 }
-func (o *gql) GQLRender(w http.ResponseWriter, r *http.Request, sessionID string) string {
+func (o *gql) GQLRender(w http.ResponseWriter, r *http.Request, sessionID string) {
 	var request HttpRequest
 	json.NewDecoder(r.Body).Decode(&request)
 	response := o.response(request, sessionID)
-	rx := response.Data
-
-	return rx
+	str := "{\"data\":" + response.Data
+	if response.Errors != "" {
+		str = str + ",\"errors\":" + response.Errors
+	}
+	str = str + "}"
+	fmt.Fprint(w, str)
 }
 func (o *gql) WriteWebsocketMessage(mt int, socketId string, requestID RequestID, response *HttpResponse) {
 	r := `{"id":"` + string(requestID) + `","type":"next","payload":` + response.Data + `}`

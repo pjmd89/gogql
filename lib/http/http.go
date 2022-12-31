@@ -259,29 +259,9 @@ func (o *Http) fileServeHTTP(w http.ResponseWriter, r *http.Request, httpPath *P
 }
 func (o *Http) gqlServeHTTP(w http.ResponseWriter, r *http.Request, httpPath *Path, sessionID string) {
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-	//por favor, revisa que o.serverName exista, si no existe entonces devuelvele un dedito
-	/*
-		if o.gql[httpPath.host] != nil {
-			rx := o.gql[httpPath.host].GQLRender(w, r, sessionID)
-			fmt.Fprint(w, rx)
-		} else {
-			logs.System.Fatal().Printf("%s domain do not exists.", httpPath.host)
-		}
-	*/
-
-	rx := o.gql.GQLRender(w, r, sessionID)
-	fmt.Fprint(w, rx)
+	o.gql.GQLRender(w, r, sessionID)
 }
 func (o *Http) restServeHTTP(w http.ResponseWriter, r *http.Request, httpPath *Path, sessionID string) {
-	//w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-	//por favor, revisa que o.serverName exista, si no existe entonces devuelvele un dedito
-	/*
-		if o.rest[httpPath.host] != nil {
-			o.rest[httpPath.host].RestRender(w, r, sessionID)
-		} else {
-			logs.System.Fatal().Printf("%s domain do not exists.", httpPath.host)
-		}
-	*/
 	o.rest.RestRender(w, r, sessionID)
 }
 func (o *Http) websocketServeHTTP(w http.ResponseWriter, r *http.Request, httpPath *Path, sessionID string) {

@@ -33,6 +33,7 @@ type gql struct {
 	objectTypes      ObjectTypes
 	directives       Directives
 	scalars          Scalars
+	OnAuthenticate   func(namedTyped, resolver string) definitionError.GQLError
 	OnScalarArgument func(scalarType string, value interface{}) (r interface{})
 }
 type HttpRequest struct {
@@ -47,8 +48,8 @@ type WebSocketRequest struct {
 }
 
 type HttpResponse struct {
-	Data   string                     `json:"data,omitempty"`
-	Errors []definitionError.GQLError `json:"errors,omitempty"`
+	Data   string `json:"data,omitempty"`
+	Errors string `json:"errors,omitempty"`
 }
 
 type DefaultArguments struct {

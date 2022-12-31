@@ -1,11 +1,13 @@
 package gql
 
 import (
+	"encoding/json"
 	"fmt"
 	"reflect"
 	"strings"
 
 	"github.com/google/uuid"
+	"github.com/pjmd89/gogql/lib/gql/definitionError"
 	"github.com/pjmd89/gogql/lib/resolvers"
 	"github.com/pjmd89/gqlparser/v2"
 	"github.com/pjmd89/gqlparser/v2/ast"
@@ -31,8 +33,8 @@ func (o *gql) response(request HttpRequest, sessionID string) (response HttpResp
 				}
 			}
 		}
-		rx := o.operationParse(parse, request.Variables, sessionID)
-		response.Data = fmt.Sprintf("%v", rx["data"])
+		response = o.operationParse(parse, request.Variables, sessionID)
+		//response.Data = fmt.Sprintf("%v", rx["data"])
 	}
 	return response
 }
@@ -77,7 +79,8 @@ func (o *gql) websocketOperationParse(operation *ast.OperationDefinition, variab
 			isSubscriptionResponse := false
 			switch operation.Operation {
 			case ast.Subscription:
-				data["data"], isSubscriptionResponse = o.selectionSetParse(string(operation.Operation), operation.SelectionSet, dataReturn, dataReturn, nil, 0, listen, vars, sessionID)
+				errList := make(definitionError.ErrorList, 0)
+				data["data"], isSubscriptionResponse = o.selectionSetParse(string(operation.Operation), operation.SelectionSet, dataReturn, dataReturn, nil, 0, listen, vars, sessionID, &errList)
 			}
 			if isSubscriptionResponse {
 				response.Data = fmt.Sprintf("%v", o.jsonResponse(data))
@@ -86,19 +89,24 @@ func (o *gql) websocketOperationParse(operation *ast.OperationDefinition, variab
 		}
 	}
 }
-func (o *gql) operationParse(parse ast.OperationList, variables map[string]interface{}, sessionID string) map[string]interface{} {
-	prepareToSend := make(map[string]interface{}, 0)
+func (o *gql) operationParse(parse ast.OperationList, variables map[string]interface{}, sessionID string) HttpResponse {
+	response := HttpResponse{}
+	errList := make(definitionError.ErrorList, 0)
 	for _, operation := range parse {
 		vars := o.setVariables(o.schema, operation, variables)
 		var dataReturn resolvers.DataReturn
-		data := make(map[string]interface{}, 0)
+		var data Response
 		switch operation.Operation {
 		case ast.Query, ast.Mutation:
-			data["data"], _ = o.selectionSetParse(string(operation.Operation), operation.SelectionSet, dataReturn, dataReturn, nil, 0, nil, vars, sessionID)
+			data, _ = o.selectionSetParse(string(operation.Operation), operation.SelectionSet, dataReturn, dataReturn, nil, 0, nil, vars, sessionID, &errList)
 		}
-		prepareToSend["data"] = o.jsonResponse(data)
+		response.Data = fmt.Sprintf("%v", o.jsonResponse(data))
 	}
-	return prepareToSend
+	if len(errList) > 0 {
+		errString, _ := json.Marshal(errList.GetErrors())
+		response.Errors = string(errString)
+	}
+	return response
 }
 func (o *gql) setVariables(schema *ast.Schema, operation *ast.OperationDefinition, variables map[string]interface{}) (r map[string]any) {
 	//las operaciones tambien pueden tener directivas
@@ -110,7 +118,7 @@ func (o *gql) setVariables(schema *ast.Schema, operation *ast.OperationDefinitio
 	return vars
 }
 
-func (o *gql) selectionSetParse(operation string, parse ast.SelectionSet, parent interface{}, parentProceced interface{}, typeName *string, start int, subscriptionValue interface{}, vars map[string]any, sessionID string) (Response, bool) {
+func (o *gql) selectionSetParse(operation string, parse ast.SelectionSet, parent interface{}, parentProceced interface{}, typeName *string, start int, subscriptionValue interface{}, vars map[string]any, sessionID string, errList *definitionError.ErrorList) (Response, bool) {
 
 	//var prepareToSend Response
 	isSubscriptionResponse := false
@@ -118,37 +126,42 @@ func (o *gql) selectionSetParse(operation string, parse ast.SelectionSet, parent
 	send := make(map[string]interface{}, 0)
 	//ejecucion de las queries internas
 	for _, selection := range parse {
+		var stop bool
 		rField := reflect.ValueOf(selection)
 		switch rField.Type() {
 		case reflect.TypeOf(&ast.Field{}):
 			field := selection.(*ast.Field)
-			prepareToSend, isSubscriptionResponse = o.selectionParse(operation, field, parent, parentProceced, typeName, start, subscriptionValue, vars, sessionID)
+			prepareToSend, isSubscriptionResponse, stop = o.selectionParse(operation, field, parent, parentProceced, typeName, start, subscriptionValue, vars, sessionID, errList)
 		case reflect.TypeOf(&ast.FragmentSpread{}):
 			fragment := selection.(*ast.FragmentSpread)
 			fragmentDef := fragment.Definition
 			for _, fragmentSelection := range fragmentDef.SelectionSet {
 				field := fragmentSelection.(*ast.Field)
-				prepareToSend, isSubscriptionResponse = o.selectionParse(operation, field, parent, parentProceced, typeName, start, subscriptionValue, vars, sessionID)
+				prepareToSend, isSubscriptionResponse, stop = o.selectionParse(operation, field, parent, parentProceced, typeName, start, subscriptionValue, vars, sessionID, errList)
 			}
 		case reflect.TypeOf(&ast.InlineFragment{}):
 			fragment := selection.(*ast.InlineFragment)
 			for _, fragmentSelection := range fragment.SelectionSet {
 				field := fragmentSelection.(*ast.Field)
-				prepareToSend, isSubscriptionResponse = o.selectionParse(operation, field, parent, parentProceced, typeName, start, subscriptionValue, vars, sessionID)
+				prepareToSend, isSubscriptionResponse, stop = o.selectionParse(operation, field, parent, parentProceced, typeName, start, subscriptionValue, vars, sessionID, errList)
 			}
 		}
 		if start == 0 {
 			maps.Copy(send, prepareToSend)
 			prepareToSend = send
 		}
+		if stop {
+			break
+		}
 	}
 	return prepareToSend, isSubscriptionResponse
 }
-func (o *gql) selectionParse(operation string, field *ast.Field, parent interface{}, parentProceced interface{}, typeName *string, start int, subscriptionValue interface{}, vars map[string]any, sessionID string) (map[string]interface{}, bool) {
+func (o *gql) selectionParse(operation string, field *ast.Field, parent interface{}, parentProceced interface{}, typeName *string, start int, subscriptionValue interface{}, vars map[string]any, sessionID string, errList *definitionError.ErrorList) (map[string]interface{}, bool, bool) {
 	fieldElem := field.Definition.Type.Elem
 	isSubscriptionResponse := false
 	prepareToSend := make(map[string]interface{}, 0)
 	var resolved resolvers.DataReturn
+	var err definitionError.GQLError
 	var resolvedProcesed resolvers.DataReturn
 	if field.SelectionSet != nil {
 		namedType := field.Definition.Type.NamedType
@@ -159,7 +172,8 @@ func (o *gql) selectionParse(operation string, field *ast.Field, parent interfac
 		if typeCondition {
 			//namedType = typeCondition
 		}
-		if o.objectTypes[namedType] != nil {
+		authenticatedError := o.OnAuthenticate(namedType, field.Name)
+		if o.objectTypes[namedType] != nil && authenticatedError == nil {
 			args := o.parseArguments(field.Arguments, field.Definition.Arguments, vars)
 			directives := o.parseDirectives(field.Directives, namedType, field.Name, vars)
 			resolverInfo := resolvers.ResolverInfo{
@@ -175,17 +189,40 @@ func (o *gql) selectionParse(operation string, field *ast.Field, parent interfac
 			}
 			if operation == "subscription" && start == 0 {
 				if ok := o.objectTypes[namedType].Subscribe(resolverInfo); ok {
-					resolved, _ = o.objectTypes[namedType].Resolver(resolverInfo)
+					resolved, err = o.objectTypes[namedType].Resolver(resolverInfo)
 					typeName = &namedType
 					resolvedProcesed = o.dataResponse(fieldNames, resolved, namedType)
+					if err != nil {
+						*errList = append(*errList, err)
+					}
 					isSubscriptionResponse = true
+					switch err.(type) {
+					case *definitionError.Fatal:
+						return nil, isSubscriptionResponse, true
+					}
 				}
 			} else {
-				resolved, _ = o.objectTypes[namedType].Resolver(resolverInfo)
+				resolved, err = o.objectTypes[namedType].Resolver(resolverInfo)
+				if err != nil {
+					*errList = append(*errList, err)
+				}
+				switch err.(type) {
+				case *definitionError.Fatal:
+					return nil, isSubscriptionResponse, true
+				}
 				typeName = &namedType
 				resolvedProcesed = o.dataResponse(fieldNames, resolved, namedType)
 			}
 		}
+		if authenticatedError != nil {
+			resolvedProcesed = o.dataResponse(fieldNames, nil, namedType)
+			*errList = append(*errList, authenticatedError)
+			switch authenticatedError.(type) {
+			case *definitionError.Fatal:
+				return nil, isSubscriptionResponse, true
+			}
+		}
+
 		rType := reflect.TypeOf(resolved)
 		if rType != nil {
 			rKind := rType.Kind()
@@ -194,7 +231,7 @@ func (o *gql) selectionParse(operation string, field *ast.Field, parent interfac
 				var data []interface{}
 				rValue := reflect.ValueOf(resolved)
 				for i := 0; i < rValue.Len(); i++ {
-					responsed, _ := o.selectionSetParse(operation, field.SelectionSet, rValue.Index(i).Interface(), resolvedProcesed.([]interface{})[i], typeName, 1, subscriptionValue, vars, sessionID)
+					responsed, _ := o.selectionSetParse(operation, field.SelectionSet, rValue.Index(i).Interface(), resolvedProcesed.([]interface{})[i], typeName, 1, subscriptionValue, vars, sessionID, errList)
 					data = append(data, responsed)
 				}
 				if parentProceced != nil {
@@ -202,7 +239,7 @@ func (o *gql) selectionParse(operation string, field *ast.Field, parent interfac
 				}
 				prepareToSend[field.Alias] = data
 			case reflect.Struct, reflect.Ptr:
-				responsed, _ := o.selectionSetParse(operation, field.SelectionSet, resolved, resolvedProcesed, typeName, 1, subscriptionValue, vars, sessionID)
+				responsed, _ := o.selectionSetParse(operation, field.SelectionSet, resolved, resolvedProcesed, typeName, 1, subscriptionValue, vars, sessionID, errList)
 				if parentProceced != nil {
 					prepareToSend = parentProceced.(map[string]interface{})
 				}
@@ -220,7 +257,7 @@ func (o *gql) selectionParse(operation string, field *ast.Field, parent interfac
 		prepareToSend = parentProceced.(map[string]interface{})
 
 	}
-	return prepareToSend, isSubscriptionResponse
+	return prepareToSend, isSubscriptionResponse, false
 }
 func (o *gql) parseDirectives(directives ast.DirectiveList, typeName string, fieldName string, vars map[string]any) (r resolvers.DirectiveList) {
 	r = make(map[string]interface{}, 0)

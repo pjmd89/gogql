@@ -9,7 +9,7 @@ import (
 
 type Gql interface {
 	GetServerName() string
-	GQLRender(w http.ResponseWriter, r *http.Request, sessionID string) string
+	GQLRender(w http.ResponseWriter, r *http.Request, sessionID string)
 	GQLRenderSubscription(mt int, message []byte, socketId string, sessionID string)
 }
 type Rest interface {

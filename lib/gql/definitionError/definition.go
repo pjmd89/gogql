@@ -14,11 +14,12 @@ type ErrorStruct struct {
 	Message    string             `json:"message"`
 	Locations  []GQLErrorLocation `json:"locations,omitempty"`
 	Path       []interface{}      `json:"path,omitempty"`
+	Code       string             `json:"code,omitempty"`
 	Extensions ExtensionError     `json:"extensions,omitempty"`
 }
 
 type GQLError interface {
-	GetError() ErrorStruct
+	Error() ErrorStruct
 }
 type ErrorList []GQLError
 type Fatal struct {
