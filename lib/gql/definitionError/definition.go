@@ -1,5 +1,17 @@
 package definitionError
 
+type errorLevel int
+
+const (
+	LEVEL_WARNING errorLevel = iota
+	LEVEL_FATAL
+)
+
+type ErrorDescriptor struct {
+	Message string
+	Code    string
+	Level   errorLevel
+}
 type ErrorLocation struct {
 	line   int
 	column int
@@ -12,9 +24,9 @@ type GQLErrorLocation struct {
 }
 type ErrorStruct struct {
 	Message    string             `json:"message"`
+	Code       string             `json:"code,omitempty"`
 	Locations  []GQLErrorLocation `json:"locations,omitempty"`
 	Path       []interface{}      `json:"path,omitempty"`
-	Code       string             `json:"code,omitempty"`
 	Extensions ExtensionError     `json:"extensions,omitempty"`
 }
 
@@ -22,11 +34,11 @@ type GQLError interface {
 	Error() ErrorStruct
 }
 type ErrorList []GQLError
-type Fatal struct {
+type Warning struct {
 	GQLError
 	ErrorStruct
 }
-type Warning struct {
+type Fatal struct {
 	GQLError
 	ErrorStruct
 }
