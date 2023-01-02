@@ -23,13 +23,13 @@ func NewError(err ErrorDescriptor, extensions ExtensionError) (r GQLError) {
 }
 func NewWarning(message string, extensions ExtensionError) *Warning {
 	r := &Warning{
-		ErrorStruct: ErrorStruct{Message: message, Extensions: extensions},
+		ErrorStruct: ErrorStruct{Message: message, Extensions: extensions, Code: "000"},
 	}
 	return r
 }
 func NewFatal(message string, extensions ExtensionError) *Fatal {
 	r := &Fatal{
-		ErrorStruct: ErrorStruct{Message: message, Extensions: extensions},
+		ErrorStruct: ErrorStruct{Message: message, Extensions: extensions, Code: "000"},
 	}
 	return r
 }
