@@ -73,7 +73,7 @@ func Init(serverName string, embedFS embed.FS, folder string) *gql {
 	gql.OnAuthenticate = OnAuthenticate
 	return gql
 }
-func OnAuthenticate(operation, resolver string) (err definitionError.GQLError) {
+func OnAuthenticate(operation, namedType, resolver string) (err definitionError.GQLError) {
 	return
 }
 func (o *gql) GetScalars() Scalars {

@@ -33,7 +33,7 @@ type gql struct {
 	objectTypes      ObjectTypes
 	directives       Directives
 	scalars          Scalars
-	OnAuthenticate   func(operation, resolver string) definitionError.GQLError
+	OnAuthenticate   func(operation, namedType, resolver string) definitionError.GQLError
 	OnScalarArgument func(scalarType string, value interface{}) (r interface{})
 }
 type HttpRequest struct {

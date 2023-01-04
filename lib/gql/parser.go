@@ -172,7 +172,7 @@ func (o *gql) selectionParse(operation string, field *ast.Field, parent interfac
 		if typeCondition {
 			//namedType = typeCondition
 		}
-		authenticatedError := o.OnAuthenticate(namedType, field.Name)
+		authenticatedError := o.OnAuthenticate(operation, namedType, field.Name)
 		if o.objectTypes[namedType] != nil && authenticatedError == nil {
 			args := o.parseArguments(field.Arguments, field.Definition.Arguments, vars)
 			directives := o.parseDirectives(field.Directives, namedType, field.Name, vars)
