@@ -13,9 +13,23 @@ import (
 	"github.com/pjmd89/gqlparser/v2/ast"
 	"github.com/pjmd89/gqlparser/v2/validator"
 	maps "golang.org/x/exp/maps"
+	"golang.org/x/exp/slices"
 )
 
 type Response interface{}
+
+var introspectionType = []string{
+	"__Schema",
+	"__Type",
+	"__Field",
+	"__EnumValue",
+	"__InputValue",
+	"__Directive",
+}
+var introspectionResolver = []string{
+	"__schema",
+	"__type",
+}
 
 func (o *gql) response(request HttpRequest, sessionID string) (response HttpResponse) {
 	document, err := gqlparser.LoadQuery(o.schema, request.Query)
@@ -172,7 +186,14 @@ func (o *gql) selectionParse(operation string, field *ast.Field, parent interfac
 		if typeCondition {
 			//namedType = typeCondition
 		}
-		authenticatedError := o.OnAuthenticate(operation, namedType, field.Name)
+		var authenticatedError definitionError.GQLError
+		if !slices.Contains(introspectionType, namedType) {
+			authenticatedError = o.OnAuthenticate(operation, namedType, field.Name)
+		}
+		if authenticatedError == nil && slices.Contains(introspectionType, namedType) && slices.Contains(introspectionResolver, field.Name) {
+			authenticatedError = o.OnIntrospection()
+		}
+
 		if o.objectTypes[namedType] != nil && authenticatedError == nil {
 			args := o.parseArguments(field.Arguments, field.Definition.Arguments, vars)
 			directives := o.parseDirectives(field.Directives, namedType, field.Name, vars)

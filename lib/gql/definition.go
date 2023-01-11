@@ -33,6 +33,7 @@ type gql struct {
 	objectTypes      ObjectTypes
 	directives       Directives
 	scalars          Scalars
+	OnIntrospection  func() (err definitionError.GQLError)
 	OnAuthenticate   func(operation, namedType, resolver string) definitionError.GQLError
 	OnScalarArgument func(scalarType string, value interface{}) (r interface{})
 }

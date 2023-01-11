@@ -71,7 +71,11 @@ func Init(serverName string, embedFS embed.FS, folder string) *gql {
 	gql.scalars["Int"] = scalars.NewIntScalar()
 	gql.scalars["Float"] = scalars.NewFloatScalar()
 	gql.OnAuthenticate = OnAuthenticate
+	gql.OnIntrospection = OnIntrospection
 	return gql
+}
+func OnIntrospection() (err definitionError.GQLError) {
+	return
 }
 func OnAuthenticate(operation, namedType, resolver string) (err definitionError.GQLError) {
 	return
