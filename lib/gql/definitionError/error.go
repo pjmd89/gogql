@@ -1,6 +1,7 @@
 package definitionError
 
 func NewError(err ErrorDescriptor, extensions ExtensionError) (r GQLError) {
+	extensions = setExtension(extensions, err.Level, err.Code)
 	switch err.Level {
 	case LEVEL_FATAL:
 		r = &Fatal{
@@ -22,12 +23,14 @@ func NewError(err ErrorDescriptor, extensions ExtensionError) (r GQLError) {
 	return
 }
 func NewWarning(message string, extensions ExtensionError) *Warning {
+	extensions = setExtension(extensions, LEVEL_WARNING, "000")
 	r := &Warning{
 		ErrorStruct: ErrorStruct{Message: message, Extensions: extensions, Code: "000"},
 	}
 	return r
 }
 func NewFatal(message string, extensions ExtensionError) *Fatal {
+	extensions = setExtension(extensions, LEVEL_FATAL, "000")
 	r := &Fatal{
 		ErrorStruct: ErrorStruct{Message: message, Extensions: extensions, Code: "000"},
 	}
@@ -48,5 +51,15 @@ func (o ErrorList) GetErrors() (r []ErrorStruct) {
 			r = append(r, v.Error())
 		}
 	}
+	return
+}
+func setExtension(extensions ExtensionError, errLevel errorLevel, code string) (r ExtensionError) {
+	levelName := map[errorLevel]string{LEVEL_FATAL: "fatal", LEVEL_WARNING: "warning"}
+	if extensions == nil {
+		extensions = map[string]any{}
+	}
+	extensions["code"] = code
+	extensions["level"] = levelName[errLevel]
+	r = extensions
 	return
 }

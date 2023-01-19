@@ -23,8 +23,8 @@ type GQLErrorLocation struct {
 	Column int `json:"column"`
 }
 type ErrorStruct struct {
+	Code       string
 	Message    string             `json:"message"`
-	Code       string             `json:"code,omitempty"`
 	Locations  []GQLErrorLocation `json:"locations,omitempty"`
 	Path       []interface{}      `json:"path,omitempty"`
 	Extensions ExtensionError     `json:"extensions,omitempty"`
