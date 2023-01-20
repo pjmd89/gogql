@@ -17,6 +17,7 @@ type ResolverName string
 type TypeName string
 type Access []string
 type Grant map[TypeName]map[TypeName]map[ResolverName]Access
+
 type Subscription struct {
 	channel     chan bool
 	eventID     EventID
