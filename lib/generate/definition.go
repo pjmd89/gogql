@@ -3,10 +3,12 @@ package generate
 import (
 	_ "embed"
 	"strings"
+
+	"github.com/pjmd89/gqlparser/v2/ast"
 )
 
 type GqlGenerate struct {
-	SchemaPath     string
+	Schema         *ast.Schema
 	ModuleName     string
 	ModulePath     string
 	ModelPath      string

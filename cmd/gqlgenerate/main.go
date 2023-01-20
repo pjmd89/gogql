@@ -9,7 +9,6 @@ import (
 
 	"github.com/pjmd89/gogql/lib/generate"
 	"github.com/pjmd89/gogql/lib/generate/gqltypes"
-	"github.com/pjmd89/gogql/lib/gql"
 	"golang.org/x/exp/slices"
 	"golang.org/x/mod/modfile"
 )
@@ -52,7 +51,6 @@ func main() {
 	flag.StringVar(&objecttypePath, "objecttype-path", objecttypePath, "Ruta donde se guardaran los modelos generados")
 	flag.Parse()
 	render := generate.GqlGenerate{
-		SchemaPath:     schemaPath,
 		ModuleName:     moduleName,
 		ModulePath:     modulePath,
 		ModelPath:      modelPath,
@@ -76,21 +74,21 @@ func generateSchema(render generate.GqlGenerate) {
 		ScalarType: make([]generate.ScalarDef, 0),
 	}
 	types.MainPath = render.ModulePath + "/generate/main.go"
-	gql := gql.GenerateInit("", render.SchemaPath)
-	if gql.GetSchema().Query != nil {
-		generate.OmitObject = append(generate.OmitObject, gql.GetSchema().Query.Name)
+
+	if render.Schema.Query != nil {
+		generate.OmitObject = append(generate.OmitObject, render.Schema.Query.Name)
 	}
-	if gql.GetSchema().Mutation != nil {
-		generate.OmitObject = append(generate.OmitObject, gql.GetSchema().Mutation.Name)
+	if render.Schema.Mutation != nil {
+		generate.OmitObject = append(generate.OmitObject, render.Schema.Mutation.Name)
 	}
-	if gql.GetSchema().Subscription != nil {
-		generate.OmitObject = append(generate.OmitObject, gql.GetSchema().Subscription.Name)
+	if render.Schema.Subscription != nil {
+		generate.OmitObject = append(generate.OmitObject, render.Schema.Subscription.Name)
 	}
-	for k, v := range gql.GetSchema().Types {
+	for k, v := range render.Schema.Types {
 		if !slices.Contains(generate.OmitObject, k) {
 			switch v.Kind {
 			case "OBJECT":
-				types.ModelType = append(types.ModelType, gqltypes.NewModel(render, k, v, gql.GetSchema().Types))
+				types.ModelType = append(types.ModelType, gqltypes.NewModel(render, k, v, render.Schema.Types))
 				break
 			case "ENUM":
 				types.EnumType = append(types.EnumType, gqltypes.NewEnum(render, k, v))
@@ -110,7 +108,7 @@ func generateSchema(render generate.GqlGenerate) {
 		}
 	}
 	for _, v := range types.ModelType {
-		types.ObjectType = append(types.ObjectType, gqltypes.NewObjectType(render, v, gql.GetSchema()))
+		types.ObjectType = append(types.ObjectType, gqltypes.NewObjectType(render, v, render.Schema))
 	}
 	types.ScalarPath = render.ModuleName + "/" + render.ResolverPath + "/" + render.ScalarPath
 	gqltypes.ModelTmpl(types)
