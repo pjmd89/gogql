@@ -4,7 +4,7 @@ htdocs/
 vendor/
 /.vscode/
 subscriptions/
-generate/
+/generate/
 /resolvers/
 __debug_bin
 main.go
