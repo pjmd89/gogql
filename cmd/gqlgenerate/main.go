@@ -2,12 +2,16 @@ package main
 
 import (
 	"flag"
+	"fmt"
+	"io/ioutil"
 	"log"
+	"os"
 
 	"github.com/pjmd89/gogql/lib/generate"
 	"github.com/pjmd89/gogql/lib/generate/gqltypes"
 	"github.com/pjmd89/gogql/lib/gql"
 	"golang.org/x/exp/slices"
+	"golang.org/x/mod/modfile"
 )
 
 func main() {
@@ -22,6 +26,21 @@ func main() {
 		enumPath              = "enums"
 		objecttypePath        = "objectTypes"
 	)
+	//module-name
+	goModBytes, err := ioutil.ReadFile("go.mod")
+	if err != nil {
+		//exitf(func() {}, 1, "%+v\n", err)
+	}
+
+	modName := modfile.ModulePath(goModBytes)
+	fmt.Fprintf(os.Stdout, "modName=%+v\n", modName)
+
+	//module-path
+	path, err := os.Getwd()
+	if err != nil {
+		log.Println(err)
+	}
+	fmt.Println(path)
 	flag.StringVar(&schemaPath, "schema", "", "Ruta de la carpeta contenedora del esquema de GraphQL")
 	flag.StringVar(&modulePath, "module-path", "", "Ruta donde se guardaran los modelos generados")
 	flag.StringVar(&moduleName, "module-name", "", "Ruta donde se guardaran los modelos generados")
