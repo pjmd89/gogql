@@ -14,6 +14,7 @@ require (
 	github.com/rs/xid v1.4.0
 	go.mongodb.org/mongo-driver v1.10.2
 	golang.org/x/exp v0.0.0-20220722155223-a9213eeb770e
+	golang.org/x/mod v0.7.0
 )
 
 require (

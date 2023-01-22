@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/pjmd89/gqlparser/v2/ast"
+	"golang.org/x/mod/modfile"
 )
 
 var (
@@ -20,7 +21,8 @@ var (
 )
 
 func NewGqlGenerate(schema *ast.Schema) (r GqlGenerate) {
-	moduleName, err := ioutil.ReadFile("go.mod")
+	moduleByte, err := ioutil.ReadFile("go.mod")
+	moduleName := modfile.ModulePath(moduleByte)
 	if err != nil {
 		log.Fatalln(err.Error())
 	}
