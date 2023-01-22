@@ -8,12 +8,10 @@ import (
 )
 
 type Gql interface {
-	GetServerName() string
 	GQLRender(w http.ResponseWriter, r *http.Request, sessionID string)
 	GQLRenderSubscription(mt int, message []byte, socketId string, sessionID string)
 }
 type Rest interface {
-	GetServerName() string
 	RestRender(w http.ResponseWriter, r *http.Request, sessionID string)
 }
 type URL struct {

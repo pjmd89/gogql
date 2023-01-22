@@ -18,9 +18,8 @@ import (
 	"github.com/pjmd89/gqlparser/v2/ast"
 )
 
-func Init(serverName string, filesystem systemutils.FSInterface, folder string) *gql {
+func Init(filesystem systemutils.FSInterface, folder string) *gql {
 	gql := &gql{}
-	gql.serverName = serverName
 	gql.loadSchema(filesystem, folder)
 	gql.objectTypes = make(map[string]resolvers.ObjectTypeInterface)
 	gql.directives = make(map[string]resolvers.Directive)
@@ -144,7 +143,4 @@ func (o *gql) GQLRender(w http.ResponseWriter, r *http.Request, sessionID string
 func (o *gql) WriteWebsocketMessage(mt int, socketId string, requestID RequestID, response *HttpResponse) {
 	r := `{"id":"` + string(requestID) + `","type":"next","payload":` + response.Data + `}`
 	gqlHttp.WriteWebsocketMessage(mt, socketId, []byte(r))
-}
-func (o *gql) GetServerName() string {
-	return o.serverName
 }

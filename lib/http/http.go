@@ -46,22 +46,10 @@ func Init(sytemlogs systemutils.Logs, configFile string) *Http {
 	return o
 }
 func (o *Http) SetRest(rest Rest) *Http {
-	/*
-		mapRest := make(map[string]Rest)
-		for _, v := range rest {
-			mapRest[v.GetServerName()] = v
-		}
-	*/
 	o.rest = rest
 	return o
 }
 func (o *Http) SetGql(gql Gql) *Http {
-	/*
-		mapGql := make(map[string]Gql)
-		for _, v := range gql {
-			mapGql[v.GetServerName()] = v
-		}
-	*/
 	o.gql = gql
 	return o
 }

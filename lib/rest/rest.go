@@ -52,9 +52,6 @@ func (o *rest) RestRender(w http.ResponseWriter, r *http.Request, sessionID stri
 		}
 	}
 }
-func (o *rest) GetServerName() string {
-	return o.serverName
-}
 func (o *rest) ObjectType(url, alias string, object resolvers.ObjectTypeInterface) {
 	o.objectTypes[url] = ObjectType{Alias: alias, ObjectType: object}
 }
