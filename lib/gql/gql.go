@@ -1,55 +1,27 @@
 package gql
 
 import (
-	"embed"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"net/http"
 
-	"github.com/pjmd89/gogql/lib"
 	"github.com/pjmd89/gogql/lib/gql/definitionError"
 	gqlHttp "github.com/pjmd89/gogql/lib/http"
 	"github.com/pjmd89/gogql/lib/resolvers"
 	"github.com/pjmd89/gogql/lib/resolvers/directives"
 	"github.com/pjmd89/gogql/lib/resolvers/objectTypes"
 	"github.com/pjmd89/gogql/lib/resolvers/scalars"
+	"github.com/pjmd89/goutils/systemutils"
 
 	"github.com/pjmd89/gqlparser/v2"
 	"github.com/pjmd89/gqlparser/v2/ast"
 )
 
-func GenerateInit(serverName string, path string) *gql {
+func Init(serverName string, filesystem systemutils.FSInterface, folder string) *gql {
 	gql := &gql{}
 	gql.serverName = serverName
-	gql.generateLoadSchema(path)
-	gql.objectTypes = make(map[string]resolvers.ObjectTypeInterface)
-	gql.directives = make(map[string]resolvers.Directive)
-	gql.scalars = make(map[string]resolvers.Scalar)
-	gql.objectTypes["__Schema"] = objectTypes.NewSchema(gql.schema, gql.directives)
-	gql.objectTypes["__Type"] = objectTypes.NewType(gql.schema, gql.directives)
-	gql.objectTypes["__Field"] = objectTypes.NewField(gql.schema, gql.directives)
-	gql.objectTypes["__EnumValue"] = objectTypes.NewEnumValue(gql.schema, gql.directives)
-	gql.objectTypes["__InputValue"] = objectTypes.NewInputValue(gql.schema, gql.directives)
-	gql.objectTypes["__Directive"] = objectTypes.NewDirective(gql.schema)
-	/*
-			gql.directives["include"] = directives.NewInclude(gql.schema);
-			gql.directives["skip"] = directives.NewSkip(gql.schema);
-		   //
-	*/
-	gql.directives["deprecated"] = directives.NewDeprecated(gql.schema)
-	gql.scalars["ID"] = scalars.NewIDScalar()
-	gql.scalars["Boolean"] = scalars.NewBoolScalar()
-	gql.scalars["String"] = scalars.NewStringScalar()
-	gql.scalars["Int"] = scalars.NewIntScalar()
-	gql.scalars["Float"] = scalars.NewFloatScalar()
-	return gql
-}
-func Init(serverName string, embedFS embed.FS, folder string) *gql {
-	gql := &gql{}
-	gql.serverName = serverName
-	gql.loadSchema(embedFS, folder)
+	gql.loadSchema(filesystem, folder)
 	gql.objectTypes = make(map[string]resolvers.ObjectTypeInterface)
 	gql.directives = make(map[string]resolvers.Directive)
 	gql.scalars = make(map[string]resolvers.Scalar)
@@ -95,49 +67,24 @@ func (o *gql) Directive(resolver string, object resolvers.Directive) {
 func (o *gql) Scalar(resolver string, object resolvers.Scalar) {
 	o.scalars[resolver] = object
 }
-func (o *gql) scanSchema(embedFS embed.FS, folder string) (r []string) {
-	files, _ := embedFS.ReadDir(folder)
+func (o *gql) scanSchema(filesystem systemutils.FSInterface, folder string) (r []string) {
+	files, _ := filesystem.ReadDir(folder)
 	for _, file := range files {
 		if file.IsDir() {
-			r = append(r, o.scanSchema(embedFS, folder+"/"+file.Name())...)
+			r = append(r, o.scanSchema(filesystem, folder+"/"+file.Name())...)
 		} else {
 			r = append(r, folder+"/"+file.Name())
 		}
 	}
 	return
 }
-func (o *gql) generateLoadSchema(path string) {
-	var schema []*ast.Source
-	files := lib.ScanDir(path)
-	for _, file := range files {
-		content, err := ioutil.ReadFile(file)
-		if err != nil {
-			log.Fatal(err)
-		}
-		text := string(content)
-		schema = append(schema, &ast.Source{Name: file, Input: text, BuiltIn: true})
-	}
-	parser, err := gqlparser.LoadSchema(schema...)
-	if err != nil {
-		log.Fatal(err.Error())
-	}
-	if parser.Subscription != nil {
-		for _, subs := range parser.Subscription.Fields {
-			PubSub.createSubscriptionEvent(OperationID(subs.Name))
-		}
-	}
-	if err != nil {
-		log.Fatal(err)
-	}
-	o.schema = parser
-}
-func (o *gql) loadSchema(embedFS embed.FS, folder string) {
+func (o *gql) loadSchema(filesystem systemutils.FSInterface, folder string) {
 	var schema []*ast.Source
 
-	files := o.scanSchema(embedFS, folder)
+	files := o.scanSchema(filesystem, folder)
 
 	for _, file := range files {
-		content, err := embedFS.ReadFile(file)
+		content, err := filesystem.ReadFile(file)
 		if err != nil {
 			log.Fatal(err)
 		}
