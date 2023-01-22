@@ -1,0 +1,29 @@
+package lib
+
+import "github.com/pjmd89/gogql/lib/gql"
+
+var (
+	{{- range $key, $value := .TypeNames }}
+	TYPE_{{ $key }} gql.TypeName = "{{ $value }}"
+	{{- end }}
+)
+
+var (
+	{{- range $key, $value := .Resolvers }}
+	RESOLVER_{{ $key }} gql.ResolverName = "{{ $value }}"
+	{{- end }}
+)
+
+var Auth = gql.Grant{
+	{{- range $srcKey, $srcValue := .Grants }}
+	TYPE_{{ $srcKey}}: {
+		{{- range $dstKey, $dstValue := $srcValue }}
+		TYPE_{{ $dstKey }}: {
+			{{- range $resolverKey, $resolverValue := $dstValue }}
+			RESOLVER_{{ $resolverKey }}:  {{ StringsJoin $resolverValue }},
+			{{- end }}
+		},
+		{{- end }}
+	},
+	{{- end }}
+}

@@ -103,6 +103,8 @@ type ScalarDef struct {
 }
 
 var (
+	//go:embed templates/auth.tmpl
+	Authtmpl []byte
 	//go:embed templates/model.tmpl
 	Modeltmpl []byte
 	//go:embed templates/enum.tmpl
