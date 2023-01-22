@@ -8,15 +8,15 @@ import (
 	"golang.org/x/exp/slices"
 )
 
-func Generate(gqlGenerate generate.GqlGenerate) {
+func Generate(gqlGenerate generate.GqlGenerate, driverDB gqltypes.DriverDB) {
 
 	if gqlGenerate.ModulePath != "" && gqlGenerate.ModuleName != "" {
-		generateSchema(gqlGenerate)
+		generateSchema(gqlGenerate, driverDB)
 	} else {
 		log.Fatal("debes indicar el path del schema, la carpeta raiz del proyecto y el nombre del modulo")
 	}
 }
-func generateSchema(render generate.GqlGenerate) {
+func generateSchema(render generate.GqlGenerate, driverDB gqltypes.DriverDB) {
 	types := generate.RenderTypes{
 		ModelType:  make([]generate.ModelDef, 0),
 		ObjectType: make([]generate.ObjectTypeDef, 0),
@@ -38,7 +38,7 @@ func generateSchema(render generate.GqlGenerate) {
 		if !slices.Contains(generate.OmitObject, k) {
 			switch v.Kind {
 			case "OBJECT":
-				types.ModelType = append(types.ModelType, gqltypes.NewModel(render, k, v, render.Schema.Types))
+				types.ModelType = append(types.ModelType, gqltypes.NewModel(render, k, v, render.Schema.Types, driverDB))
 				break
 			case "ENUM":
 				types.EnumType = append(types.EnumType, gqltypes.NewEnum(render, k, v))

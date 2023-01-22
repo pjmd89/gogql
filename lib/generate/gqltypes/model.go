@@ -16,7 +16,7 @@ import (
 	"golang.org/x/exp/slices"
 )
 
-func NewModel(render generate.GqlGenerate, key string, value *ast.Definition, types map[string]*ast.Definition) generate.ModelDef {
+func NewModel(render generate.GqlGenerate, key string, value *ast.Definition, types map[string]*ast.Definition, driverDB DriverDB) generate.ModelDef {
 	typeRegex := regexp.MustCompile(`-type ([^\n]+)`)
 	gqlOmitRegex := regexp.MustCompile(`-gqlOmit[^\n]?`)
 	bsonOmitRegex := regexp.MustCompile(`-bsonOmit[^\n]?`)
@@ -83,7 +83,7 @@ func NewModel(render generate.GqlGenerate, key string, value *ast.Definition, ty
 		if slices.Contains(generate.IndexIDName, vValue.Name) && namedType == "ID" {
 			bsonTag = append(bsonTag, "omitempty")
 			gqlTag = append(gqlTag, "id=true")
-			attrStruct.Type = renderID(render.ScalarPath, "ID")
+			attrStruct.Type = renderID(render.ScalarPath, "ID", driverDB)
 			structDef.IsUseID = true
 		}
 
@@ -92,7 +92,7 @@ func NewModel(render generate.GqlGenerate, key string, value *ast.Definition, ty
 			if unionInstance != "" {
 				//namedTyped = unionInstance
 			}
-			attrStruct.Type = "[]" + renderID(render.ScalarPath, namedTyped)
+			attrStruct.Type = "[]" + renderID(render.ScalarPath, namedTyped, driverDB)
 			attrStruct.IsArray = true
 		}
 		if vValue.Type.Elem != nil && vValue.Type.Elem.NonNull == false {
@@ -100,7 +100,7 @@ func NewModel(render generate.GqlGenerate, key string, value *ast.Definition, ty
 			if unionInstance != "" {
 				//namedTyped = unionInstance
 			}
-			attrStruct.Type = "[]" + renderID(render.ScalarPath, namedTyped)
+			attrStruct.Type = "[]" + renderID(render.ScalarPath, namedTyped, driverDB)
 			attrStruct.IsArray = true
 		}
 		if vValue.Type.Elem != nil && vValue.Type.Elem.NonNull == true && vValue.Type.Elem.Elem != nil {
@@ -108,7 +108,7 @@ func NewModel(render generate.GqlGenerate, key string, value *ast.Definition, ty
 			if unionInstance != "" {
 				//namedTyped = unionInstance
 			}
-			attrStruct.Type = "[]" + renderID(render.ScalarPath, namedTyped)
+			attrStruct.Type = "[]" + renderID(render.ScalarPath, namedTyped, driverDB)
 			attrStruct.IsArray = true
 		}
 		typeRegexResult := typeRegex.FindStringSubmatch(vValue.Description)
@@ -125,9 +125,9 @@ func NewModel(render generate.GqlGenerate, key string, value *ast.Definition, ty
 				//namedTyped = unionInstance
 			}
 			if attrStruct.IsArray {
-				attrStruct.Type = "[]" + renderID(render.ScalarPath, namedTyped)
+				attrStruct.Type = "[]" + renderID(render.ScalarPath, namedTyped, driverDB)
 			} else {
-				attrStruct.Type = renderID(render.ScalarPath, namedTyped)
+				attrStruct.Type = renderID(render.ScalarPath, namedTyped, driverDB)
 			}
 		}
 		if isID {
@@ -189,11 +189,19 @@ func NewModel(render generate.GqlGenerate, key string, value *ast.Definition, ty
 	structDef.SubscriptionPath = objectTypeBase + "/subscriptions.go"
 	return structDef
 }
-func renderID(scalarPath string, attrName string) (r string) {
-	r = attrName
-	if attrName == "ID" {
-		r = scalarPath + "." + attrName
+func renderID(scalarPath string, attrName string, driverDB DriverDB) (r string) {
+
+	switch driverDB {
+	case DRIVERDB_NONE:
+		if attrName == "ID" {
+			r = scalarPath + "." + attrName
+		}
+	case DRIVERDB_MONGO:
+		r = "primitive.ObjectID"
+	default:
+		r = attrName
 	}
+
 	return
 }
 func ModelTmpl(types generate.RenderTypes) {
