@@ -53,6 +53,7 @@ type ModelDef struct {
 	PackageName      string
 	Attr             []AttrDef
 	DriverDB         string
+	IsDriverDB       bool
 	IsUseID          bool
 	IsUseUnion       bool
 	IsUseScalar      bool

@@ -83,7 +83,7 @@ func NewModel(render generate.GqlGenerate, key string, value *ast.Definition, ty
 		if slices.Contains(generate.IndexIDName, vValue.Name) && namedType == "ID" {
 			bsonTag = append(bsonTag, "omitempty")
 			gqlTag = append(gqlTag, "id=true")
-			attrStruct.Type, structDef.DriverDB = renderID(render.ScalarPath, "ID", driverDB)
+			attrStruct.Type, structDef.DriverDB, structDef.IsDriverDB = renderID(render.ScalarPath, "ID", driverDB)
 			structDef.IsUseID = true
 		}
 
@@ -92,7 +92,7 @@ func NewModel(render generate.GqlGenerate, key string, value *ast.Definition, ty
 			if unionInstance != "" {
 				//namedTyped = unionInstance
 			}
-			attrStruct.Type, structDef.DriverDB = renderID(render.ScalarPath, namedTyped, driverDB)
+			attrStruct.Type, structDef.DriverDB, structDef.IsDriverDB = renderID(render.ScalarPath, namedTyped, driverDB)
 			attrStruct.Type = "[]" + attrStruct.Type
 			attrStruct.IsArray = true
 		}
@@ -101,7 +101,7 @@ func NewModel(render generate.GqlGenerate, key string, value *ast.Definition, ty
 			if unionInstance != "" {
 				//namedTyped = unionInstance
 			}
-			attrStruct.Type, structDef.DriverDB = renderID(render.ScalarPath, namedTyped, driverDB)
+			attrStruct.Type, structDef.DriverDB, structDef.IsDriverDB = renderID(render.ScalarPath, namedTyped, driverDB)
 			attrStruct.Type = "[]" + attrStruct.Type
 			attrStruct.IsArray = true
 		}
@@ -110,7 +110,7 @@ func NewModel(render generate.GqlGenerate, key string, value *ast.Definition, ty
 			if unionInstance != "" {
 				//namedTyped = unionInstance
 			}
-			attrStruct.Type, structDef.DriverDB = renderID(render.ScalarPath, namedTyped, driverDB)
+			attrStruct.Type, structDef.DriverDB, structDef.IsDriverDB = renderID(render.ScalarPath, namedTyped, driverDB)
 			attrStruct.Type = "[]" + attrStruct.Type
 			attrStruct.IsArray = true
 		}
@@ -128,10 +128,10 @@ func NewModel(render generate.GqlGenerate, key string, value *ast.Definition, ty
 				//namedTyped = unionInstance
 			}
 			if attrStruct.IsArray {
-				attrStruct.Type, structDef.DriverDB = renderID(render.ScalarPath, namedTyped, driverDB)
+				attrStruct.Type, structDef.DriverDB, structDef.IsDriverDB = renderID(render.ScalarPath, namedTyped, driverDB)
 				attrStruct.Type = "[]" + attrStruct.Type
 			} else {
-				attrStruct.Type, structDef.DriverDB = renderID(render.ScalarPath, namedTyped, driverDB)
+				attrStruct.Type, structDef.DriverDB, structDef.IsDriverDB = renderID(render.ScalarPath, namedTyped, driverDB)
 			}
 		}
 		if isID {
@@ -193,7 +193,7 @@ func NewModel(render generate.GqlGenerate, key string, value *ast.Definition, ty
 	structDef.SubscriptionPath = objectTypeBase + "/subscriptions.go"
 	return structDef
 }
-func renderID(scalarPath string, attrName string, driverDB DriverDB) (r string, dp string) {
+func renderID(scalarPath string, attrName string, driverDB DriverDB) (r string, dp string, isDB bool) {
 
 	switch driverDB {
 	case DRIVERDB_NONE:
@@ -203,6 +203,7 @@ func renderID(scalarPath string, attrName string, driverDB DriverDB) (r string, 
 	case DRIVERDB_MONGO:
 		r = "primitive.ObjectID"
 		dp = "go.mongodb.org/mongo-driver/bson/primitive"
+		isDB = true
 	default:
 		r = attrName
 	}

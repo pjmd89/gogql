@@ -16,7 +16,9 @@ package {{.PackageName}}
 
 import (
 	"github.com/pjmd89/mongomodel/mongomodel"
+    {{- if .IsDriverDB }}
     "{{ .DriverDB }}"
+    {{- end}}
     {{- if .IsUseScalar }}
     "{{ .ScalarPath }}"
     {{- end}}
