@@ -16,7 +16,7 @@ package {{.PackageName}}
 
 import (
 	"github.com/pjmd89/mongomodel/mongomodel"
-    "go.mongodb.org/mongo-driver/bson/primitive"
+    "{{ .DriverDB }}"
     {{- if .IsUseScalar }}
     "{{ .ScalarPath }}"
     {{- end}}
