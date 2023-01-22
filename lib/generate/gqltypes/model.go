@@ -57,7 +57,8 @@ func NewModel(render generate.GqlGenerate, key string, value *ast.Definition, ty
 			case "UNION":
 				structDef.IsUseUnion = true
 				unionCount++
-				unionInstance = attrStruct.Type + strconv.Itoa(unionCount)
+				//unionInstance = attrStruct.Type + strconv.Itoa(unionCount)
+				unionInstance = attrStruct.Type
 				unionList = append(unionList, unionInstance+" "+attrStruct.Type)
 				attrStruct.Type = unionInstance
 				break
