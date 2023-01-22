@@ -13,7 +13,7 @@ package {{.PackageName}}
 
 import (
 	"github.com/pjmd89/gogql/lib/gql/definitionError"
-	"github.com/pjmd89/gogql/lib/gql/resolvers"
+	"github.com/pjmd89/gogql/lib/resolvers"
 )
 {{- range .QueryResolvers}}
 func (o *{{$.Name}}) {{.Resolver}}(info resolvers.ResolverInfo) (r resolvers.DataReturn, err definitionError.GQLError) {

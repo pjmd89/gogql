@@ -12,7 +12,7 @@
 package {{.PackageName}}
 
 import (
-	"github.com/pjmd89/gogql/lib/gql/resolvers"
+	"github.com/pjmd89/gogql/lib/resolvers"
 )
 {{- range .SubscriptionResolvers}}
 func (o *{{$.Name}}) {{.Resolver}}(info resolvers.ResolverInfo) (r bool) {
