@@ -1,4 +1,4 @@
-package authotization
+package authorization
 
 import (
 	"bytes"

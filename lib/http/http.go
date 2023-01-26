@@ -30,15 +30,15 @@ var logs systemutils.Logs
 
 func Init(sytemlogs systemutils.Logs, configFile string) *Http {
 	logs = sytemlogs
-	o := &Http{HttpPort: "8080", HttpsPort: "8443"}
+	o := &Http{HttpPort: "80", HttpsPort: "443"}
 
 	jsonutils.GetJson(configFile, &o)
 
 	if strings.Trim(o.HttpPort, " ") == "" {
-		o.HttpPort = "8080"
+		o.HttpPort = "80"
 	}
 	if strings.Trim(o.HttpsPort, " ") == "" {
-		o.HttpsPort = "8443"
+		o.HttpsPort = "443"
 	}
 	if strings.Trim(o.CookieName, " ") == "" {
 		o.CookieName = "GOGQL_SESSION"
