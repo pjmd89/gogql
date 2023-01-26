@@ -48,7 +48,7 @@ func Init(filesystem systemutils.FSInterface, folder string) *gql {
 func OnIntrospection() (err definitionError.GQLError) {
 	return
 }
-func OnAuthenticate(operation string, srcType, dstType TypeName, resolver string) (err definitionError.GQLError) {
+func OnAuthenticate(operation string, srcType, dstType TypeName, resolver ResolverName) (err definitionError.GQLError) {
 	return
 }
 func (o *gql) GetScalars() Scalars {

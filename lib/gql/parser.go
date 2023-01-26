@@ -188,7 +188,7 @@ func (o *gql) selectionParse(operation string, field *ast.Field, parent interfac
 		}
 		var authenticatedError definitionError.GQLError
 		if !slices.Contains(introspectionType, namedType) {
-			authenticatedError = o.OnAuthenticate(operation, TypeName(field.ObjectDefinition.Name), TypeName(namedType), field.Name)
+			authenticatedError = o.OnAuthenticate(operation, TypeName(field.ObjectDefinition.Name), TypeName(namedType), ResolverName(field.Name))
 		}
 		if authenticatedError == nil && slices.Contains(introspectionType, namedType) && slices.Contains(introspectionResolver, field.Name) {
 			authenticatedError = o.OnIntrospection()
