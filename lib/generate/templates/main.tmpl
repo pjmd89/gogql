@@ -18,6 +18,7 @@ import (
 	{{- if .IsScalar }}
 	"{{.ScalarPath}}"
 	{{- end }}
+	"embed"
 	"github.com/pjmd89/gogql/lib/gql"
 	"github.com/pjmd89/gogql/lib/http"
 	"github.com/pjmd89/mongomodel/mongomodel"
