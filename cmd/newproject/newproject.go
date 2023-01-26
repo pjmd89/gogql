@@ -25,9 +25,9 @@ func generateSchema(render generate.GqlGenerate, driverDB gqltypes.DriverDB) {
 		SchemaPath:    render.SchemaPath,
 		MainPath:      render.ModulePath + "/generate/main.go",
 		LibConfigPath: render.ModulePath + "/generate/lib/config.go",
-		ConfigDB:      render.ModelPath + "/generate/etc/db.json",
-		ConfigHTTP:    render.ModelPath + "/generate/etc/http.json",
-		ConfigJSON:    render.ModelPath + "/generate/etc/config.json",
+		ConfigDB:      render.ModulePath + "/generate/etc/db.json",
+		ConfigHTTP:    render.ModulePath + "/generate/etc/http.json",
+		ConfigJSON:    render.ModulePath + "/generate/etc/config.json",
 	}
 
 	if render.Schema.Query != nil {
