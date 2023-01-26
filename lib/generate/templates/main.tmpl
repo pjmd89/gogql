@@ -67,7 +67,19 @@ func httpOnFinish() {}
 func OnIntrospection() (err definitionError.GQLError) {
 	return
 }
-func OnAuthenticate(operation string, srcType, dstType gql.TypeName, resolver gql.ResolverName) (err definitionError.GQLError) {
+func OnAuthorizate(authInfo AuthorizateInfo) (err definitionError.GQLError) {
+	//El el rol puede venir de una variable de sesion
+	//La sesion debes definirla de manera que se adapte a tu necesidad
+	/*
+		if len(lib.Auth[authInfo.SrcType]) > 0 &&
+			len(lib.Auth[authInfo.SrcType][authInfo.DstType]) > 0 &&
+			len(lib.Auth[authInfo.SrcType][authInfo.DstType][authInfo.Resolver]) > 0 {
+
+			if !slices.Contains(lib.Auth[authInfo.SrcType][authInfo.DstType][authInfo.Resolver], "yourRol") {
+				err = definitionError.NewFatal("este rol no tiene permisos.", nil)
+			}
+		}
+	*/
 	return
 }
 func init(){

@@ -41,14 +41,14 @@ func Init(filesystem systemutils.FSInterface, folder string) *gql {
 	gql.scalars["String"] = scalars.NewStringScalar()
 	gql.scalars["Int"] = scalars.NewIntScalar()
 	gql.scalars["Float"] = scalars.NewFloatScalar()
-	gql.OnAuthenticate = OnAuthenticate
+	gql.OnAuthorizate = OnAuthorizate
 	gql.OnIntrospection = OnIntrospection
 	return gql
 }
 func OnIntrospection() (err definitionError.GQLError) {
 	return
 }
-func OnAuthenticate(operation string, srcType, dstType TypeName, resolver ResolverName) (err definitionError.GQLError) {
+func OnAuthorizate(authInfo AuthorizateInfo) (err definitionError.GQLError) {
 	return
 }
 func (o *gql) GetScalars() Scalars {

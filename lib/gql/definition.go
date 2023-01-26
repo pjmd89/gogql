@@ -18,6 +18,14 @@ type TypeName string
 type Access []string
 type Grant map[TypeName]map[TypeName]map[ResolverName]Access
 
+type AuthorizateInfo struct {
+	Operation string
+	SrcType   TypeName
+	DstType   TypeName
+	Resolver  ResolverName
+	SessionID string
+}
+
 type Subscription struct {
 	channel     chan bool
 	eventID     EventID
@@ -39,7 +47,7 @@ type gql struct {
 	directives       Directives
 	scalars          Scalars
 	OnIntrospection  func() (err definitionError.GQLError)
-	OnAuthenticate   func(operation string, srcType, dstType TypeName, resolver ResolverName) definitionError.GQLError
+	OnAuthorizate    func(authInfo AuthorizateInfo) definitionError.GQLError
 	OnScalarArgument func(scalarType string, value interface{}) (r interface{})
 }
 type HttpRequest struct {
