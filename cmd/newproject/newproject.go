@@ -18,13 +18,17 @@ func Generate(gqlGenerate generate.GqlGenerate, driverDB gqltypes.DriverDB) {
 }
 func generateSchema(render generate.GqlGenerate, driverDB gqltypes.DriverDB) {
 	types := generate.RenderTypes{
-		ModelType:  make([]generate.ModelDef, 0),
-		ObjectType: make([]generate.ObjectTypeDef, 0),
-		EnumType:   make([]generate.EnumDef, 0),
-		ScalarType: make([]generate.ScalarDef, 0),
-		SchemaPath: render.SchemaPath,
+		ModelType:     make([]generate.ModelDef, 0),
+		ObjectType:    make([]generate.ObjectTypeDef, 0),
+		EnumType:      make([]generate.EnumDef, 0),
+		ScalarType:    make([]generate.ScalarDef, 0),
+		SchemaPath:    render.SchemaPath,
+		MainPath:      render.ModulePath + "/generate/main.go",
+		LibConfigPath: render.ModulePath + "/generate/lib/config.go",
+		ConfigDB:      render.ModelPath + "/generate/etc/db.json",
+		ConfigHTTP:    render.ModelPath + "/generate/etc/http.json",
+		ConfigJSON:    render.ModelPath + "/generate/etc/config.json",
 	}
-	types.MainPath = render.ModulePath + "/generate/main.go"
 
 	if render.Schema.Query != nil {
 		generate.OmitObject = append(generate.OmitObject, render.Schema.Query.Name)
@@ -68,4 +72,6 @@ func generateSchema(render generate.GqlGenerate, driverDB gqltypes.DriverDB) {
 	gqltypes.ScalarTmpl(types)
 	gqltypes.UnionTmpl(types)
 	gqltypes.Maintmpl(types)
+	gqltypes.LibConfigtmpl(types)
+	gqltypes.EtcFilestmpl(types)
 }

@@ -10,7 +10,6 @@ import (
 )
 
 var (
-	schemaPath     = "./schema"
 	modelPath      = "models"
 	resolverPath   = "resolvers"
 	unionPath      = "unions"

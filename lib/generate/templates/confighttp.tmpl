@@ -1,0 +1,87 @@
+{
+    "httpPort": "8080",
+    "httpsPort": "8443",
+    "cookieName":"MY_SESSION",
+    "server": [
+        {
+            "host": "api.myapp.lo",
+            "cert":"etc/certs/myapp.lo/cert.pem",
+            "key":"etc/certs/myapp.lo/key.pem",
+            "letsEncrypt": false,
+            "redirectToHttps": false,
+            "enableHttps": false,
+            "path":[
+                {
+                    "mode":"gql",
+                    "endpoint":"/"
+                },
+                {
+                    "mode":"file",
+                    "endpoint":"/files/",
+                    "path":"."
+                },
+                {
+                    "mode":"websocket",
+                    "endpoint":"/ws"
+                },
+                {
+                    "mode":"rest",
+                    "endpoint":"/lo/que/le/[^/]+/vayas/a/poner/[^\n]+"
+                }
+            ]
+        },
+        {
+            "host": "www.myapp.lo",
+            "cert":"etc/certs/myapp.lo/cert.pem",
+            "key":"etc/certs/myapp.lo/key.pem",
+            "redirectToHttps": false,
+            "enableHttps": false,
+            "path":[
+                {
+                    "mode":"file",
+                    "endpoint":"/",
+                    "rewrite":true,
+                    "RewriteTo":"/index.html",
+                    "fileDefault":"index.html",
+                    "path":"htdocs/system"
+                }
+            ]
+        },
+        {
+            "host": "*.myapp.lo",
+            "reject":["api.myapp.lo","www.myapp.lo"],
+            "cert":"etc/certs/myapp.lo/cert.pem",
+            "key":"etc/certs/myapp.lo/key.pem",
+            "redirectToHttps": false,
+            "enableHttps": false,
+            "path":[
+                {
+                    "mode":"file",
+                    "endpoint":"/system",
+                    "rewrite":true,
+                    "rewriteTo":"/system/index.html",
+                    "fileDefault":"index.html",
+                    "path":"htdocs"
+                },
+                {
+                    "mode":"file",
+                    "endpoint":"/",
+                    "redirect":{
+                        "from":"/",
+                        "to":"/home"
+                    },
+                    "fileDefault":"index.html",
+                    "path":"htdocs/system"
+                },
+                {
+                    "mode":"file",
+                    "endpoint":"/home",
+                    "rewrite":true,
+                    "rewriteTo":"/home/index.html",
+                    "fileDefault":"index.html",
+                    "path":"htdocs"
+                }
+            ]
+        }
+    ]
+}

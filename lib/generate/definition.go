@@ -21,15 +21,19 @@ type GqlGenerate struct {
 	SchemaPath     string
 }
 type RenderTypes struct {
-	ModelType  []ModelDef
-	ObjectType []ObjectTypeDef
-	EnumType   []EnumDef
-	UnionType  UnionDef
-	ScalarType []ScalarDef
-	IsScalar   bool
-	ScalarPath string
-	MainPath   string
-	SchemaPath string
+	ModelType     []ModelDef
+	ObjectType    []ObjectTypeDef
+	EnumType      []EnumDef
+	UnionType     UnionDef
+	ScalarType    []ScalarDef
+	IsScalar      bool
+	ScalarPath    string
+	MainPath      string
+	SchemaPath    string
+	LibConfigPath string
+	ConfigDB      string
+	ConfigHTTP    string
+	ConfigJSON    string
 }
 type ObjectTypeDef struct {
 	Name                  string
@@ -127,6 +131,14 @@ var (
 	Subscriptionstmpl []byte
 	//go:embed templates/main.tmpl
 	Maintmpl []byte
+	//go:embed templates/libconfig.tmpl
+	LibConfigtmpl []byte
+	//go:embed templates/configjson.tmpl
+	ConfigJSONtmpl []byte
+	//go:embed templates/configdb.tmpl
+	ConfigDBtmpl []byte
+	//go:embed templates/confighttp.tmpl
+	ConfigHTTPtmpl []byte
 )
 var OmitObject = []string{
 	"__Directive",
