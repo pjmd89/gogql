@@ -24,26 +24,29 @@ func NewObjectType(render generate.GqlGenerate, value generate.ModelDef, schema 
 	oType.DefinitionPath = render.ModuleName + "/resolvers/" + render.ObjecttypePath + "/" + oType.PackageName
 	oType.ModelPath = render.ModelPath
 	oType.ModuleName = render.ModuleName
+	if schema.Query != nil {
+		for _, v := range schema.Query.Fields {
+			typeName := v.Type.NamedType
+			if typeName == "" {
+				typeName = v.Type.Elem.NamedType
+			}
+			if value.RealName == typeName {
+				oType.HasQueries = true
 
-	for _, v := range schema.Query.Fields {
-		typeName := v.Type.NamedType
-		if typeName == "" {
-			typeName = v.Type.Elem.NamedType
-		}
-		if value.RealName == typeName {
-			oType.HasQueries = true
-
-			oType.QueryResolvers = append(oType.QueryResolvers, map[string]string{"Name": v.Name, "Resolver": v.Name + "Query"})
+				oType.QueryResolvers = append(oType.QueryResolvers, map[string]string{"Name": v.Name, "Resolver": v.Name + "Query"})
+			}
 		}
 	}
-	for _, v := range schema.Mutation.Fields {
-		typeName := v.Type.NamedType
-		if typeName == "" {
-			typeName = v.Type.Elem.NamedType
-		}
-		if value.RealName == typeName {
-			oType.HasMutations = true
-			oType.MutationResolvers = append(oType.MutationResolvers, map[string]string{"Name": v.Name, "Resolver": v.Name + "Mutation"})
+	if schema.Mutation != nil {
+		for _, v := range schema.Mutation.Fields {
+			typeName := v.Type.NamedType
+			if typeName == "" {
+				typeName = v.Type.Elem.NamedType
+			}
+			if value.RealName == typeName {
+				oType.HasMutations = true
+				oType.MutationResolvers = append(oType.MutationResolvers, map[string]string{"Name": v.Name, "Resolver": v.Name + "Mutation"})
+			}
 		}
 	}
 	if schema.Subscription != nil {
