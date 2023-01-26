@@ -64,7 +64,11 @@ func NewModel(render generate.GqlGenerate, key string, value *ast.Definition, ty
 				break
 			case "SCALAR":
 				if !slices.Contains(generate.OmitScalarTypes, namedType) {
-					structDef.IsUseScalar = true
+					if attrStruct.Type != "ID" {
+						structDef.IsUseScalar = true
+					} else if driverDB == DRIVERDB_NONE && attrStruct.Type == "ID" {
+						structDef.IsUseScalar = true
+					}
 					attrStruct.Type = render.ScalarPath + "." + attrStruct.Type
 				}
 				break
