@@ -67,7 +67,7 @@ func httpOnFinish() {}
 func OnIntrospection() (err definitionError.GQLError) {
 	return
 }
-func OnAuthenticate(operation string, srcType, dstType gql.TypeName, resolver string) (err definitionError.GQLError) {
+func OnAuthenticate(operation string, srcType, dstType gql.TypeName, resolver gql.ResolverName) (err definitionError.GQLError) {
 	return
 }
 func init(){
