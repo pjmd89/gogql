@@ -3,9 +3,11 @@ package lib
 import (
 	"github.com/pjmd89/goutils/jsonutils"
 	"github.com/pjmd89/goutils/systemutils/debugmode"
+    "github.com/pjmd89/goutils/systemutils"
 )
 
 var MyConfig SysConf
+var Logs systemutils.Logs
 
 type SysConf struct {
 	HTTPConfigFile string `json:"httpConfigFile"`

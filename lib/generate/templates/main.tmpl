@@ -40,16 +40,12 @@ var (
 var myConfig = lib.Config()
 var systemLog = systemutils.NewLog(myConfig.SystemLog)
 var accessLog = systemutils.NewLog(myConfig.AccessLog)
-var logs = systemutils.Logs{System: systemLog, Access: accessLog}
+var logs = lib.Logs{System: systemLog, Access: accessLog}
 var db = mongomodel.NewConn(&myConfig.DBConfigFile)
 var schema = gql.Init(embedFS, "schema")
 
 var restfull = rest.Init()
 var myHttp = http.Init(logs, myConfig.HTTPConfigFile).SetGql(schema).SetRest(restfull)
-
-
-var db = mongomodel.NewConn(nil)
-var myHttp = http.Init(schema)
 
 func main() {
 	lib.MyConfig = myConfig
