@@ -28,6 +28,7 @@ func generateSchema(render generate.GqlGenerate, driverDB gqltypes.DriverDB) {
 		ConfigDB:      render.ModulePath + "/generate/etc/db.json",
 		ConfigHTTP:    render.ModulePath + "/generate/etc/http.json",
 		ConfigJSON:    render.ModulePath + "/generate/etc/config.json",
+		ModuleName:    render.ModuleName,
 	}
 
 	if render.Schema.Query != nil {

@@ -34,6 +34,7 @@ type RenderTypes struct {
 	ConfigDB      string
 	ConfigHTTP    string
 	ConfigJSON    string
+	ModuleName    string
 }
 type ObjectTypeDef struct {
 	Name                  string
