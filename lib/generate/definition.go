@@ -18,6 +18,7 @@ type GqlGenerate struct {
 	EnumPath       string
 	ObjecttypePath string
 	LibPath        string
+	SchemaPath     string
 }
 type RenderTypes struct {
 	ModelType  []ModelDef
@@ -28,6 +29,7 @@ type RenderTypes struct {
 	IsScalar   bool
 	ScalarPath string
 	MainPath   string
+	SchemaPath string
 }
 type ObjectTypeDef struct {
 	Name                  string

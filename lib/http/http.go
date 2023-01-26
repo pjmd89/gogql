@@ -272,6 +272,7 @@ func (o *Http) websocketServeHTTP(w http.ResponseWriter, r *http.Request, httpPa
 		close(WsIds[id])
 		delete(WsIds, id)
 		delete(WsChannels, id)
+		fmt.Println(len(WsChannels))
 	}
 	defer WsChannels[id].Close()
 	while := true

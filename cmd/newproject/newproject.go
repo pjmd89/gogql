@@ -22,6 +22,7 @@ func generateSchema(render generate.GqlGenerate, driverDB gqltypes.DriverDB) {
 		ObjectType: make([]generate.ObjectTypeDef, 0),
 		EnumType:   make([]generate.EnumDef, 0),
 		ScalarType: make([]generate.ScalarDef, 0),
+		SchemaPath: render.SchemaPath,
 	}
 	types.MainPath = render.ModulePath + "/generate/main.go"
 

@@ -22,9 +22,12 @@ import (
 	"github.com/pjmd89/gogql/lib/http"
 	"github.com/pjmd89/mongomodel/mongomodel"
 )
-
+var (
+	//go:embed "{{.SchemaPath}}"
+	embedFS        embed.FS
+)
 var db = mongomodel.NewConn(nil)
-var schema = gql.Init("your-api-domain", "schema")
+var schema = gql.Init(embedFS, "schema")
 var myHttp = http.Init(schema)
 
 func main() {

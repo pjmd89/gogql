@@ -20,7 +20,7 @@ var (
 	libPath        = "lib"
 )
 
-func NewGqlGenerate(schema *ast.Schema) (r GqlGenerate) {
+func NewGqlGenerate(schema *ast.Schema, schemaPath string) (r GqlGenerate) {
 	moduleByte, err := ioutil.ReadFile("go.mod")
 	moduleName := modfile.ModulePath(moduleByte)
 	if err != nil {
@@ -41,6 +41,7 @@ func NewGqlGenerate(schema *ast.Schema) (r GqlGenerate) {
 		EnumPath:       enumPath,
 		ObjecttypePath: objecttypePath,
 		LibPath:        libPath,
+		SchemaPath:     schemaPath,
 	}
 	return
 }
