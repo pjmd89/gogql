@@ -52,7 +52,11 @@ func generateSchema(render generate.GqlGenerate, driverDB gqltypes.DriverDB) {
 			case "SCALAR":
 				scalar := gqltypes.NewScalar(render, k, v)
 				if scalar != nil {
-					types.ScalarType = append(types.ScalarType, *scalar)
+					if k != "ID" {
+						types.ScalarType = append(types.ScalarType, *scalar)
+					} else if driverDB == gqltypes.DRIVERDB_NONE {
+						types.ScalarType = append(types.ScalarType, *scalar)
+					}
 				}
 				break
 			case "UNION":
