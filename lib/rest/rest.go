@@ -9,15 +9,13 @@ import (
 	"github.com/pjmd89/gogql/lib/resolvers"
 )
 
-func Init(serverName string) (r *rest) {
+func Init() (r *rest) {
 	r = &rest{}
-	r.serverName = serverName
 	r.objectTypes = make(map[string]ObjectType)
 	return
 }
 
 func (o *rest) RestRender(w http.ResponseWriter, r *http.Request, sessionID string) {
-
 	if len(o.objectTypes) > 0 {
 		for k, v := range o.objectTypes {
 			post := map[string][]string{}

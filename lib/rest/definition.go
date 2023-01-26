@@ -8,6 +8,5 @@ type ObjectType struct {
 	ObjectType resolvers.ObjectTypeInterface
 }
 type rest struct {
-	serverName  string
 	objectTypes ObjectTypes
 }
