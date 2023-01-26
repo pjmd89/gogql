@@ -67,7 +67,7 @@ func httpOnFinish() {}
 func OnIntrospection() (err definitionError.GQLError) {
 	return
 }
-func OnAuthorizate(authInfo AuthorizateInfo) (err definitionError.GQLError) {
+func OnAuthorizate(authInfo gql.AuthorizateInfo) (err definitionError.GQLError) {
 	//El el rol puede venir de una variable de sesion
 	//La sesion debes definirla de manera que se adapte a tu necesidad
 	/*
