@@ -76,7 +76,7 @@ func OnAuthorizate(authInfo gql.AuthorizateInfo) (err definitionError.GQLError) 
 			len(lib.Auth[authInfo.SrcType][authInfo.DstType][authInfo.Resolver]) > 0 {
 
 			if !slices.Contains(lib.Auth[authInfo.SrcType][authInfo.DstType][authInfo.Resolver], "yourRol") {
-				err = definitionError.NewFatal("este rol no tiene permisos.", nil)
+				err = definitionError.NewFatal("this rol not have permissions.", nil)
 			}
 		}
 	*/
