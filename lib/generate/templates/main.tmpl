@@ -89,7 +89,7 @@ func init(){
 	myHttp.OnBegin = httpOnBegin
 	myHttp.OnFinish = httpOnFinish
 	schema.OnIntrospection = OnIntrospection
-	schema.OnAuthenticate = OnAuthenticate
+	schema.OnAuthorizate = OnAuthorizate
     
     {{- range .ObjectType}}
     schema.ObjectType("{{.RealName}}", {{.PackageName}}.New{{.Name}}(db))
