@@ -3,7 +3,7 @@ package resolvers
 import "net/http"
 
 func (o *RestInfo) SetHTTPRequest(r *http.Request) {
-	o.r = r
+	o.Request = r
 }
 func (o *RestInfo) SetHeader(header, value string) {
 	if len(o.headers) == 0 {

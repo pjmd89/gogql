@@ -25,7 +25,7 @@ type RestInfo struct {
 	GET       map[string][]string
 	POST      map[string][]string
 	headers   map[string]string
-	r         *http.Request
+	Request   *http.Request
 	Writer    http.ResponseWriter
 }
 type Subscription struct {
