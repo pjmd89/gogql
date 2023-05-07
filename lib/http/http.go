@@ -163,6 +163,13 @@ func (o *Http) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				matchPath, _ := regexp.MatchString(`^`+serverPath.Endpoint, urlPath)
 				if matchPath {
 					serverBreak = true
+					if server.RedirectToHttps && urlInfo.Scheme == "http" {
+						reservedPort := ""
+						if o.HttpsPort != "443" {
+							reservedPort = ":" + o.HttpsPort
+						}
+						http.Redirect(w, r, "https://"+urlInfo.Host+reservedPort+urlInfo.RequestURI, http.StatusSeeOther)
+					}
 					serverPath.len = len(serverPath.Endpoint)
 					httpModes = append(httpModes, serverPath)
 				}
