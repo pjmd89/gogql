@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"time"
 
 	"github.com/pjmd89/goutils/systemutils"
 	"github.com/rs/xid"
@@ -35,7 +36,7 @@ func (o *SessionManager) Init(sessionName string, sessionLifetime int, w http.Re
 		}
 		cookie.Path = "/"
 		cookie.HttpOnly = true
-		cookie.MaxAge = sessionLifetime
+		cookie.Expires = time.Now().Add((3600 * 24) * 365)
 		cookie.Secure = secureCookie
 		cookie.SameSite = http.SameSiteNoneMode
 		o.sessions[cookie.Value] = sessionData

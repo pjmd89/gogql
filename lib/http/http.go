@@ -169,6 +169,7 @@ func (o *Http) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 							reservedPort = ":" + o.HttpsPort
 						}
 						http.Redirect(w, r, "https://"+urlInfo.Host+reservedPort+urlInfo.RequestURI, http.StatusSeeOther)
+						return
 					}
 					serverPath.len = len(serverPath.Endpoint)
 					httpModes = append(httpModes, serverPath)
