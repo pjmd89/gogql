@@ -121,7 +121,7 @@ func (o *Http) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	sessionID, err := Session.Init(o.CookieName, 0, w, r, sessionData)
 	o.setSessionIndex(sessionID)
-	//defer o.sessionDestroy()
+	defer o.sessionDestroy()
 	if err != nil {
 		logs.System.Error().Println(err.Error())
 	}
@@ -219,6 +219,16 @@ func (o *Http) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	return
 }
 func (o *Http) fileServeHTTP(w http.ResponseWriter, r *http.Request, httpPath *Path, sessionID string) {
+	var sessionData interface{}
+	if o.OnSession != nil {
+		sessionData = o.OnSession()
+	}
+	sessionID, err := Session.Init(o.CookieName, 0, w, r, sessionData)
+	o.setSessionIndex(sessionID)
+	defer o.sessionDestroy()
+	if err != nil {
+		logs.System.Error().Println(err.Error())
+	}
 	path := httpPath.Path
 	var filePath = path + httpPath.pathURL
 	if strings.Trim(httpPath.Redirect.From, " ") != "" && httpPath.Redirect.From == httpPath.pathURL {
