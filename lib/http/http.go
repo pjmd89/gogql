@@ -121,7 +121,7 @@ func (o *Http) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	sessionID, err := Session.Init(o.CookieName, 0, w, r, sessionData)
 	o.setSessionIndex(sessionID)
-	defer o.sessionDestroy()
+	//defer o.sessionDestroy()
 	if err != nil {
 		logs.System.Error().Println(err.Error())
 	}
