@@ -38,7 +38,7 @@ func (o *SessionManager) Init(sessionName string, sessionLifetime int, w http.Re
 		cookie.HttpOnly = true
 		cookie.Expires = time.Now().AddDate(2, 0, 0)
 		cookie.Secure = secureCookie
-		cookie.SameSite = http.SameSiteNoneMode
+		cookie.SameSite = http.SameSiteLaxMode
 		o.sessions[cookie.Value] = sessionData
 		http.SetCookie(w, cookie)
 	}
