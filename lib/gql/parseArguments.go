@@ -3,6 +3,7 @@ package gql
 import (
 	"log"
 
+	"github.com/pjmd89/gogql/lib/gql/definitionError"
 	"github.com/pjmd89/gqlparser/v2/ast"
 )
 
@@ -19,7 +20,7 @@ type variableDef[T varDef] struct {
 	data T
 }
 
-func (o *gql) parseArguments(argsRaw ast.ArgumentList, argsDefinition ast.ArgumentDefinitionList, vars map[string]any) map[string]interface{} {
+func (o *gql) parseArguments(argsRaw ast.ArgumentList, argsDefinition ast.ArgumentDefinitionList, vars map[string]any) (r map[string]interface{}, err definitionError.GQLError) {
 	args := make(map[string]*DefaultArguments)
 	for _, val := range argsDefinition {
 		if args[val.Name] == nil {
@@ -51,26 +52,40 @@ func (o *gql) parseArguments(argsRaw ast.ArgumentList, argsDefinition ast.Argume
 			args[argRaw.Name].Value = o.setValue(argRaw, vars)
 		}
 	}
-	r := o.validateArguments(args)
-	return r
+	r, err = o.validateArguments(args)
+	return
 }
-func (o *gql) validateArguments(args map[string]*DefaultArguments) map[string]interface{} {
-	r := make(map[string]interface{}, 0)
+func (o *gql) validateArguments(args map[string]*DefaultArguments) (r map[string]interface{}, err definitionError.GQLError) {
+	r = make(map[string]interface{}, 0)
 	for k, v := range args {
 		switch v.Kind {
 		case "INPUT_OBJECT":
-			r[k] = o.parseInputObject(v)
+			r[k], err = o.parseInputObject(v)
+			if err != nil {
+				return
+			}
 		case "SCALAR":
 			if o.scalars[v.Type] != nil {
 				if v.IsArray && v.Value != nil {
 					parsedValue := []any{}
 					for _, vV := range v.Value.([]any) {
-						vScalar, _ := o.scalars[v.Type].Set(vV)
+						vScalar, vError := o.scalars[v.Type].Set(vV)
+						if vError != nil {
+							r = make(map[string]interface{}, 0)
+							err = vError
+							return
+						}
 						parsedValue = append(parsedValue, vScalar)
 					}
 					r[k] = parsedValue
 				} else {
-					r[k], _ = o.scalars[v.Type].Set(v.Value)
+					vScalar, vError := o.scalars[v.Type].Set(v.Value)
+					if vError != nil {
+						r = make(map[string]interface{}, 0)
+						err = vError
+						return
+					}
+					r[k] = vScalar
 				}
 
 			} else {
@@ -81,9 +96,9 @@ func (o *gql) validateArguments(args map[string]*DefaultArguments) map[string]in
 			r[k] = v.Value
 		}
 	}
-	return r
+	return
 }
-func (o *gql) parseInputObject(argInput *DefaultArguments) (r interface{}) {
+func (o *gql) parseInputObject(argInput *DefaultArguments) (r interface{}, err definitionError.GQLError) {
 	if argInput != nil {
 		args := make(map[string]*DefaultArguments)
 		inputObject := o.schema.Types[argInput.Type]
@@ -105,12 +120,23 @@ func (o *gql) parseInputObject(argInput *DefaultArguments) (r interface{}) {
 				if arg.IsArray {
 					parsedValue := []any{}
 					for _, vV := range arg.Value.([]any) {
-						vScalar, _ := o.scalars[arg.Type].Set(vV)
+						vScalar, vError := o.scalars[arg.Type].Set(vV)
+						if vError != nil {
+							r = make(map[string]interface{}, 0)
+							err = vError
+							return
+						}
 						parsedValue = append(parsedValue, vScalar)
 					}
 					arg.Value = parsedValue
 				} else {
-					arg.Value, _ = o.scalars[valueType.Name].Set(arg.Value)
+					vScalar, vError := o.scalars[valueType.Name].Set(arg.Value)
+					if vError != nil {
+						r = make(map[string]interface{}, 0)
+						err = vError
+						return
+					}
+					arg.Value = vScalar
 				}
 			}
 			args[val.Name] = arg
@@ -132,7 +158,11 @@ func (o *gql) parseInputObject(argInput *DefaultArguments) (r interface{}) {
 								newArgs[name].Value = val
 							}
 						}
-						re = append(re, o.validateArguments(newArgs))
+						vValue, vError := o.validateArguments(newArgs)
+						if vError != nil {
+							return vValue, vError
+						}
+						re = append(re, vValue)
 					}
 				default:
 					log.Printf("variable %s is not an array ", argInput.Name)
@@ -145,7 +175,11 @@ func (o *gql) parseInputObject(argInput *DefaultArguments) (r interface{}) {
 				for k, v := range argInput.Value.(map[string]interface{}) {
 					args[k].Value = v
 				}
-				r = o.validateArguments(args)
+				vValue, vError := o.validateArguments(args)
+				if vError != nil {
+					return vValue, vError
+				}
+				r = vValue
 			} else {
 				re := make(map[string]interface{}, 0)
 				for k, v := range args {
@@ -155,7 +189,7 @@ func (o *gql) parseInputObject(argInput *DefaultArguments) (r interface{}) {
 			}
 		}
 	}
-	return r
+	return
 }
 func (o *gql) parseArgChildren(rawArgs ast.ChildValueList, vars map[string]any) interface{} {
 	var args interface{}

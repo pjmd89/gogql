@@ -196,8 +196,21 @@ func (o *gql) selectionParse(operation string, field *ast.Field, parent interfac
 		}
 
 		if o.objectTypes[namedType] != nil && authenticatedError == nil {
-			args := o.parseArguments(field.Arguments, field.Definition.Arguments, vars)
-			directives := o.parseDirectives(field.Directives, namedType, field.Name, vars)
+			args, vError := o.parseArguments(field.Arguments, field.Definition.Arguments, vars)
+			var argumentError definitionError.GQLError
+			if vError != nil {
+				*errList = append(*errList, vError)
+				argumentError = vError
+			}
+			directives, vError := o.parseDirectives(field.Directives, namedType, field.Name, vars)
+			if vError != nil {
+				*errList = append(*errList, vError)
+				argumentError = vError
+			}
+
+			if argumentError != nil {
+				return nil, isSubscriptionResponse, true
+			}
 			resolverInfo := resolvers.ResolverInfo{
 				Operation:         operation,
 				Args:              args,
@@ -286,17 +299,21 @@ func (o *gql) selectionParse(operation string, field *ast.Field, parent interfac
 	}
 	return prepareToSend, isSubscriptionResponse, false
 }
-func (o *gql) parseDirectives(directives ast.DirectiveList, typeName string, fieldName string, vars map[string]any) (r resolvers.DirectiveList) {
+func (o *gql) parseDirectives(directives ast.DirectiveList, typeName string, fieldName string, vars map[string]any) (r resolvers.DirectiveList, err definitionError.GQLError) {
 	r = make(map[string]interface{}, 0)
 	for _, directive := range directives {
-		args := o.parseArguments(directive.Arguments, directive.Definition.Arguments, vars)
+		args, vError := o.parseArguments(directive.Arguments, directive.Definition.Arguments, vars)
+		if vError != nil {
+			err = vError
+			return
+		}
 		var x resolvers.DataReturn
 		if o.directives[directive.Name] != nil {
 			x, _ = o.directives[directive.Name].Invoke(args, typeName, fieldName)
 		}
 		r[directive.Name] = x
 	}
-	return r
+	return
 }
 func (o *gql) getFieldNames(parse ast.SelectionSet) (fields map[string]interface{}, typeCondition bool) {
 	fields = make(map[string]interface{})
