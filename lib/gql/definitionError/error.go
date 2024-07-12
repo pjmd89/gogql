@@ -58,7 +58,9 @@ func setExtension(extensions ExtensionError, errLevel errorLevel, code string) (
 	if extensions == nil {
 		extensions = map[string]any{}
 	}
-	extensions["code"] = code
+	if extensions["code"] == nil {
+		extensions["code"] = code
+	}
 	extensions["level"] = levelName[errLevel]
 	r = extensions
 	return
