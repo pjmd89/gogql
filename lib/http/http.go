@@ -2,7 +2,10 @@ package http
 
 import (
 	"crypto/tls"
+	"embed"
 	"fmt"
+	"io"
+	"io/fs"
 	"net/http"
 	"net/url"
 	"os"
@@ -52,6 +55,9 @@ func (o *Http) SetRest(rest Rest) *Http {
 func (o *Http) SetGql(gql Gql) *Http {
 	o.gql = gql
 	return o
+}
+func (o *Http) FrontEmbed(filesystem embed.FS) {
+	o.embed = &filesystem
 }
 func (o *Http) Start() {
 	channel := make(chan bool)
@@ -232,8 +238,6 @@ func (o *Http) fileServeHTTP(w http.ResponseWriter, r *http.Request, httpPath *P
 	if err != nil {
 		logs.System.Error().Println(err.Error())
 	}
-	path := httpPath.Path
-	var filePath = path + httpPath.pathURL
 	if strings.Trim(httpPath.Redirect.From, " ") != "" && httpPath.Redirect.From == httpPath.pathURL {
 		http.Redirect(w, r, httpPath.Redirect.To, http.StatusSeeOther)
 		return
@@ -242,18 +246,20 @@ func (o *Http) fileServeHTTP(w http.ResponseWriter, r *http.Request, httpPath *P
 		http.Redirect(w, r, httpPath.Redirect.To, http.StatusSeeOther)
 		return
 	}
-	if strings.Trim(path, " ") == "" {
-		path = "."
+	filePath := httpPath.Path + httpPath.pathURL
+
+	if o.embed != nil {
+		filePath = httpPath.pathURL
 	}
-	file, fErr := os.Open(filePath)
+	file, fErr := o.fileOpen(filePath)
 	fileStat, _ := file.Stat()
 
 	if fileStat == nil || fileStat.IsDir() {
-		filePath = httpPath.Path + httpPath.pathURL + "/" + httpPath.FileDefault
-		file, fErr = os.Open(filePath)
+		filePath = filePath + "/" + httpPath.FileDefault
+		file, fErr = o.fileOpen(filePath)
 		fileStat, _ = file.Stat()
 		if fErr != nil && httpPath.Rewrite {
-			file, fErr = os.Open(httpPath.Path + httpPath.RewriteTo)
+			file, fErr = o.fileOpen(httpPath.Path + httpPath.RewriteTo)
 			fileStat, _ = file.Stat()
 		}
 	}
@@ -265,8 +271,14 @@ func (o *Http) fileServeHTTP(w http.ResponseWriter, r *http.Request, httpPath *P
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
-	http.ServeContent(w, r, httpPath.Path+"/"+r.RequestURI, time.Time{}, file)
+	http.ServeContent(w, r, httpPath.Path+"/"+r.RequestURI, time.Time{}, file.(io.ReadSeeker))
 	return
+}
+func (o *Http) fileOpen(name string) (fs.File, error) {
+	if o.embed != nil {
+		return o.embed.Open(name)
+	}
+	return os.Open(name)
 }
 func (o *Http) gqlServeHTTP(w http.ResponseWriter, r *http.Request, httpPath *Path, sessionID string) (isErr bool) {
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")

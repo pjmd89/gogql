@@ -1,6 +1,7 @@
 package http
 
 import (
+	"embed"
 	"net/http"
 	"sync"
 
@@ -62,6 +63,7 @@ type Http struct {
 	HttpsPort    string   `json:"httpsPort,omitempty"`
 	CookieName   string   `json:"cookieName,omitempty"`
 	Server       []server `json:"server,omitempty"`
+	embed        *embed.FS
 	httpService  mux.Router
 	httpsService mux.Router
 	router       *mux.Router
