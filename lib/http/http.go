@@ -195,31 +195,34 @@ func (o *Http) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			break
 		}
 	}
+	uID := uuid.New().String()
+	isErr := false
 	if httpPathMode != nil {
 		if o.OnBegin != nil {
-			o.OnBegin(urlInfo, httpPathMode, o.originData)
+			o.OnBegin(urlInfo, httpPathMode, o.originData, uID)
 		}
 		switch httpPathMode.Mode {
 		case "file":
-			o.fileServeHTTP(w, r, httpPathMode, sessionID)
+			isErr = o.fileServeHTTP(w, r, httpPathMode, sessionID)
 		case "gql":
-			o.gqlServeHTTP(w, r, httpPathMode, sessionID)
+			isErr = o.gqlServeHTTP(w, r, httpPathMode, sessionID)
 		case "websocket":
-			o.websocketServeHTTP(w, r, httpPathMode, sessionID)
+			isErr = o.websocketServeHTTP(w, r, httpPathMode, sessionID)
 		case "rest":
-			o.restServeHTTP(w, r, httpPathMode, sessionID)
+			isErr = o.restServeHTTP(w, r, httpPathMode, sessionID)
 		}
 	} else {
 		logs.System.Error().Println("mode not found")
 		w.WriteHeader(http.StatusNotFound)
 	}
 	if o.OnFinish != nil {
-		o.OnFinish()
+		o.OnFinish(isErr, uID)
 	}
 	return
 }
-func (o *Http) fileServeHTTP(w http.ResponseWriter, r *http.Request, httpPath *Path, sessionID string) {
+func (o *Http) fileServeHTTP(w http.ResponseWriter, r *http.Request, httpPath *Path, sessionID string) (isErr bool) {
 	var sessionData interface{}
+	isErr = false
 	if o.OnSession != nil {
 		sessionData = o.OnSession()
 	}
@@ -258,20 +261,25 @@ func (o *Http) fileServeHTTP(w http.ResponseWriter, r *http.Request, httpPath *P
 	if fErr != nil {
 		logs.System.Error().Printf("el archivo %s no se encuentra.", filePath)
 		fmt.Fprint(w, "file not found, archivo no se encuentra")
+		isErr = true
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
 	http.ServeContent(w, r, httpPath.Path+"/"+r.RequestURI, time.Time{}, file)
+	return
 }
-func (o *Http) gqlServeHTTP(w http.ResponseWriter, r *http.Request, httpPath *Path, sessionID string) {
+func (o *Http) gqlServeHTTP(w http.ResponseWriter, r *http.Request, httpPath *Path, sessionID string) (isErr bool) {
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-	o.gql.GQLRender(w, r, sessionID)
+	isErr = o.gql.GQLRender(w, r, sessionID)
+	return
 }
-func (o *Http) restServeHTTP(w http.ResponseWriter, r *http.Request, httpPath *Path, sessionID string) {
-	o.rest.RestRender(w, r, sessionID)
+func (o *Http) restServeHTTP(w http.ResponseWriter, r *http.Request, httpPath *Path, sessionID string) (isErr bool) {
+	isErr = o.rest.RestRender(w, r, sessionID)
+	return
 }
-func (o *Http) websocketServeHTTP(w http.ResponseWriter, r *http.Request, httpPath *Path, sessionID string) {
+func (o *Http) websocketServeHTTP(w http.ResponseWriter, r *http.Request, httpPath *Path, sessionID string) (isErr bool) {
 	headers := http.Header{}
+	isErr = false
 	headers.Set("Sec-WebSocket-Protocol", "graphql-transport-ws")
 	headers.Set("Sec-WebSocket-Version", "13")
 	headers.Set("Content-Type", "application/json; charset=UTF-8")
@@ -304,10 +312,12 @@ func (o *Http) websocketServeHTTP(w http.ResponseWriter, r *http.Request, httpPa
 			delete(WsIds, id)
 			delete(WsChannels, id)
 			while = false
+			isErr = true
 			break
 		}
 		go o.WebSocketMessage(mt, message, id, httpPath, sessionID)
 	}
+	return
 }
 func (o *Http) listenHttp(channel chan bool, handler *http.Server) {
 	channel <- false

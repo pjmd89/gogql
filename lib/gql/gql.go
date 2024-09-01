@@ -129,16 +129,19 @@ func (o *gql) GQLRenderSubscription(mt int, message []byte, socketId, sessionID 
 
 	}
 }
-func (o *gql) GQLRender(w http.ResponseWriter, r *http.Request, sessionID string) {
+func (o *gql) GQLRender(w http.ResponseWriter, r *http.Request, sessionID string) (isErr bool) {
 	var request HttpRequest
+	isErr = false
 	json.NewDecoder(r.Body).Decode(&request)
 	response := o.response(request, sessionID)
 	str := "{\"data\":" + response.Data
 	if response.Errors != "" {
+		isErr = true
 		str = str + ",\"errors\":" + response.Errors
 	}
 	str = str + "}"
 	fmt.Fprint(w, str)
+	return
 }
 func (o *gql) WriteWebsocketMessage(mt int, socketId string, requestID RequestID, response *HttpResponse) {
 	r := `{"id":"` + string(requestID) + `","type":"next","payload":` + response.Data + `}`

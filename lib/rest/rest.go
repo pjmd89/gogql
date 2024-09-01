@@ -15,7 +15,8 @@ func Init() (r *rest) {
 	return
 }
 
-func (o *rest) RestRender(w http.ResponseWriter, r *http.Request, sessionID string) {
+func (o *rest) RestRender(w http.ResponseWriter, r *http.Request, sessionID string) (isErr bool) {
+	isErr = false
 	if len(o.objectTypes) > 0 {
 		for k, v := range o.objectTypes {
 			post := map[string][]string{}
@@ -38,7 +39,10 @@ func (o *rest) RestRender(w http.ResponseWriter, r *http.Request, sessionID stri
 				}
 				resolverInfo.RestInfo.SetHTTPRequest(r)
 				fmt.Println()
-				response, _ := v.ObjectType.Resolver(resolverInfo)
+				response, restError := v.ObjectType.Resolver(resolverInfo)
+				if restError != nil {
+					isErr = true
+				}
 				for header, value := range resolverInfo.RestInfo.GetHeaders() {
 					w.Header().Set(header, value)
 				}
@@ -49,6 +53,7 @@ func (o *rest) RestRender(w http.ResponseWriter, r *http.Request, sessionID stri
 			}
 		}
 	}
+	return
 }
 func (o *rest) ObjectType(url, alias string, object resolvers.ObjectTypeInterface) {
 	o.objectTypes[url] = ObjectType{Alias: alias, ObjectType: object}

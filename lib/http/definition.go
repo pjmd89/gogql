@@ -8,11 +8,11 @@ import (
 )
 
 type Gql interface {
-	GQLRender(w http.ResponseWriter, r *http.Request, sessionID string)
+	GQLRender(w http.ResponseWriter, r *http.Request, sessionID string) (isErr bool)
 	GQLRenderSubscription(mt int, message []byte, socketId string, sessionID string)
 }
 type Rest interface {
-	RestRender(w http.ResponseWriter, r *http.Request, sessionID string)
+	RestRender(w http.ResponseWriter, r *http.Request, sessionID string) (isErr bool)
 }
 type URL struct {
 	Scheme     string
@@ -68,8 +68,8 @@ type Http struct {
 	gql          Gql
 	rest         Rest
 	CheckOrigin  func(url URL) (bool, interface{})
-	OnBegin      func(url URL, httpPath *Path, originData interface{}) bool
-	OnFinish     func()
+	OnBegin      func(url URL, httpPath *Path, originData interface{}, uid string) bool
+	OnFinish     func(isErr bool, uid string)
 	OnSession    func() (r interface{})
 	originData   any
 	http404      func()
