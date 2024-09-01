@@ -208,7 +208,7 @@ func (o *Http) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			o.OnBegin(urlInfo, httpPathMode, o.originData, uID)
 		}
 		switch httpPathMode.Mode {
-		case "file":
+		case "file", "embed":
 			isErr = o.fileServeHTTP(w, r, httpPathMode, sessionID)
 		case "gql":
 			isErr = o.gqlServeHTTP(w, r, httpPathMode, sessionID)
@@ -251,15 +251,15 @@ func (o *Http) fileServeHTTP(w http.ResponseWriter, r *http.Request, httpPath *P
 	if o.embed != nil {
 		filePath = httpPath.pathURL
 	}
-	file, fErr := o.fileOpen(filePath)
+	file, fErr := o.fileOpen(filePath, httpPath.Mode)
 	fileStat, _ := file.Stat()
 
 	if fileStat == nil || fileStat.IsDir() {
 		filePath = filePath + "/" + httpPath.FileDefault
-		file, fErr = o.fileOpen(filePath)
+		file, fErr = o.fileOpen(filePath, httpPath.Mode)
 		fileStat, _ = file.Stat()
 		if fErr != nil && httpPath.Rewrite {
-			file, fErr = o.fileOpen(httpPath.Path + httpPath.RewriteTo)
+			file, fErr = o.fileOpen(httpPath.Path+httpPath.RewriteTo, httpPath.Mode)
 			fileStat, _ = file.Stat()
 		}
 	}
@@ -274,8 +274,8 @@ func (o *Http) fileServeHTTP(w http.ResponseWriter, r *http.Request, httpPath *P
 	http.ServeContent(w, r, httpPath.Path+"/"+r.RequestURI, time.Time{}, file.(io.ReadSeeker))
 	return
 }
-func (o *Http) fileOpen(name string) (fs.File, error) {
-	if o.embed != nil {
+func (o *Http) fileOpen(name string, mode string) (fs.File, error) {
+	if o.embed != nil && mode == "embed" {
 		return o.embed.Open(name)
 	}
 	return os.Open(name)
