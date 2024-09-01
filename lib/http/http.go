@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"path/filepath"
 	"regexp"
 	"strings"
 	"time"
@@ -228,6 +229,7 @@ func (o *Http) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 func (o *Http) fileServeHTTP(w http.ResponseWriter, r *http.Request, httpPath *Path, sessionID string) (isErr bool) {
 	var sessionData interface{}
+	var fileStat fs.FileInfo
 	isErr = false
 	if o.OnSession != nil {
 		sessionData = o.OnSession()
@@ -246,21 +248,17 @@ func (o *Http) fileServeHTTP(w http.ResponseWriter, r *http.Request, httpPath *P
 		http.Redirect(w, r, httpPath.Redirect.To, http.StatusSeeOther)
 		return
 	}
-	filePath := httpPath.Path + httpPath.pathURL
-
-	if o.embed != nil {
-		filePath = httpPath.pathURL
-	}
+	filePath := filepath.Join(httpPath.Path, httpPath.pathURL)
 	file, fErr := o.fileOpen(filePath, httpPath.Mode)
-	fileStat, _ := file.Stat()
+	if fErr == nil {
+		fileStat, _ = file.Stat()
+	}
 
 	if fileStat == nil || fileStat.IsDir() {
-		filePath = filePath + "/" + httpPath.FileDefault
+		filePath = filepath.Join(httpPath.Path, httpPath.pathURL, "/", httpPath.FileDefault)
 		file, fErr = o.fileOpen(filePath, httpPath.Mode)
-		fileStat, _ = file.Stat()
 		if fErr != nil && httpPath.Rewrite {
 			file, fErr = o.fileOpen(httpPath.Path+httpPath.RewriteTo, httpPath.Mode)
-			fileStat, _ = file.Stat()
 		}
 	}
 
