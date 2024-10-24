@@ -6,5 +6,5 @@ vendor/
 subscriptions/
 /generate/
 /resolvers/
-__debug_bin
+__debug_bin*
 main.go

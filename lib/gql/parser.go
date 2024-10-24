@@ -145,19 +145,23 @@ func (o *gql) selectionSetParse(operation string, parse ast.SelectionSet, parent
 		switch rField.Type() {
 		case reflect.TypeOf(&ast.Field{}):
 			field := selection.(*ast.Field)
-			prepareToSend, isSubscriptionResponse, stop = o.selectionParse(operation, field, parent, parentProceced, typeName, start, subscriptionValue, vars, sessionID, errList)
+			isUnion := false
+			if o.schema.Types[field.Definition.Type.NamedType].Kind == "UNION"{
+				isUnion = true
+			}
+			prepareToSend, isSubscriptionResponse, stop = o.selectionParse(operation, field, parent, parentProceced, typeName, start, subscriptionValue, vars, sessionID, errList, isUnion)
 		case reflect.TypeOf(&ast.FragmentSpread{}):
 			fragment := selection.(*ast.FragmentSpread)
 			fragmentDef := fragment.Definition
 			for _, fragmentSelection := range fragmentDef.SelectionSet {
 				field := fragmentSelection.(*ast.Field)
-				prepareToSend, isSubscriptionResponse, stop = o.selectionParse(operation, field, parent, parentProceced, typeName, start, subscriptionValue, vars, sessionID, errList)
+				prepareToSend, isSubscriptionResponse, stop = o.selectionParse(operation, field, parent, parentProceced, typeName, start, subscriptionValue, vars, sessionID, errList, false)
 			}
 		case reflect.TypeOf(&ast.InlineFragment{}):
 			fragment := selection.(*ast.InlineFragment)
 			for _, fragmentSelection := range fragment.SelectionSet {
 				field := fragmentSelection.(*ast.Field)
-				prepareToSend, isSubscriptionResponse, stop = o.selectionParse(operation, field, parent, parentProceced, typeName, start, subscriptionValue, vars, sessionID, errList)
+				prepareToSend, isSubscriptionResponse, stop = o.selectionParse(operation, field, parent, parentProceced, typeName, start, subscriptionValue, vars, sessionID, errList, false)
 			}
 		}
 		if start == 0 {
@@ -170,7 +174,7 @@ func (o *gql) selectionSetParse(operation string, parse ast.SelectionSet, parent
 	}
 	return prepareToSend, isSubscriptionResponse
 }
-func (o *gql) selectionParse(operation string, field *ast.Field, parent interface{}, parentProceced interface{}, typeName *string, start int, subscriptionValue interface{}, vars map[string]any, sessionID string, errList *definitionError.ErrorList) (map[string]interface{}, bool, bool) {
+func (o *gql) selectionParse(operation string, field *ast.Field, parent interface{}, parentProceced interface{}, typeName *string, start int, subscriptionValue interface{}, vars map[string]any, sessionID string, errList *definitionError.ErrorList, isUnion bool) (map[string]interface{}, bool, bool) {
 	fieldElem := field.Definition.Type.Elem
 	isSubscriptionResponse := false
 	prepareToSend := make(map[string]interface{}, 0)
@@ -224,7 +228,7 @@ func (o *gql) selectionParse(operation string, field *ast.Field, parent interfac
 			}
 			if operation == "subscription" && start == 0 {
 				if ok := o.objectTypes[namedType].Subscribe(resolverInfo); ok {
-					resolved, err = o.objectTypes[namedType].Resolver(resolverInfo)
+					resolved, err = o.resolver(namedType, resolverInfo, isUnion)
 					typeName = &namedType
 					resolvedProcesed = o.dataResponse(fieldNames, resolved, namedType)
 					if err != nil {
@@ -237,7 +241,7 @@ func (o *gql) selectionParse(operation string, field *ast.Field, parent interfac
 					}
 				}
 			} else {
-				resolved, err = o.objectTypes[namedType].Resolver(resolverInfo)
+				resolved, err = o.resolver(namedType, resolverInfo, isUnion)
 				if err != nil {
 					*errList = append(*errList, err)
 				}
@@ -298,6 +302,40 @@ func (o *gql) selectionParse(operation string, field *ast.Field, parent interfac
 		}
 	}
 	return prepareToSend, isSubscriptionResponse, false
+}
+func (o *gql)resolver(namedType string, resolverInfo resolvers.ResolverInfo, isUnion bool) (r resolvers.DataReturn, err definitionError.GQLError){
+	switch isUnion{
+	case false:
+		r, err = o.objectTypes[namedType].Resolver(resolverInfo)
+	case true:
+		r, err = o.objectTypes[namedType].Resolver(resolverInfo)
+		for _, value := range o.schema.Types[namedType].Types{
+			switch r.(type){
+
+			case []map[string]any:
+				for rKey, rValue := range r.([]map[string]any){
+					resolverInfo.Parent = rValue
+					var x resolvers.DataReturn
+					x, err = o.objectTypes[value].Resolver(resolverInfo)
+					r.([]map[string]any)[rKey] = map[string]any{}
+					if err != nil {
+						switch reflect.TypeOf(x).Kind(){
+						case reflect.Map:
+							r.([]map[string]any)[rKey] = x.(map[string]any)
+						case reflect.Struct:
+							r.([]interface{})[rKey] = x.(interface{})
+						}	
+					}
+				}
+			case []any:
+			}
+			
+		}
+	}
+
+		
+		
+	return
 }
 func (o *gql) parseDirectives(directives ast.DirectiveList, typeName string, fieldName string, vars map[string]any) (r resolvers.DirectiveList, err definitionError.GQLError) {
 	r = make(map[string]interface{}, 0)
