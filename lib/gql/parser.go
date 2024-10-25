@@ -297,13 +297,10 @@ func (o *gql) selectionParse(operation string, field *ast.Field, parent interfac
 		if parentProceced != nil {
 			prepareToSend = parentProceced.(map[string]interface{})
 		} else {
+			if field.Name == "__typename" {
+				prepareToSend[field.Alias] = field.ObjectDefinition.Name
+			}
 		}
-		/*
-		if field.Name == "__typename" {
-			prepareToSend[field.Alias] = field.ObjectDefinition.Name
-			//prepareToSend[field.Alias] = namedType
-		}
-		*/
 	}
 	
 	return prepareToSend, isSubscriptionResponse, false
