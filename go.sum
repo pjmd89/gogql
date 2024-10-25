@@ -33,8 +33,8 @@ github.com/kr/pretty v0.1.0/go.mod h1:dAy3ld7l9f0ibDNOQOHHMYYIIbhfbHSm3C4ZsoJORN
 github.com/kr/pty v1.1.1/go.mod h1:pFQYn66WHrOpPYNljwOMqo10TkYh1fy3cYio2l3bCsQ=
 github.com/kr/text v0.1.0/go.mod h1:4Jbv+DJW3UT/LiOwJeYQe1efqtUx/iVham/4vfdArNI=
 github.com/montanaflynn/stats v0.0.0-20171201202039-1bf9dbcd8cbe/go.mod h1:wL8QJuTMNUDYhXwkmfOly8iTdp5TEcJFWZD2D7SIkUc=
-github.com/pjmd89/goutils v1.0.0 h1:ZOz80tHZPwm5OiVcDf6VBYSluiLRsxlWHjHvuECdZdE=
-github.com/pjmd89/goutils v1.0.0/go.mod h1:pGXDbPK8JJ7EKA7WFLAxuY6Q8RDOleNoHDmJdQVTiy4=
+github.com/pjmd89/goutils v1.1.0 h1:hb9pIWw2Ev8yShM/5/7BEREApQBpGWkLf/He2UzJ9Yc=
+github.com/pjmd89/goutils v1.1.0/go.mod h1:pGXDbPK8JJ7EKA7WFLAxuY6Q8RDOleNoHDmJdQVTiy4=
 github.com/pjmd89/gqlparser/v2 v2.2.1-0.20220330002356-e1babba1695a h1:RGdqaGezjTFVj5/0CKTWgYhNz9BjQhnzJ4B6AuFJKus=
 github.com/pjmd89/gqlparser/v2 v2.2.1-0.20220330002356-e1babba1695a/go.mod h1:zWPmnjb5TdpfcBRLUZcDqf25R8m+lIN78kvFlIVFwww=
 github.com/pkg/errors v0.9.1/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINEl0=

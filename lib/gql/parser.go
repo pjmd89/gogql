@@ -229,7 +229,7 @@ func (o *gql) selectionParse(operation string, field *ast.Field, parent interfac
 			}
 			if operation == "subscription" && start == 0 {
 				if ok := o.objectTypes[namedType].Subscribe(resolverInfo); ok {
-					resolved, err, namedType = o.resolver(namedType, resolverInfo, isUnion)
+					resolved, err = o.resolver(namedType, resolverInfo, isUnion)
 					typeName = &namedType
 					resolvedProcesed = o.dataResponse(fieldNames, resolved, namedType)
 					if err != nil {
@@ -242,7 +242,7 @@ func (o *gql) selectionParse(operation string, field *ast.Field, parent interfac
 					}
 				}
 			} else {
-				resolved, err, namedType = o.resolver(namedType, resolverInfo, isUnion)
+				resolved, err = o.resolver(namedType, resolverInfo, isUnion)
 				if err != nil {
 					*errList = append(*errList, err)
 				}
@@ -305,8 +305,7 @@ func (o *gql) selectionParse(operation string, field *ast.Field, parent interfac
 	
 	return prepareToSend, isSubscriptionResponse, false
 }
-func (o *gql)resolver(namedType string, resolverInfo resolvers.ResolverInfo, isUnion bool) (r resolvers.DataReturn, err definitionError.GQLError, renamedType string){
-	renamedType = namedType
+func (o *gql)resolver(namedType string, resolverInfo resolvers.ResolverInfo, isUnion bool) (r resolvers.DataReturn, err definitionError.GQLError){
 	
 	switch isUnion{
 	case false:
@@ -325,7 +324,6 @@ func (o *gql)resolver(namedType string, resolverInfo resolvers.ResolverInfo, isU
 					x, err = o.objectTypes[value].Resolver(resolverInfo)
 					
 					if x != nil {
-						renamedType = value
 						switch reflect.TypeOf(x).Kind(){
 						case reflect.Map:
 							rx.([]map[string]any)[rKey] = x.(map[string]any)
@@ -351,7 +349,7 @@ func (o *gql)resolver(namedType string, resolverInfo resolvers.ResolverInfo, isU
 
 							structType := reflect.StructOf(structFields)
 							structValue := reflect.New(structType).Elem()
-
+							
 							for i := 0; i < nV.NumField(); i++ {
 								name:=  nvx.Field(i).Name
 								structValue.Field(i).Set(nV.FieldByName(name))
@@ -368,7 +366,6 @@ func (o *gql)resolver(namedType string, resolverInfo resolvers.ResolverInfo, isU
 		}
 		if len(rdx) > 0{
 			r = rdx
-			fmt.Println(rdx)
 		}
 	}
 	return
