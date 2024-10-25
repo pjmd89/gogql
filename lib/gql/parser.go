@@ -181,8 +181,9 @@ func (o *gql) selectionParse(operation string, field *ast.Field, parent interfac
 	var resolved resolvers.DataReturn
 	var err definitionError.GQLError
 	var resolvedProcesed resolvers.DataReturn
+	namedType := field.Definition.Type.NamedType
 	if field.SelectionSet != nil {
-		namedType := field.Definition.Type.NamedType
+		
 		fieldNames, typeCondition := o.getFieldNames(field.SelectionSet)
 		if fieldElem != nil {
 			namedType = fieldElem.NamedType
@@ -228,7 +229,7 @@ func (o *gql) selectionParse(operation string, field *ast.Field, parent interfac
 			}
 			if operation == "subscription" && start == 0 {
 				if ok := o.objectTypes[namedType].Subscribe(resolverInfo); ok {
-					resolved, err = o.resolver(namedType, resolverInfo, isUnion)
+					resolved, err, namedType = o.resolver(namedType, resolverInfo, isUnion)
 					typeName = &namedType
 					resolvedProcesed = o.dataResponse(fieldNames, resolved, namedType)
 					if err != nil {
@@ -241,7 +242,7 @@ func (o *gql) selectionParse(operation string, field *ast.Field, parent interfac
 					}
 				}
 			} else {
-				resolved, err = o.resolver(namedType, resolverInfo, isUnion)
+				resolved, err, namedType = o.resolver(namedType, resolverInfo, isUnion)
 				if err != nil {
 					*errList = append(*errList, err)
 				}
@@ -296,45 +297,83 @@ func (o *gql) selectionParse(operation string, field *ast.Field, parent interfac
 		if parentProceced != nil {
 			prepareToSend = parentProceced.(map[string]interface{})
 		} else {
-			if field.Name == "__typename" {
-				prepareToSend[field.Alias] = field.ObjectDefinition.Name
-			}
 		}
+		/*
+		if field.Name == "__typename" {
+			prepareToSend[field.Alias] = field.ObjectDefinition.Name
+			//prepareToSend[field.Alias] = namedType
+		}
+		*/
 	}
+	
 	return prepareToSend, isSubscriptionResponse, false
 }
-func (o *gql)resolver(namedType string, resolverInfo resolvers.ResolverInfo, isUnion bool) (r resolvers.DataReturn, err definitionError.GQLError){
+func (o *gql)resolver(namedType string, resolverInfo resolvers.ResolverInfo, isUnion bool) (r resolvers.DataReturn, err definitionError.GQLError, renamedType string){
+	renamedType = namedType
+	
 	switch isUnion{
 	case false:
 		r, err = o.objectTypes[namedType].Resolver(resolverInfo)
 	case true:
-		r, err = o.objectTypes[namedType].Resolver(resolverInfo)
+		var rx resolvers.DataReturn
+		rx, err = o.objectTypes[namedType].Resolver(resolverInfo)
+		var rdx []any
 		for _, value := range o.schema.Types[namedType].Types{
-			switch r.(type){
-
+			switch rx.(type){
 			case []map[string]any:
-				for rKey, rValue := range r.([]map[string]any){
+				
+				for rKey, rValue := range rx.([]map[string]any){
 					resolverInfo.Parent = rValue
 					var x resolvers.DataReturn
 					x, err = o.objectTypes[value].Resolver(resolverInfo)
-					r.([]map[string]any)[rKey] = map[string]any{}
-					if err != nil {
+					
+					if x != nil {
+						renamedType = value
 						switch reflect.TypeOf(x).Kind(){
 						case reflect.Map:
-							r.([]map[string]any)[rKey] = x.(map[string]any)
+							rx.([]map[string]any)[rKey] = x.(map[string]any)
+
 						case reflect.Struct:
-							r.([]interface{})[rKey] = x.(interface{})
+							nV := reflect.ValueOf(x)
+							nvx := reflect.TypeOf(x)
+
+							var structFields []reflect.StructField
+
+							for i := 0; i < nV.NumField(); i++ {
+								structFields = append(structFields, reflect.StructField{
+									Name: nvx.Field(i).Name,
+									Type: nV.Field(i).Type(),
+									Tag: nvx.Field(i).Tag,
+								})
+							}
+							structFields = append(structFields, reflect.StructField{
+								Name: "Typename_",
+								Type: reflect.TypeOf(""),
+								Tag: "gql:\"name=__typename\"",
+							})
+
+							structType := reflect.StructOf(structFields)
+							structValue := reflect.New(structType).Elem()
+
+							for i := 0; i < nV.NumField(); i++ {
+								name:=  nvx.Field(i).Name
+								structValue.Field(i).Set(nV.FieldByName(name))
+							}
+							structValue.FieldByName("Typename_").Set(reflect.ValueOf(value))
+							rdx = append(rdx,structValue.Interface())
 						}	
+					} else{
+						//r.([]map[string]any)[rKey] = map[string]any{}
 					}
 				}
 			case []any:
 			}
-			
+		}
+		if len(rdx) > 0{
+			r = rdx
+			fmt.Println(rdx)
 		}
 	}
-
-		
-		
 	return
 }
 func (o *gql) parseDirectives(directives ast.DirectiveList, typeName string, fieldName string, vars map[string]any) (r resolvers.DirectiveList, err definitionError.GQLError) {
@@ -376,13 +415,11 @@ func (o *gql) getFieldNames(parse ast.SelectionSet) (fields map[string]interface
 
 			fragment := selection.(*ast.InlineFragment)
 			fields[fragment.TypeCondition] = fragment.TypeCondition
-			typeCondition = true
-			/*
+			//typeCondition = true
 				for _, fragmentSelection := range fragment.SelectionSet {
 					field := fragmentSelection.(*ast.Field)
 					fields[field.Name] = field.Alias
 				}
-			*/
 		}
 
 	}
