@@ -13,7 +13,7 @@ import (
 )
 
 // *
-func (o *gql) dataResponse(fieldNames map[string]interface{}, resolved interface{}, resolverName string) (r interface{}) {
+func (o *Gql) dataResponse(fieldNames map[string]interface{}, resolved interface{}, resolverName string, fieldGroup map[string]map[string]string) (r interface{}) {
 	rType := reflect.TypeOf(resolved)
 	if rType != nil {
 		rKind := rType.Kind()
@@ -28,16 +28,15 @@ func (o *gql) dataResponse(fieldNames map[string]interface{}, resolved interface
 			default:
 				r = make([]interface{}, 0)
 				rValue := reflect.ValueOf(resolved)
-
 				for i := 0; i < rValue.Len(); i++ {
-					value := o.dataResponse(fieldNames, rValue.Index(i).Interface(), resolverName)
-					r = append(r.([]interface{}), o.dataResponse(fieldNames, value, resolverName))
+					value := o.dataResponse(fieldNames, rValue.Index(i).Interface(), resolverName,fieldGroup)
+					r = append(r.([]interface{}), o.dataResponse(fieldNames, value, resolverName,fieldGroup))
 				}
 			}
 		case reflect.Ptr:
 			rValue := reflect.ValueOf(resolved)
 			if !rValue.IsNil() {
-				r = o.dataResponse(fieldNames, rValue.Elem().Interface(), resolverName)
+				r = o.dataResponse(fieldNames, rValue.Elem().Interface(), resolverName,fieldGroup)
 			}
 
 		case reflect.Struct:
@@ -64,7 +63,8 @@ func (o *gql) dataResponse(fieldNames map[string]interface{}, resolved interface
 						isNill = rValue.Field(i).IsNil()
 					}
 					if !isNill {
-						data := o.dataResponse(make(map[string]interface{}, 0), rValue.Field(i).Interface(), resolverName)
+						data := o.dataResponse(make(map[string]interface{}, 0), rValue.Field(i).Interface(), resolverName,fieldGroup)
+						fmt.Println(fieldNames[varName])
 						if fieldNames[varName] != nil {
 							y := e.Field(i).Type.Name()
 							if o.scalars[y] != nil {
@@ -91,7 +91,7 @@ func (o *gql) dataResponse(fieldNames map[string]interface{}, resolved interface
 	}
 	return r
 }
-func (o *gql) getTags(e reflect.Type, i int) map[string]string {
+func (o *Gql) getTags(e reflect.Type, i int) map[string]string {
 	tagsContent := make(map[string]string, 0)
 	varTag, _ := e.Field(i).Tag.Lookup("gql")
 	splitTags := strings.Split(varTag, ",")
@@ -108,12 +108,12 @@ func (o *gql) getTags(e reflect.Type, i int) map[string]string {
 
 //*/
 
-func (o *gql) jsonResponse(data interface{}) interface{} {
+func (o *Gql) jsonResponse(data interface{}) interface{} {
 
 	datax := o.prepareJson(data)
 	return datax
 }
-func (o *gql) prepareJson(data interface{}) interface{} {
+func (o *Gql) prepareJson(data interface{}) interface{} {
 	r := "null"
 	rType := reflect.TypeOf(data)
 

@@ -20,7 +20,7 @@ type variableDef[T varDef] struct {
 	data T
 }
 
-func (o *gql) parseArguments(argsRaw ast.ArgumentList, argsDefinition ast.ArgumentDefinitionList, vars map[string]any) (r map[string]interface{}, err definitionError.GQLError) {
+func (o *Gql) parseArguments(argsRaw ast.ArgumentList, argsDefinition ast.ArgumentDefinitionList, vars map[string]any) (r map[string]interface{}, err definitionError.GQLError) {
 	args := make(map[string]*DefaultArguments)
 	for _, val := range argsDefinition {
 		if args[val.Name] == nil {
@@ -55,7 +55,7 @@ func (o *gql) parseArguments(argsRaw ast.ArgumentList, argsDefinition ast.Argume
 	r, err = o.validateArguments(args)
 	return
 }
-func (o *gql) validateArguments(args map[string]*DefaultArguments) (r map[string]interface{}, err definitionError.GQLError) {
+func (o *Gql) validateArguments(args map[string]*DefaultArguments) (r map[string]interface{}, err definitionError.GQLError) {
 	r = make(map[string]interface{}, 0)
 	for k, v := range args {
 		switch v.Kind {
@@ -98,7 +98,7 @@ func (o *gql) validateArguments(args map[string]*DefaultArguments) (r map[string
 	}
 	return
 }
-func (o *gql) parseInputObject(argInput *DefaultArguments) (r interface{}, err definitionError.GQLError) {
+func (o *Gql) parseInputObject(argInput *DefaultArguments) (r interface{}, err definitionError.GQLError) {
 	if argInput != nil {
 		args := make(map[string]*DefaultArguments)
 		inputObject := o.schema.Types[argInput.Type]
@@ -191,7 +191,7 @@ func (o *gql) parseInputObject(argInput *DefaultArguments) (r interface{}, err d
 	}
 	return
 }
-func (o *gql) parseArgChildren(rawArgs ast.ChildValueList, vars map[string]any) interface{} {
+func (o *Gql) parseArgChildren(rawArgs ast.ChildValueList, vars map[string]any) interface{} {
 	var args interface{}
 	mapArgs := make(map[string]interface{}, 0)
 	sliceArgs := make([]interface{}, 0)
@@ -218,7 +218,7 @@ func (o *gql) parseArgChildren(rawArgs ast.ChildValueList, vars map[string]any) 
 	}
 	return args
 }
-func (o *gql) setValue(vArgs any, vars map[string]any) (r any) {
+func (o *Gql) setValue(vArgs any, vars map[string]any) (r any) {
 	switch vArgs.(type) {
 	case *ast.ChildValue:
 		nArgs := vArgs.(*ast.ChildValue)

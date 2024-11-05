@@ -40,7 +40,7 @@ type SourceEvents struct {
 	subscriptionEvents map[OperationID]chan interface{}
 	operationEvents    map[OperationID]map[EventID]*Subscription
 }
-type gql struct {
+type Gql struct {
 	serverName       string
 	schema           *ast.Schema
 	objectTypes      ObjectTypes

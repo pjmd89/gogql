@@ -18,8 +18,8 @@ import (
 	"github.com/pjmd89/gqlparser/v2/ast"
 )
 
-func Init(filesystem systemutils.FSInterface, folder string) *gql {
-	gql := &gql{}
+func Init(filesystem systemutils.FSInterface, folder string) *Gql {
+	gql := &Gql{}
 	gql.loadSchema(filesystem, folder)
 	gql.objectTypes = make(map[string]resolvers.ObjectTypeInterface)
 	gql.directives = make(map[string]resolvers.Directive)
@@ -51,22 +51,22 @@ func OnIntrospection() (err definitionError.GQLError) {
 func OnAuthorizate(authInfo AuthorizateInfo) (err definitionError.GQLError) {
 	return
 }
-func (o *gql) GetScalars() Scalars {
+func (o *Gql) GetScalars() Scalars {
 	return o.scalars
 }
-func (o *gql) GetSchema() *ast.Schema {
+func (o *Gql) GetSchema() *ast.Schema {
 	return o.schema
 }
-func (o *gql) ObjectType(resolver string, object resolvers.ObjectTypeInterface) {
+func (o *Gql) ObjectType(resolver string, object resolvers.ObjectTypeInterface) {
 	o.objectTypes[resolver] = object
 }
-func (o *gql) Directive(resolver string, object resolvers.Directive) {
+func (o *Gql) Directive(resolver string, object resolvers.Directive) {
 	o.directives[resolver] = object
 }
-func (o *gql) Scalar(resolver string, object resolvers.Scalar) {
+func (o *Gql) Scalar(resolver string, object resolvers.Scalar) {
 	o.scalars[resolver] = object
 }
-func (o *gql) scanSchema(filesystem systemutils.FSInterface, folder string) (r []string) {
+func (o *Gql) scanSchema(filesystem systemutils.FSInterface, folder string) (r []string) {
 	files, _ := filesystem.ReadDir(folder)
 	for _, file := range files {
 		if file.IsDir() {
@@ -77,7 +77,7 @@ func (o *gql) scanSchema(filesystem systemutils.FSInterface, folder string) (r [
 	}
 	return
 }
-func (o *gql) loadSchema(filesystem systemutils.FSInterface, folder string) {
+func (o *Gql) loadSchema(filesystem systemutils.FSInterface, folder string) {
 	var schema []*ast.Source
 
 	files := o.scanSchema(filesystem, folder)
@@ -108,7 +108,7 @@ func (o *gql) loadSchema(filesystem systemutils.FSInterface, folder string) {
 
 	o.schema = parser
 }
-func (o *gql) GQLRenderSubscription(mt int, message []byte, socketId, sessionID string) {
+func (o *Gql) GQLRenderSubscription(mt int, message []byte, socketId, sessionID string) {
 	var request WebSocketRequest
 	json.Unmarshal(message, &request)
 	//var response *HttpResponse = &HttpResponse{};
@@ -129,7 +129,7 @@ func (o *gql) GQLRenderSubscription(mt int, message []byte, socketId, sessionID 
 
 	}
 }
-func (o *gql) GQLRender(w http.ResponseWriter, r *http.Request, sessionID string) (isErr bool) {
+func (o *Gql) GQLRender(w http.ResponseWriter, r *http.Request, sessionID string) (isErr bool) {
 	var request HttpRequest
 	isErr = false
 	json.NewDecoder(r.Body).Decode(&request)
@@ -143,7 +143,7 @@ func (o *gql) GQLRender(w http.ResponseWriter, r *http.Request, sessionID string
 	fmt.Fprint(w, str)
 	return
 }
-func (o *gql) WriteWebsocketMessage(mt int, socketId string, requestID RequestID, response *HttpResponse) {
+func (o *Gql) WriteWebsocketMessage(mt int, socketId string, requestID RequestID, response *HttpResponse) {
 	r := `{"id":"` + string(requestID) + `","type":"next","payload":` + response.Data + `}`
 	gqlHttp.WriteWebsocketMessage(mt, socketId, []byte(r))
 }

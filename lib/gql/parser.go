@@ -31,7 +31,7 @@ var introspectionResolver = []string{
 	"__type",
 }
 
-func (o *gql) response(request HttpRequest, sessionID string) (response HttpResponse) {
+func (o *Gql) response(request HttpRequest, sessionID string) (response HttpResponse) {
 	document, err := gqlparser.LoadQuery(o.schema, request.Query)
 
 	if err != nil {
@@ -52,7 +52,7 @@ func (o *gql) response(request HttpRequest, sessionID string) (response HttpResp
 	}
 	return response
 }
-func (o *gql) WebsocketResponse(request HttpRequest, socketId string, requestID RequestID, mt int, sessionID string) {
+func (o *Gql) WebsocketResponse(request HttpRequest, socketId string, requestID RequestID, mt int, sessionID string) {
 	document, err := gqlparser.LoadQuery(o.schema, request.Query)
 	if err != nil {
 		fmt.Println(err.Error())
@@ -72,7 +72,7 @@ func (o *gql) WebsocketResponse(request HttpRequest, socketId string, requestID 
 		}
 	}
 }
-func (o *gql) websocketOperationParse(operation *ast.OperationDefinition, variables map[string]interface{}, socketId string, requestID RequestID, mt int, sessionID string) {
+func (o *Gql) websocketOperationParse(operation *ast.OperationDefinition, variables map[string]interface{}, socketId string, requestID RequestID, mt int, sessionID string) {
 	uuid := uuid.New().String()
 	operationID := OperationID(operation.SelectionSet[0].(*ast.Field).Name)
 	PubSub.createExcecuteEvent(EventID(uuid), operationID, SocketID(socketId), requestID, mt)
@@ -87,7 +87,7 @@ func (o *gql) websocketOperationParse(operation *ast.OperationDefinition, variab
 			while = false
 			break
 		default:
-			vars := o.setVariables(o.schema, operation, variables)
+			vars := o.setVariables( operation, variables)
 			var dataReturn resolvers.DataReturn
 			data := make(map[string]interface{}, 0)
 			isSubscriptionResponse := false
@@ -103,11 +103,11 @@ func (o *gql) websocketOperationParse(operation *ast.OperationDefinition, variab
 		}
 	}
 }
-func (o *gql) operationParse(parse ast.OperationList, variables map[string]interface{}, sessionID string) HttpResponse {
+func (o *Gql) operationParse(parse ast.OperationList, variables map[string]interface{}, sessionID string) HttpResponse {
 	response := HttpResponse{}
 	errList := make(definitionError.ErrorList, 0)
 	for _, operation := range parse {
-		vars := o.setVariables(o.schema, operation, variables)
+		vars := o.setVariables( operation, variables)
 		var dataReturn resolvers.DataReturn
 		var data Response
 		switch operation.Operation {
@@ -122,7 +122,7 @@ func (o *gql) operationParse(parse ast.OperationList, variables map[string]inter
 	}
 	return response
 }
-func (o *gql) setVariables(schema *ast.Schema, operation *ast.OperationDefinition, variables map[string]interface{}) (r map[string]any) {
+func (o *Gql) setVariables(operation *ast.OperationDefinition, variables map[string]interface{}) (r map[string]any) {
 	//las operaciones tambien pueden tener directivas
 	vars, err := validator.VariableValues(o.schema, operation, variables)
 	//validar las variables con los scalar propios
@@ -132,7 +132,7 @@ func (o *gql) setVariables(schema *ast.Schema, operation *ast.OperationDefinitio
 	return vars
 }
 
-func (o *gql) selectionSetParse(operation string, parse ast.SelectionSet, parent interface{}, parentProceced interface{}, typeName *string, start int, subscriptionValue interface{}, vars map[string]any, sessionID string, errList *definitionError.ErrorList) (Response, bool) {
+func (o *Gql) selectionSetParse(operation string, parse ast.SelectionSet, parent interface{}, parentProceced interface{}, typeName *string, start int, subscriptionValue interface{}, vars map[string]any, sessionID string, errList *definitionError.ErrorList) (Response, bool) {
 
 	//var prepareToSend Response
 	isSubscriptionResponse := false
@@ -174,7 +174,7 @@ func (o *gql) selectionSetParse(operation string, parse ast.SelectionSet, parent
 	}
 	return prepareToSend, isSubscriptionResponse
 }
-func (o *gql) selectionParse(operation string, field *ast.Field, parent interface{}, parentProceced interface{}, typeName *string, start int, subscriptionValue interface{}, vars map[string]any, sessionID string, errList *definitionError.ErrorList, isUnion bool) (map[string]interface{}, bool, bool) {
+func (o *Gql) selectionParse(operation string, field *ast.Field, parent interface{}, parentProceced interface{}, typeName *string, start int, subscriptionValue interface{}, vars map[string]any, sessionID string, errList *definitionError.ErrorList, isUnion bool) (map[string]interface{}, bool, bool) {
 	fieldElem := field.Definition.Type.Elem
 	isSubscriptionResponse := false
 	prepareToSend := make(map[string]interface{}, 0)
@@ -184,7 +184,7 @@ func (o *gql) selectionParse(operation string, field *ast.Field, parent interfac
 	namedType := field.Definition.Type.NamedType
 	if field.SelectionSet != nil {
 		
-		fieldNames, typeCondition := o.getFieldNames(field.SelectionSet)
+		fieldNames, typeCondition, fieldGroup := o.getFieldNames(field.SelectionSet)
 		if fieldElem != nil {
 			namedType = fieldElem.NamedType
 		}
@@ -231,7 +231,7 @@ func (o *gql) selectionParse(operation string, field *ast.Field, parent interfac
 				if ok := o.objectTypes[namedType].Subscribe(resolverInfo); ok {
 					resolved, err = o.resolver(namedType, resolverInfo, isUnion)
 					typeName = &namedType
-					resolvedProcesed = o.dataResponse(fieldNames, resolved, namedType)
+					resolvedProcesed = o.dataResponse(fieldNames, resolved, namedType, fieldGroup)
 					if err != nil {
 						*errList = append(*errList, err)
 					}
@@ -251,18 +251,17 @@ func (o *gql) selectionParse(operation string, field *ast.Field, parent interfac
 					return nil, isSubscriptionResponse, true
 				}
 				typeName = &namedType
-				resolvedProcesed = o.dataResponse(fieldNames, resolved, namedType)
+				resolvedProcesed = o.dataResponse(fieldNames, resolved, namedType, fieldGroup)
 			}
 		}
 		if authenticatedError != nil {
-			resolvedProcesed = o.dataResponse(fieldNames, nil, namedType)
+			resolvedProcesed = o.dataResponse(fieldNames, nil, namedType, fieldGroup)
 			*errList = append(*errList, authenticatedError)
 			switch authenticatedError.(type) {
 			case *definitionError.Fatal:
 				return nil, isSubscriptionResponse, true
 			}
 		}
-
 		rType := reflect.TypeOf(resolved)
 		if rType != nil {
 			rKind := rType.Kind()
@@ -289,6 +288,16 @@ func (o *gql) selectionParse(operation string, field *ast.Field, parent interfac
 			if parentProceced != nil {
 				prepareToSend = parentProceced.(map[string]interface{})
 			}
+			
+			if o.schema.Types[namedType].Kind == "UNION"{
+				unionType :=parentProceced.(map[string]interface{})["__typename"]
+				x:= fieldGroup[unionType.(string)]
+				fmt.Println(x)
+				/*if _, ok := fieldGroup[unionType.(string)][varName]; !ok && varName != "__typename"{
+					break
+				}*/
+
+			}
 			prepareToSend[field.Alias] = nil
 			//prepareToSend = parentProceced.(map[string]interface{});
 		}
@@ -302,10 +311,9 @@ func (o *gql) selectionParse(operation string, field *ast.Field, parent interfac
 			}
 		}
 	}
-	
 	return prepareToSend, isSubscriptionResponse, false
 }
-func (o *gql)resolver(namedType string, resolverInfo resolvers.ResolverInfo, isUnion bool) (r resolvers.DataReturn, err definitionError.GQLError){
+func (o *Gql)resolver(namedType string, resolverInfo resolvers.ResolverInfo, isUnion bool) (r resolvers.DataReturn, err definitionError.GQLError){
 	
 	switch isUnion{
 	case false:
@@ -370,7 +378,7 @@ func (o *gql)resolver(namedType string, resolverInfo resolvers.ResolverInfo, isU
 	}
 	return
 }
-func (o *gql) parseDirectives(directives ast.DirectiveList, typeName string, fieldName string, vars map[string]any) (r resolvers.DirectiveList, err definitionError.GQLError) {
+func (o *Gql) parseDirectives(directives ast.DirectiveList, typeName string, fieldName string, vars map[string]any) (r resolvers.DirectiveList, err definitionError.GQLError) {
 	r = make(map[string]interface{}, 0)
 	for _, directive := range directives {
 		args, vError := o.parseArguments(directive.Arguments, directive.Definition.Arguments, vars)
@@ -386,8 +394,10 @@ func (o *gql) parseDirectives(directives ast.DirectiveList, typeName string, fie
 	}
 	return
 }
-func (o *gql) getFieldNames(parse ast.SelectionSet) (fields map[string]interface{}, typeCondition bool) {
+
+func (o *Gql) getFieldNames(parse ast.SelectionSet) (fields map[string]interface{}, typeCondition bool, fieldsGroup map[string]map[string]string) {
 	fields = make(map[string]interface{})
+	fieldsGroup = map[string]map[string]string{}
 	//debo anadir la consulta al
 	for _, selection := range parse {
 		rValue := reflect.ValueOf(selection)
@@ -404,19 +414,24 @@ func (o *gql) getFieldNames(parse ast.SelectionSet) (fields map[string]interface
 			for _, fragmentSelection := range fragmentDef.SelectionSet {
 				field := fragmentSelection.(*ast.Field)
 				fields[field.Name] = field.Alias
+				if _,ok:=fieldsGroup[fragmentDef.TypeCondition]; !ok{
+					fieldsGroup[fragmentDef.TypeCondition] = make(map[string]string)
+				}
+				fieldsGroup[fragmentDef.TypeCondition][field.Name] = field.Alias
 			}
 		case reflect.TypeOf(&ast.InlineFragment{}):
-
 			fragment := selection.(*ast.InlineFragment)
-			fields[fragment.TypeCondition] = fragment.TypeCondition
+			//fields[fragment.TypeCondition] = fragment.TypeCondition
 			//typeCondition = true
-				for _, fragmentSelection := range fragment.SelectionSet {
-					field := fragmentSelection.(*ast.Field)
-					fields[field.Name] = field.Alias
+			for _, fragmentSelection := range fragment.SelectionSet {
+				field := fragmentSelection.(*ast.Field)
+				fields[field.Name] = field.Alias
+				if _,ok:=fieldsGroup[fragment.TypeCondition]; !ok{
+					fieldsGroup[fragment.TypeCondition] = make(map[string]string)
 				}
+				fieldsGroup[fragment.TypeCondition][field.Name] = field.Alias
+			}
 		}
-
 	}
-
 	return
 }
