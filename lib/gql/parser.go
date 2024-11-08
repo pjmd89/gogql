@@ -87,7 +87,7 @@ func (o *Gql) websocketOperationParse(operation *ast.OperationDefinition, variab
 			while = false
 			break
 		default:
-			vars := o.setVariables( operation, variables)
+			vars := o.setVariables(operation, variables)
 			var dataReturn resolvers.DataReturn
 			data := make(map[string]interface{}, 0)
 			isSubscriptionResponse := false
@@ -107,7 +107,7 @@ func (o *Gql) operationParse(parse ast.OperationList, variables map[string]inter
 	response := HttpResponse{}
 	errList := make(definitionError.ErrorList, 0)
 	for _, operation := range parse {
-		vars := o.setVariables( operation, variables)
+		vars := o.setVariables(operation, variables)
 		var dataReturn resolvers.DataReturn
 		var data Response
 		switch operation.Operation {
@@ -146,7 +146,7 @@ func (o *Gql) selectionSetParse(operation string, parse ast.SelectionSet, parent
 		case reflect.TypeOf(&ast.Field{}):
 			field := selection.(*ast.Field)
 			isUnion := false
-			if o.schema.Types[field.Definition.Type.NamedType].Kind == "UNION"{
+			if _, ok := o.schema.Types[field.Definition.Type.NamedType]; ok && o.schema.Types[field.Definition.Type.NamedType].Kind == "UNION" {
 				isUnion = true
 			}
 			prepareToSend, isSubscriptionResponse, stop = o.selectionParse(operation, field, parent, parentProceced, typeName, start, subscriptionValue, vars, sessionID, errList, isUnion)
@@ -183,7 +183,7 @@ func (o *Gql) selectionParse(operation string, field *ast.Field, parent interfac
 	var resolvedProcesed resolvers.DataReturn
 	namedType := field.Definition.Type.NamedType
 	if field.SelectionSet != nil {
-		
+
 		fieldNames, typeCondition, fieldGroup := o.getFieldNames(field.SelectionSet)
 		if fieldElem != nil {
 			namedType = fieldElem.NamedType
@@ -288,10 +288,10 @@ func (o *Gql) selectionParse(operation string, field *ast.Field, parent interfac
 			if parentProceced != nil {
 				prepareToSend = parentProceced.(map[string]interface{})
 			}
-			
-			if o.schema.Types[namedType].Kind == "UNION"{
-				unionType :=parentProceced.(map[string]interface{})["__typename"]
-				x:= fieldGroup[unionType.(string)]
+
+			if o.schema.Types[namedType].Kind == "UNION" {
+				unionType := parentProceced.(map[string]interface{})["__typename"]
+				x := fieldGroup[unionType.(string)]
 				fmt.Println(x)
 				/*if _, ok := fieldGroup[unionType.(string)][varName]; !ok && varName != "__typename"{
 					break
@@ -313,26 +313,26 @@ func (o *Gql) selectionParse(operation string, field *ast.Field, parent interfac
 	}
 	return prepareToSend, isSubscriptionResponse, false
 }
-func (o *Gql)resolver(namedType string, resolverInfo resolvers.ResolverInfo, isUnion bool) (r resolvers.DataReturn, err definitionError.GQLError){
-	
-	switch isUnion{
+func (o *Gql) resolver(namedType string, resolverInfo resolvers.ResolverInfo, isUnion bool) (r resolvers.DataReturn, err definitionError.GQLError) {
+
+	switch isUnion {
 	case false:
 		r, err = o.objectTypes[namedType].Resolver(resolverInfo)
 	case true:
 		var rx resolvers.DataReturn
 		rx, err = o.objectTypes[namedType].Resolver(resolverInfo)
 		var rdx []any
-		for _, value := range o.schema.Types[namedType].Types{
-			switch rx.(type){
+		for _, value := range o.schema.Types[namedType].Types {
+			switch rx.(type) {
 			case []map[string]any:
-				
-				for rKey, rValue := range rx.([]map[string]any){
+
+				for rKey, rValue := range rx.([]map[string]any) {
 					resolverInfo.Parent = rValue
 					var x resolvers.DataReturn
 					x, err = o.objectTypes[value].Resolver(resolverInfo)
-					
+
 					if x != nil {
-						switch reflect.TypeOf(x).Kind(){
+						switch reflect.TypeOf(x).Kind() {
 						case reflect.Map:
 							rx.([]map[string]any)[rKey] = x.(map[string]any)
 
@@ -346,33 +346,33 @@ func (o *Gql)resolver(namedType string, resolverInfo resolvers.ResolverInfo, isU
 								structFields = append(structFields, reflect.StructField{
 									Name: nvx.Field(i).Name,
 									Type: nV.Field(i).Type(),
-									Tag: nvx.Field(i).Tag,
+									Tag:  nvx.Field(i).Tag,
 								})
 							}
 							structFields = append(structFields, reflect.StructField{
 								Name: "Typename_",
 								Type: reflect.TypeOf(""),
-								Tag: "gql:\"name=__typename\"",
+								Tag:  "gql:\"name=__typename\"",
 							})
 
 							structType := reflect.StructOf(structFields)
 							structValue := reflect.New(structType).Elem()
-							
+
 							for i := 0; i < nV.NumField(); i++ {
-								name:=  nvx.Field(i).Name
+								name := nvx.Field(i).Name
 								structValue.Field(i).Set(nV.FieldByName(name))
 							}
 							structValue.FieldByName("Typename_").Set(reflect.ValueOf(value))
-							rdx = append(rdx,structValue.Interface())
-						}	
-					} else{
+							rdx = append(rdx, structValue.Interface())
+						}
+					} else {
 						//r.([]map[string]any)[rKey] = map[string]any{}
 					}
 				}
 			case []any:
 			}
 		}
-		if len(rdx) > 0{
+		if len(rdx) > 0 {
 			r = rdx
 		}
 	}
@@ -414,7 +414,7 @@ func (o *Gql) getFieldNames(parse ast.SelectionSet) (fields map[string]interface
 			for _, fragmentSelection := range fragmentDef.SelectionSet {
 				field := fragmentSelection.(*ast.Field)
 				fields[field.Name] = field.Alias
-				if _,ok:=fieldsGroup[fragmentDef.TypeCondition]; !ok{
+				if _, ok := fieldsGroup[fragmentDef.TypeCondition]; !ok {
 					fieldsGroup[fragmentDef.TypeCondition] = make(map[string]string)
 				}
 				fieldsGroup[fragmentDef.TypeCondition][field.Name] = field.Alias
@@ -426,7 +426,7 @@ func (o *Gql) getFieldNames(parse ast.SelectionSet) (fields map[string]interface
 			for _, fragmentSelection := range fragment.SelectionSet {
 				field := fragmentSelection.(*ast.Field)
 				fields[field.Name] = field.Alias
-				if _,ok:=fieldsGroup[fragment.TypeCondition]; !ok{
+				if _, ok := fieldsGroup[fragment.TypeCondition]; !ok {
 					fieldsGroup[fragment.TypeCondition] = make(map[string]string)
 				}
 				fieldsGroup[fragment.TypeCondition][field.Name] = field.Alias
