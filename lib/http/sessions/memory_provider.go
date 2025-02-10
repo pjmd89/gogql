@@ -13,6 +13,7 @@ type MemoryProvider struct {
 func newMemoryProvider() SessionProvider {
 	return &MemoryProvider{
 		sessions: map[string]interface{}{},
+		lock:     sync.Mutex{},
 	}
 }
 

@@ -17,6 +17,7 @@ type FileProvider struct {
 func newFileProvider(dirPath string) SessionProvider {
 	return &FileProvider{
 		dirPath: dirPath,
+		lock:    sync.Mutex{},
 	}
 }
 
