@@ -31,7 +31,7 @@ var upgrader = websocket.Upgrader{
 var (
 	WsIds          map[string]chan bool       = make(map[string]chan bool)
 	WsChannels     map[string]*websocket.Conn = make(map[string]*websocket.Conn)
-	SessionManager                            = sessions.NewSessionManager(sessions.FILE_PROVIDER, "/var/tmp/gogql", 0)
+	SessionManager                            = sessions.NewSessionManager(sessions.FILE_PROVIDER, "/var/tmp/gogql", 17520)
 	logs           systemutils.Logs
 )
 

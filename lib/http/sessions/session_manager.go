@@ -34,6 +34,7 @@ type SessionManager struct {
 	routineSessions map[uint64]string
 }
 
+// sessMaxLifeTime is in hours
 func NewSessionManager(providerName string, providerConf any, sessMaxLifeTime int) (sm *SessionManager) {
 	var providerObj SessionProvider
 	switch providerName {
@@ -76,7 +77,7 @@ func (o *SessionManager) StartSession(sessionName string, w http.ResponseWriter,
 		}
 		cookie.Path = "/"
 		cookie.HttpOnly = true
-		cookie.Expires = time.Now().AddDate(2, 0, 0)
+		cookie.Expires = time.Now().AddDate(0, 0, o.maxLifetime/24)
 		cookie.Secure = secureCookie
 		cookie.SameSite = http.SameSiteNoneMode
 		o.Init(id, sessionData)
