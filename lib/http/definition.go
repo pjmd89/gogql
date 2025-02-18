@@ -3,7 +3,6 @@ package http
 import (
 	"embed"
 	"net/http"
-	"sync"
 
 	"github.com/gorilla/mux"
 )
@@ -76,9 +75,4 @@ type Http struct {
 	originData   any
 	http404      func()
 	http405      func()
-}
-type SessionManager struct {
-	lock        sync.Mutex
-	maxLifetime int
-	sessions    map[string]interface{}
 }

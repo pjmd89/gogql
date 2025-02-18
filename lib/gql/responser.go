@@ -29,14 +29,14 @@ func (o *Gql) dataResponse(fieldNames map[string]interface{}, resolved interface
 				r = make([]interface{}, 0)
 				rValue := reflect.ValueOf(resolved)
 				for i := 0; i < rValue.Len(); i++ {
-					value := o.dataResponse(fieldNames, rValue.Index(i).Interface(), resolverName,fieldGroup)
-					r = append(r.([]interface{}), o.dataResponse(fieldNames, value, resolverName,fieldGroup))
+					value := o.dataResponse(fieldNames, rValue.Index(i).Interface(), resolverName, fieldGroup)
+					r = append(r.([]interface{}), o.dataResponse(fieldNames, value, resolverName, fieldGroup))
 				}
 			}
 		case reflect.Ptr:
 			rValue := reflect.ValueOf(resolved)
 			if !rValue.IsNil() {
-				r = o.dataResponse(fieldNames, rValue.Elem().Interface(), resolverName,fieldGroup)
+				r = o.dataResponse(fieldNames, rValue.Elem().Interface(), resolverName, fieldGroup)
 			}
 
 		case reflect.Struct:
@@ -63,8 +63,7 @@ func (o *Gql) dataResponse(fieldNames map[string]interface{}, resolved interface
 						isNill = rValue.Field(i).IsNil()
 					}
 					if !isNill {
-						data := o.dataResponse(make(map[string]interface{}, 0), rValue.Field(i).Interface(), resolverName,fieldGroup)
-						fmt.Println(fieldNames[varName])
+						data := o.dataResponse(make(map[string]interface{}, 0), rValue.Field(i).Interface(), resolverName, fieldGroup)
 						if fieldNames[varName] != nil {
 							y := e.Field(i).Type.Name()
 							if o.scalars[y] != nil {

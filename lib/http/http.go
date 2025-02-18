@@ -18,6 +18,7 @@ import (
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
+	"github.com/pjmd89/gogql/lib/http/sessions"
 	"github.com/pjmd89/goutils/jsonutils"
 	"github.com/pjmd89/goutils/systemutils"
 	"golang.org/x/exp/slices"
@@ -26,11 +27,13 @@ import (
 var upgrader = websocket.Upgrader{
 	EnableCompression: true,
 }
-var sessionIndex = map[uint64]string{}
-var WsIds map[string]chan bool = make(map[string]chan bool)
-var WsChannels map[string]*websocket.Conn = make(map[string]*websocket.Conn)
-var Session = SessionManager{}
-var logs systemutils.Logs
+
+var (
+	WsIds          map[string]chan bool       = make(map[string]chan bool)
+	WsChannels     map[string]*websocket.Conn = make(map[string]*websocket.Conn)
+	SessionManager                            = sessions.NewSessionManager(sessions.FILE_PROVIDER, "/var/tmp/gogql", 17520)
+	logs           systemutils.Logs
+)
 
 func Init(sytemlogs systemutils.Logs, configFile string) *Http {
 	logs = sytemlogs
@@ -47,8 +50,10 @@ func Init(sytemlogs systemutils.Logs, configFile string) *Http {
 	if strings.Trim(o.CookieName, " ") == "" {
 		o.CookieName = "GOGQL_SESSION"
 	}
+
 	return o
 }
+
 func (o *Http) SetRest(rest Rest) *Http {
 	o.rest = rest
 	return o
@@ -126,9 +131,8 @@ func (o *Http) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if o.OnSession != nil {
 		sessionData = o.OnSession()
 	}
-	sessionID, err := Session.Init(o.CookieName, 0, w, r, sessionData)
-	o.setSessionIndex(sessionID)
-	defer o.sessionDestroy()
+	sessionID, err := SessionManager.StartSession(o.CookieName, w, r, sessionData)
+	SessionManager.SetRoutineSession(sessionID)
 	if err != nil {
 		logs.System.Error().Println(err.Error())
 	}
@@ -225,21 +229,18 @@ func (o *Http) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if o.OnFinish != nil {
 		o.OnFinish(isErr, uID)
 	}
-	return
+
+	SessionManager.CheckSession(sessionID)
+
 }
 func (o *Http) fileServeHTTP(w http.ResponseWriter, r *http.Request, httpPath *Path, sessionID string) (isErr bool) {
-	var sessionData interface{}
 	var fileStat fs.FileInfo
 	isErr = false
 	if o.OnSession != nil {
-		sessionData = o.OnSession()
+		//sessionData = o.OnSession()
 	}
-	sessionID, err := Session.Init(o.CookieName, 0, w, r, sessionData)
-	o.setSessionIndex(sessionID)
-	defer o.sessionDestroy()
-	if err != nil {
-		logs.System.Error().Println(err.Error())
-	}
+	//o.setSessionIndex(sessionID)
+
 	if strings.Trim(httpPath.Redirect.From, " ") != "" && httpPath.Redirect.From == httpPath.pathURL {
 		http.Redirect(w, r, httpPath.Redirect.To, http.StatusSeeOther)
 		return
@@ -355,14 +356,6 @@ func (o *Http) WebSocketMessage(mt int, message []byte, id string, httpPath *Pat
 
 	//o.gql[httpPath.host].GQLRenderSubscription(mt, message, id, sessionID)
 	o.gql.GQLRenderSubscription(mt, message, id, sessionID)
-}
-func (o *Http) setSessionIndex(sessionID string) {
-	routineID := systemutils.GetRoutineID()
-	sessionIndex[routineID] = sessionID
-}
-func (o *Http) sessionDestroy() {
-	routineID := systemutils.GetRoutineID()
-	delete(sessionIndex, routineID)
 }
 
 func WriteWebsocketMessage(mt int, id string, message []byte) {

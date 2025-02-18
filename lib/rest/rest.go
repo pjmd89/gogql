@@ -38,7 +38,6 @@ func (o *rest) RestRender(w http.ResponseWriter, r *http.Request, sessionID stri
 					},
 				}
 				resolverInfo.RestInfo.SetHTTPRequest(r)
-				fmt.Println()
 				response, restError := v.ObjectType.Resolver(resolverInfo)
 				if restError != nil {
 					isErr = true
