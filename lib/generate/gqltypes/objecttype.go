@@ -2,6 +2,7 @@ package gqltypes
 
 import (
 	"bytes"
+	"fmt"
 	"go/format"
 	"log"
 	"os"
@@ -87,11 +88,13 @@ func ObjectTypeTmpl(types generate.RenderTypes) {
 		os.MkdirAll(dir, 0770)
 		file, err := os.Create(v.FilePath)
 		if err != nil {
+			fmt.Printf("Error en object type file %s: %s - ", v.FilePath, err)
 			panic(err)
 		}
 		var tmpl bytes.Buffer
 		err = mt.Execute(&tmpl, v)
 		if err != nil {
+			fmt.Printf("Error creando object type %s: %s - ", v.Name, err)
 			panic(err)
 		}
 		/*

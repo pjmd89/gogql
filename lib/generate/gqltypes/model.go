@@ -2,6 +2,7 @@ package gqltypes
 
 import (
 	"bytes"
+	"fmt"
 	"go/format"
 	"log"
 	"os"
@@ -224,16 +225,19 @@ func ModelTmpl(types generate.RenderTypes) {
 		os.MkdirAll(dir, 0770)
 		modelFile, err := os.Create(v.FilePath)
 		if err != nil {
+			fmt.Printf("Error creando Model %s: %s - ", v.FilePath, err)
 			panic(err)
 		}
 
 		var tmpl bytes.Buffer
 		err = mt.Execute(&tmpl, v)
 		if err != nil {
+			fmt.Printf("Error creando model %s: %s - ", v.Name, err)
 			panic(err)
 		}
 		x, err := format.Source(tmpl.Bytes())
 		if err != nil {
+			fmt.Printf("Error creando model %s: %s - ", v.Name, err)
 			log.Fatal(err.Error())
 		}
 		modelFile.Write(x)

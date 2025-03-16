@@ -2,6 +2,7 @@ package gqltypes
 
 import (
 	"bytes"
+	"fmt"
 	"go/format"
 	"os"
 	"path/filepath"
@@ -37,12 +38,14 @@ func EnumTmpl(types generate.RenderTypes) {
 		os.MkdirAll(dir, 0770)
 		modelFile, err := os.Create(v.FilePath)
 		if err != nil {
+			fmt.Printf("Error en enum file %s: %s - ", v.FilePath, err)
 			panic(err)
 		}
 
 		var tmpl bytes.Buffer
 		err = ut.Execute(&tmpl, v)
 		if err != nil {
+			fmt.Printf("Error creando enum %s: %s - ", v.Name, err)
 			panic(err)
 		}
 		x, _ := format.Source(tmpl.Bytes())

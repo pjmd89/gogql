@@ -2,6 +2,7 @@ package gqltypes
 
 import (
 	"bytes"
+	"fmt"
 	"go/format"
 	"os"
 	"path/filepath"
@@ -38,6 +39,7 @@ func UnionTmpl(types generate.RenderTypes) {
 		var tmpl bytes.Buffer
 		err = et.Execute(&tmpl, types.UnionType)
 		if err != nil {
+			fmt.Printf("error en union %s: %s", types.UnionType.FilePath, err.Error())
 			panic(err)
 		}
 		x, _ := format.Source(tmpl.Bytes())
