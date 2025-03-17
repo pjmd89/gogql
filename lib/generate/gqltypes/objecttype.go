@@ -83,6 +83,7 @@ func ObjectTypeTmpl(types generate.RenderTypes) {
 		panic(err)
 	}
 	for _, v := range types.ObjectType {
+		fmt.Println("Generando object type", v.Name, v.FilePath)
 		//definitions
 		dir := filepath.Dir(v.FilePath)
 		os.MkdirAll(dir, 0770)
