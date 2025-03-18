@@ -60,10 +60,10 @@ func httpCheckOrigin(url http.URL) (r bool, info interface{}) {
     r = true
 	return
 }
-func httpOnBegin(url http.URL, httpPath *http.Path, originData interface{}) (r bool) {
-	return true
+func httpOnBegin(url http.URL, httpPath *http.Path, originData interface{}, uid string) (r bool) {
+	return
 }
-func httpOnFinish() {}
+func httpOnFinish(isErr bool, uid string) {}
 func OnIntrospection() (err definitionError.GQLError) {
 	return
 }
