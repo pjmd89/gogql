@@ -1,30 +1,30 @@
-package sessions
+package http
 
 import (
 	"fmt"
 	"sync"
 )
 
-type MemoryProvider struct {
+type memoryProvider struct {
 	sessions map[string]interface{}
 	lock     sync.Mutex
 }
 
-func newMemoryProvider() SessionProvider {
-	return &MemoryProvider{
+func newMemoryProvider() sessionProvider {
+	return &memoryProvider{
 		sessions: map[string]interface{}{},
 		lock:     sync.Mutex{},
 	}
 }
 
-func (o *MemoryProvider) Init(sessionID string, sessionData interface{}) (err error) {
+func (o *memoryProvider) init(sessionID string, sessionData interface{}) (err error) {
 	o.lock.Lock()
 	o.sessions[sessionID] = sessionData
 	o.lock.Unlock()
 	return
 }
 
-func (o *MemoryProvider) Get(sessionID string, dataReceiver any) (r interface{}, err error) {
+func (o *memoryProvider) Get(sessionID string) (r interface{}, err error) {
 	if _, ok := o.sessions[sessionID]; ok {
 		r = o.sessions[sessionID]
 	} else {
@@ -33,10 +33,10 @@ func (o *MemoryProvider) Get(sessionID string, dataReceiver any) (r interface{},
 	return
 }
 
-func (o *MemoryProvider) Count() (r int, err error) {
+func (o *memoryProvider) Count() (r int, err error) {
 	return len(o.sessions), nil
 }
-func (o *MemoryProvider) Set(sessionID string, sessionData interface{}) (err error) {
+func (o *memoryProvider) Set(sessionID string, sessionData interface{}) (err error) {
 	o.lock.Lock()
 	defer o.lock.Unlock()
 	if _, ok := o.sessions[sessionID]; ok {
@@ -47,7 +47,7 @@ func (o *MemoryProvider) Set(sessionID string, sessionData interface{}) (err err
 	return
 }
 
-func (o *MemoryProvider) Destroy(sessionID string) (err error) {
+func (o *memoryProvider) Destroy(sessionID string) (err error) {
 	o.lock.Lock()
 	defer o.lock.Unlock()
 	if _, ok := o.sessions[sessionID]; !ok {
@@ -57,4 +57,11 @@ func (o *MemoryProvider) Destroy(sessionID string) (err error) {
 
 	delete(o.sessions, sessionID)
 	return
+}
+
+func (o *memoryProvider) garbageCollector(sessMaxLifeTime int64) {
+
+}
+func (o *memoryProvider) updateSessionAccess(sessionID string) {
+
 }

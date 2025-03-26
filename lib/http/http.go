@@ -18,7 +18,6 @@ import (
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
-	"github.com/pjmd89/gogql/lib/http/sessions"
 	"github.com/pjmd89/goutils/jsonutils"
 	"github.com/pjmd89/goutils/systemutils"
 	"golang.org/x/exp/slices"
@@ -31,8 +30,8 @@ var upgrader = websocket.Upgrader{
 var (
 	WsIds          map[string]chan bool       = make(map[string]chan bool)
 	WsChannels     map[string]*websocket.Conn = make(map[string]*websocket.Conn)
-	SessionManager                            = sessions.NewSessionManager(sessions.FILE_PROVIDER, "/var/tmp/gogql", 17520)
 	logs           systemutils.Logs
+	SessionManager *sessionManager
 )
 
 func Init(sytemlogs systemutils.Logs, configFile string) *Http {
@@ -50,7 +49,23 @@ func Init(sytemlogs systemutils.Logs, configFile string) *Http {
 	if strings.Trim(o.CookieName, " ") == "" {
 		o.CookieName = "GOGQL_SESSION"
 	}
+	if strings.Trim(o.SessionPath, " ") == "" {
+		o.SessionPath = "/var/tmp/gogql"
+	}
 
+	if o.SessionMaxLifetime < 0 {
+		panic("session max lifetime can't be lower than 0")
+	}
+
+	provider := FILE_PROVIDER
+	switch o.SessionProvider {
+	case "memory":
+		provider = MEMORY_PROVIDER
+	case "database":
+		provider = DATABASE_PROVIDER
+	}
+
+	SessionManager = newSessionManager(provider, o.SessionPath, o.SessionMaxLifetime)
 	return o
 }
 
@@ -98,6 +113,8 @@ func (o *Http) Start() {
 			tlsConfig.Certificates = append(tlsConfig.Certificates, tmp)
 		}
 	}
+
+	go SessionManager.garbageCollector(SessionManager.maxLifetime)
 	logs.System.Info().Println("http server start")
 	go o.listenHttp(channel, hTTPService)
 	if isTls {
@@ -131,8 +148,8 @@ func (o *Http) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if o.OnSession != nil {
 		sessionData = o.OnSession()
 	}
-	sessionID, err := SessionManager.StartSession(o.CookieName, w, r, sessionData)
-	SessionManager.SetRoutineSession(sessionID)
+	sessionID, err := SessionManager.startSession(o.CookieName, w, r, sessionData)
+	SessionManager.setRoutineSession(sessionID)
 	if err != nil {
 		logs.System.Error().Println(err.Error())
 	}
@@ -230,7 +247,7 @@ func (o *Http) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		o.OnFinish(isErr, uID)
 	}
 
-	SessionManager.CheckSession(sessionID)
+	SessionManager.checkSession(sessionID)
 
 }
 func (o *Http) fileServeHTTP(w http.ResponseWriter, r *http.Request, httpPath *Path, sessionID string) (isErr bool) {

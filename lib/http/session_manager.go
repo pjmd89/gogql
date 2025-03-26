@@ -1,4 +1,4 @@
-package sessions
+package http
 
 import (
 	"crypto/rand"
@@ -13,30 +13,8 @@ import (
 	"github.com/pjmd89/goutils/systemutils"
 )
 
-const (
-	DATABASE_PROVIDER = "database"
-	FILE_PROVIDER     = "file"
-	MEMORY_PROVIDER   = "memory"
-)
-
-type SessionProvider interface {
-	Init(sessionID string, sessionData interface{}) (err error)
-	Set(sessionID string, sessionData interface{}) (err error)
-	Get(sessionID string, dataReceiver any) (r interface{}, err error)
-	Destroy(sessionID string) (err error)
-	Count() (r int, err error)
-}
-
-type SessionManager struct {
-	lock        sync.Mutex
-	maxLifetime int
-	SessionProvider
-	routineSessions map[uint64]string
-}
-
-// sessMaxLifeTime is in hours
-func NewSessionManager(providerName string, providerConf any, sessMaxLifeTime int) (sm *SessionManager) {
-	var providerObj SessionProvider
+func newSessionManager(providerName ProviderKind, providerConf any, sessMaxLifeTime int64) (sm *sessionManager) {
+	var providerObj sessionProvider
 	switch providerName {
 	case DATABASE_PROVIDER:
 	case MEMORY_PROVIDER:
@@ -47,16 +25,16 @@ func NewSessionManager(providerName string, providerConf any, sessMaxLifeTime in
 		panic("unknown provider")
 	}
 
-	sm = &SessionManager{
+	sm = &sessionManager{
 		lock:            sync.Mutex{},
 		maxLifetime:     sessMaxLifeTime,
-		SessionProvider: providerObj,
+		sessionProvider: providerObj,
 	}
 
 	return
 }
 
-func (o *SessionManager) StartSession(sessionName string, w http.ResponseWriter, r *http.Request, sessionData interface{}) (id string, err error) {
+func (o *sessionManager) startSession(sessionName string, w http.ResponseWriter, r *http.Request, sessionData interface{}) (id string, err error) {
 	o.lock.Lock()
 	cookie, err := r.Cookie(sessionName)
 	secureCookie := false
@@ -68,8 +46,8 @@ func (o *SessionManager) StartSession(sessionName string, w http.ResponseWriter,
 		id = cookie.Value
 	}
 
-	_, getErr := o.Get(id, nil)
-	if err != nil || cookie == nil || getErr != nil {
+	_, getErr := o.Get(id)
+	if err != nil || getErr != nil {
 		id = o.sessionID()
 		cookie = &http.Cookie{
 			Name:  sessionName,
@@ -77,20 +55,22 @@ func (o *SessionManager) StartSession(sessionName string, w http.ResponseWriter,
 		}
 		cookie.Path = "/"
 		cookie.HttpOnly = true
-		cookie.Expires = time.Now().AddDate(0, 0, o.maxLifetime/24)
 		cookie.Secure = secureCookie
 		cookie.SameSite = http.SameSiteNoneMode
-		o.Init(id, sessionData)
+		o.init(id, sessionData)
 		http.SetCookie(w, cookie)
+	} else {
+		o.updateSessionAccess(id)
 	}
+	cookie.Expires = time.Now().Add(time.Second * time.Duration(o.maxLifetime))
 	o.lock.Unlock()
 	return
 }
 
-func (o *SessionManager) CheckSession(sessionID string) {
-	providerName := reflect.TypeOf(o.SessionProvider).Elem().Name()
+func (o *sessionManager) checkSession(sessionID string) {
+	providerName := reflect.TypeOf(o.sessionProvider).Elem().Name()
 	if providerName == "MemoryProvider" {
-		sessVal, sessErr := o.Get(sessionID, nil)
+		sessVal, sessErr := o.Get(sessionID)
 		if sessErr == nil && sessVal == nil {
 			o.Destroy(sessionID)
 		}
@@ -99,23 +79,27 @@ func (o *SessionManager) CheckSession(sessionID string) {
 	delete(o.routineSessions, routineID)
 }
 
-func (o *SessionManager) GetSessionByRoutine(dataReceiver any) (r interface{}, err error) {
+func (o *sessionManager) GetSessionByRoutine(dataReceiver any) (r any, err error) {
 	routineID := systemutils.GetRoutineID()
 	if sessID, isIn := o.routineSessions[routineID]; isIn {
-		r, err = o.SessionProvider.Get(sessID, dataReceiver)
+		r, err = o.sessionProvider.Get(sessID)
 	}
+
 	return
 }
 
-func (o *SessionManager) SetRoutineSession(sid string) {
+func (o *sessionManager) setRoutineSession(sid string) {
 	routineID := systemutils.GetRoutineID()
+	o.lock.Lock()
 	if o.routineSessions == nil {
 		o.routineSessions = make(map[uint64]string)
 	}
+
 	o.routineSessions[routineID] = sid
+	o.lock.Unlock()
 }
 
-func (o *SessionManager) sessionID() string {
+func (o *sessionManager) sessionID() string {
 	id := make([]byte, 32)
 	if _, err := io.ReadFull(rand.Reader, id); err != nil {
 		return ""
