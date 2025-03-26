@@ -3,6 +3,7 @@ package http
 import (
 	"embed"
 	"net/http"
+	"sync"
 
 	"github.com/gorilla/mux"
 )
@@ -58,21 +59,49 @@ type server struct {
 	Path            []Path   `json:"path,omitempty"`
 }
 type Http struct {
-	HttpPort     string   `json:"httpPort,omitempty"`
-	HttpsPort    string   `json:"httpsPort,omitempty"`
-	CookieName   string   `json:"cookieName,omitempty"`
-	Server       []server `json:"server,omitempty"`
-	embed        *embed.FS
-	httpService  mux.Router
-	httpsService mux.Router
-	router       *mux.Router
-	gql          Gql
-	rest         Rest
-	CheckOrigin  func(url URL) (bool, interface{})
-	OnBegin      func(url URL, httpPath *Path, originData interface{}, uid string) bool
-	OnFinish     func(isErr bool, uid string)
-	OnSession    func() (r interface{})
-	originData   any
-	http404      func()
-	http405      func()
+	HttpPort           string   `json:"httpPort,omitempty"`
+	HttpsPort          string   `json:"httpsPort,omitempty"`
+	CookieName         string   `json:"cookieName,omitempty"`
+	SessionPath        string   `json:"sessionPath,omitempty"`
+	SessionMaxLifetime int64    `json:"sessionMaxLifetime,omitempty"`
+	SessionProvider    string   `json:"sessionProvider,omitempty"`
+	Server             []server `json:"server,omitempty"`
+	embed              *embed.FS
+	httpService        mux.Router
+	httpsService       mux.Router
+	router             *mux.Router
+	gql                Gql
+	rest               Rest
+	CheckOrigin        func(url URL) (bool, interface{})
+	OnBegin            func(url URL, httpPath *Path, originData interface{}, uid string) bool
+	OnFinish           func(isErr bool, uid string)
+	OnSession          func() (r interface{})
+	originData         any
+	http404            func()
+	http405            func()
+}
+
+type ProviderKind int
+
+const (
+	DATABASE_PROVIDER ProviderKind = iota
+	FILE_PROVIDER
+	MEMORY_PROVIDER
+)
+
+type sessionProvider interface {
+	init(sessionID string, sessionData any) (err error)
+	Set(sessionID string, sessionData any) (err error)
+	Get(sessionID string) (r any, err error)
+	Destroy(sessionID string) (err error)
+	Count() (r int, err error)
+	garbageCollector(sessMaxLifeTime int64)
+	updateSessionAccess(sessionID string)
+}
+
+type sessionManager struct {
+	lock        sync.Mutex
+	maxLifetime int64 //sessMaxLifeTime is in seconds
+	sessionProvider
+	routineSessions map[uint64]string
 }

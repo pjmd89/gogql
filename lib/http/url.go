@@ -45,10 +45,8 @@ func (o *URL) Split(r *http.Request) {
 		switch o.Scheme {
 		case "http":
 			o.Scheme = "https"
-			break
 		case "ws":
 			o.Scheme = "wss"
-			break
 		}
 	}
 
