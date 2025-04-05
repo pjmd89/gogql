@@ -34,11 +34,13 @@ func (o *SourceEvents) listenExcecuteEvent(operationID OperationID, eventID Even
 	http.WsLocker.Lock()
 	operationEvents, ok := o.operationEvents[operationID]
 	if !ok {
+		http.WsLocker.Unlock()
 		return
 	}
 
 	subscriptionData, ok := operationEvents[eventID]
 	if !ok {
+		http.WsLocker.Unlock()
 		return
 	}
 
