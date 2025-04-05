@@ -386,8 +386,8 @@ func (o *Http) WebSocketMessage(mt int, message []byte, id string, httpPath *Pat
 
 func WriteWebsocketMessage(mt int, id string, message []byte) {
 	WsLocker.Lock()
-	defer WsLocker.Unlock()
 	websocketConn, exists := WsChannels[id]
+	WsLocker.Unlock()
 	if exists {
 		websocketConn.WriteMessage(mt, message)
 	}
