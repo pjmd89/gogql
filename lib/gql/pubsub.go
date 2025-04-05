@@ -52,9 +52,9 @@ func (o *SourceEvents) listenExcecuteEvent(operationID OperationID, eventID Even
 		eventValue = subscriptionData.value
 	case <-websocketChannel:
 		http.WsLocker.Lock()
-		defer http.WsLocker.Unlock()
 		close(subscriptionData.channel)
 		delete(o.operationEvents[operationID], eventID)
+		http.WsLocker.Unlock()
 	}
 	return
 }
