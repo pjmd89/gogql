@@ -76,7 +76,9 @@ func (o *sessionManager) checkSession(sessionID string) {
 		}
 	}
 	routineID := systemutils.GetRoutineID()
+	o.lock.Lock()
 	delete(o.routineSessions, routineID)
+	o.lock.Unlock()
 }
 
 func (o *sessionManager) GetSessionByRoutine(dataReceiver any) (r any, err error) {

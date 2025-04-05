@@ -15,7 +15,8 @@ func (o *SourceEvents) createSubscriptionEvent(operationID OperationID) {
 
 // se ejecuta en el momento de crear una subscripcion cuando llega la peticion desde websocket
 func (o *SourceEvents) createExcecuteEvent(eventId EventID, operationId OperationID, socketId SocketID, requestID RequestID, mt int) {
-
+	http.WsLocker.Lock()
+	defer http.WsLocker.Unlock()
 	if o.operationEvents[operationId] == nil {
 		o.operationEvents[operationId] = make(map[EventID]*Subscription, 0)
 	}
@@ -28,15 +29,32 @@ func (o *SourceEvents) createExcecuteEvent(eventId EventID, operationId Operatio
 		channel:     make(chan bool),
 	}
 }
-func (o *SourceEvents) listenExcecuteEvent(operationID OperationID, eventID EventID) interface{} {
-	select {
-	case <-o.operationEvents[operationID][eventID].channel:
-		return o.operationEvents[operationID][eventID].value
-	case <-http.WsIds[string(o.operationEvents[operationID][eventID].socketID)]:
-		close(o.operationEvents[operationID][eventID].channel)
-		delete(o.operationEvents[operationID], eventID)
-		return &SubscriptionClose{}
+func (o *SourceEvents) listenExcecuteEvent(operationID OperationID, eventID EventID) (eventValue any) {
+	eventValue = &SubscriptionClose{}
+	http.WsLocker.Lock()
+	operationEvents, ok := o.operationEvents[operationID]
+	if !ok {
+		return
 	}
+
+	subscriptionData, ok := operationEvents[eventID]
+	if !ok {
+		return
+	}
+
+	websocketChannel := http.WsIds[string(subscriptionData.socketID)]
+	http.WsLocker.Unlock()
+
+	select {
+	case <-subscriptionData.channel:
+		eventValue = subscriptionData.value
+	case <-websocketChannel:
+		http.WsLocker.Lock()
+		defer http.WsLocker.Unlock()
+		close(subscriptionData.channel)
+		delete(o.operationEvents[operationID], eventID)
+	}
+	return
 }
 func (o *SourceEvents) listenSubscriptionEvent(operationID OperationID) {
 	for {
@@ -50,5 +68,7 @@ func (o *SourceEvents) listenSubscriptionEvent(operationID OperationID) {
 	}
 }
 func (o *SourceEvents) Publish(operationID OperationID, value interface{}) {
+	http.WsLocker.Lock()
+	defer http.WsLocker.Unlock()
 	o.subscriptionEvents[operationID] <- value
 }

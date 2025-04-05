@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/google/uuid"
@@ -30,6 +31,7 @@ var upgrader = websocket.Upgrader{
 var (
 	WsIds          map[string]chan bool       = make(map[string]chan bool)
 	WsChannels     map[string]*websocket.Conn = make(map[string]*websocket.Conn)
+	WsLocker                                  = sync.Mutex{}
 	logs           systemutils.Logs
 	SessionManager *sessionManager
 )
@@ -314,32 +316,38 @@ func (o *Http) websocketServeHTTP(w http.ResponseWriter, r *http.Request, httpPa
 	headers.Set("Access-Control-Allow-Credentials", "true")
 	headers.Set("Access-Control-Allow-Origin", httpPath.origin)
 
-	id := uuid.New().String()
-	WsIds[id] = make(chan bool, 1)
-	var upgraderError error
+	var (
+		conn          *websocket.Conn
+		upgraderError error
+	)
 	upgrader.CheckOrigin = func(r *http.Request) bool { return true }
-	WsChannels[id], upgraderError = upgrader.Upgrade(w, r, headers)
-	if upgraderError != nil {
-		select {
-		case WsIds[id] <- false:
-		}
+	deleteSocketID := func(id string) {
+		WsIds[id] <- false
 		close(WsIds[id])
 		delete(WsIds, id)
 		delete(WsChannels, id)
-		fmt.Println(len(WsChannels))
 	}
-	defer WsChannels[id].Close()
-	while := true
-	for while {
-		mt, message, err := WsChannels[id].ReadMessage()
+
+	WsLocker.Lock()
+	id := uuid.New().String()
+	WsIds[id] = make(chan bool, 1)
+	WsChannels[id], upgraderError = upgrader.Upgrade(w, r, headers)
+	if upgraderError != nil {
+		deleteSocketID(id)
+		logs.System.Error().Println("error upgrading server to websocket")
+		fmt.Fprint(w, "error upgrading server to websocket")
+		return true
+	}
+	conn = WsChannels[id]
+	WsLocker.Unlock()
+	for {
+		mt, message, err := conn.ReadMessage()
 		if err != nil {
-			select {
-			case WsIds[id] <- false:
-			}
-			close(WsIds[id])
-			delete(WsIds, id)
-			delete(WsChannels, id)
-			while = false
+			conn.Close()
+			WsLocker.Lock()
+			deleteSocketID(id)
+			WsLocker.Unlock()
+			logs.System.Error().Println("error trying to read websocket message")
 			isErr = true
 			break
 		}
@@ -347,6 +355,7 @@ func (o *Http) websocketServeHTTP(w http.ResponseWriter, r *http.Request, httpPa
 	}
 	return
 }
+
 func (o *Http) listenHttp(channel chan bool, handler *http.Server) {
 	channel <- false
 	err := handler.ListenAndServe()
@@ -376,8 +385,11 @@ func (o *Http) WebSocketMessage(mt int, message []byte, id string, httpPath *Pat
 }
 
 func WriteWebsocketMessage(mt int, id string, message []byte) {
-	if WsChannels[id] != nil {
-		WsChannels[id].WriteMessage(mt, message)
+	WsLocker.Lock()
+	defer WsLocker.Unlock()
+	websocketConn, exists := WsChannels[id]
+	if exists {
+		websocketConn.WriteMessage(mt, message)
 	}
 }
 func contains(s []interface{}, e int) bool {
