@@ -334,7 +334,7 @@ func (o *Http) websocketServeHTTP(w http.ResponseWriter, r *http.Request, httpPa
 	WsChannels[id], upgraderError = upgrader.Upgrade(w, r, headers)
 	if upgraderError != nil {
 		deleteSocketID(id)
-		logs.System.Error().Println("error upgrading server to websocket")
+		logs.System.Error().Println("error upgrading server to websocket", upgraderError.Error())
 		fmt.Fprint(w, "error upgrading server to websocket")
 		return true
 	}
@@ -347,7 +347,7 @@ func (o *Http) websocketServeHTTP(w http.ResponseWriter, r *http.Request, httpPa
 			WsLocker.Lock()
 			deleteSocketID(id)
 			WsLocker.Unlock()
-			logs.System.Error().Println("error trying to read websocket message")
+			logs.System.Error().Println("error trying to read websocket message: ", err.Error())
 			isErr = true
 			break
 		}
