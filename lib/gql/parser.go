@@ -85,7 +85,6 @@ func (o *Gql) websocketOperationParse(operation *ast.OperationDefinition, variab
 		switch rType {
 		case reflect.TypeOf(&SubscriptionClose{}):
 			while = false
-			break
 		default:
 			vars := o.setVariables(operation, variables)
 			var dataReturn resolvers.DataReturn
