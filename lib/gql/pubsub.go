@@ -71,6 +71,7 @@ func (o *SourceEvents) listenSubscriptionEvent(operationID OperationID) {
 }
 func (o *SourceEvents) Publish(operationID OperationID, value interface{}) {
 	http.WsLocker.Lock()
-	defer http.WsLocker.Unlock()
-	o.subscriptionEvents[operationID] <- value
+	val := o.subscriptionEvents[operationID]
+	http.WsLocker.Unlock()
+	val <- value
 }
