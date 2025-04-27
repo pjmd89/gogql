@@ -144,11 +144,8 @@ func (o *Gql) selectionSetParse(operation string, parse ast.SelectionSet, parent
 		switch rField.Type() {
 		case reflect.TypeOf(&ast.Field{}):
 			field := selection.(*ast.Field)
-			isUnion := false
-			if _, ok := o.schema.Types[field.Definition.Type.NamedType]; ok && o.schema.Types[field.Definition.Type.NamedType].Kind == "UNION" {
-				isUnion = true
-			}
-			prepareToSend, isSubscriptionResponse, stop = o.selectionParse(operation, field, parent, parentProceced, typeName, start, subscriptionValue, vars, sessionID, errList, isUnion)
+			fieldTypeIsUnion := o.typeIsUnion(field)
+			prepareToSend, isSubscriptionResponse, stop = o.selectionParse(operation, field, parent, parentProceced, typeName, start, subscriptionValue, vars, sessionID, errList, fieldTypeIsUnion)
 		case reflect.TypeOf(&ast.FragmentSpread{}):
 			fragment := selection.(*ast.FragmentSpread)
 			fragmentDef := fragment.Definition
@@ -173,8 +170,22 @@ func (o *Gql) selectionSetParse(operation string, parse ast.SelectionSet, parent
 	}
 	return prepareToSend, isSubscriptionResponse
 }
+
+func (o *Gql) typeIsUnion(field *ast.Field) (isUnion bool) {
+	namedType := field.Definition.Type.NamedType
+	if field.Definition.Type.Elem != nil {
+		namedType = field.Definition.Type.Elem.NamedType
+	}
+
+	if val, ok := o.schema.Types[namedType]; ok && val.Kind == "UNION" {
+		isUnion = true
+	}
+
+	return
+}
 func (o *Gql) selectionParse(operation string, field *ast.Field, parent interface{}, parentProceced interface{}, typeName *string, start int, subscriptionValue interface{}, vars map[string]any, sessionID string, errList *definitionError.ErrorList, isUnion bool) (map[string]interface{}, bool, bool) {
 	fieldElem := field.Definition.Type.Elem
+	isArr := field.Definition.Type.Elem != nil
 	isSubscriptionResponse := false
 	prepareToSend := make(map[string]interface{}, 0)
 	var resolved resolvers.DataReturn
@@ -199,7 +210,7 @@ func (o *Gql) selectionParse(operation string, field *ast.Field, parent interfac
 			authenticatedError = o.OnIntrospection()
 		}
 
-		if o.objectTypes[namedType] != nil && authenticatedError == nil {
+		if o.objectTypes[namedType] != nil && authenticatedError == nil || isUnion {
 			args, vError := o.parseArguments(field.Arguments, field.Definition.Arguments, vars)
 			var argumentError definitionError.GQLError
 			if vError != nil {
@@ -228,7 +239,7 @@ func (o *Gql) selectionParse(operation string, field *ast.Field, parent interfac
 			}
 			if operation == "subscription" && start == 0 {
 				if ok := o.objectTypes[namedType].Subscribe(resolverInfo); ok {
-					resolved, err = o.resolver(namedType, resolverInfo, isUnion)
+					resolved, err = o.resolver(isArr, namedType, resolverInfo, isUnion)
 					typeName = &namedType
 					resolvedProcesed = o.dataResponse(fieldNames, resolved, namedType, fieldGroup)
 					if err != nil {
@@ -241,7 +252,7 @@ func (o *Gql) selectionParse(operation string, field *ast.Field, parent interfac
 					}
 				}
 			} else {
-				resolved, err = o.resolver(namedType, resolverInfo, isUnion)
+				resolved, err = o.resolver(isArr, namedType, resolverInfo, isUnion)
 				if err != nil {
 					*errList = append(*errList, err)
 				}
@@ -287,16 +298,10 @@ func (o *Gql) selectionParse(operation string, field *ast.Field, parent interfac
 			if parentProceced != nil {
 				prepareToSend = parentProceced.(map[string]interface{})
 			}
-
-			if o.schema.Types[namedType].Kind == "UNION" {
-				unionType := parentProceced.(map[string]interface{})["__typename"]
-				x := fieldGroup[unionType.(string)]
-				fmt.Println(x)
-				/*if _, ok := fieldGroup[unionType.(string)][varName]; !ok && varName != "__typename"{
-					break
-				}*/
-
+			/*if _, ok := fieldGroup[unionType.(string)][varName]; !ok && varName != "__typename"{
+				break
 			}
+			*/
 			prepareToSend[field.Alias] = nil
 			//prepareToSend = parentProceced.(map[string]interface{});
 		}
@@ -312,69 +317,63 @@ func (o *Gql) selectionParse(operation string, field *ast.Field, parent interfac
 	}
 	return prepareToSend, isSubscriptionResponse, false
 }
-func (o *Gql) resolver(namedType string, resolverInfo resolvers.ResolverInfo, isUnion bool) (r resolvers.DataReturn, err definitionError.GQLError) {
+func (o *Gql) resolver(isArr bool, namedType string, resolverInfo resolvers.ResolverInfo, isUnion bool) (r resolvers.DataReturn, err definitionError.GQLError) {
 
-	switch isUnion {
-	case false:
-		r, err = o.objectTypes[namedType].Resolver(resolverInfo)
-	case true:
-		var rx resolvers.DataReturn
-		rx, err = o.objectTypes[namedType].Resolver(resolverInfo)
-		var rdx []any
-		for _, value := range o.schema.Types[namedType].Types {
-			switch rx.(type) {
-			case []map[string]any:
+	if !isUnion {
+		return o.objectTypes[namedType].Resolver(resolverInfo)
+	}
 
-				for rKey, rValue := range rx.([]map[string]any) {
-					resolverInfo.Parent = rValue
-					var x resolvers.DataReturn
-					x, err = o.objectTypes[value].Resolver(resolverInfo)
+	var returnValues []any
+	for _, value := range o.schema.Types[namedType].Types {
+		if o.objectTypes[value] == nil {
+			continue
+		}
+		dataReturn, resolverErr := o.objectTypes[value].Resolver(resolverInfo)
+		if resolverErr != nil {
+			return nil, resolverErr
+		}
 
-					if x != nil {
-						switch reflect.TypeOf(x).Kind() {
-						case reflect.Map:
-							rx.([]map[string]any)[rKey] = x.(map[string]any)
+		if dataReturn != nil {
+			switch reflect.TypeOf(dataReturn).Kind() {
+			case reflect.Struct:
+				nV := reflect.ValueOf(dataReturn)
+				nvx := reflect.TypeOf(dataReturn)
+				var structFields []reflect.StructField
 
-						case reflect.Struct:
-							nV := reflect.ValueOf(x)
-							nvx := reflect.TypeOf(x)
-
-							var structFields []reflect.StructField
-
-							for i := 0; i < nV.NumField(); i++ {
-								structFields = append(structFields, reflect.StructField{
-									Name: nvx.Field(i).Name,
-									Type: nV.Field(i).Type(),
-									Tag:  nvx.Field(i).Tag,
-								})
-							}
-							structFields = append(structFields, reflect.StructField{
-								Name: "Typename_",
-								Type: reflect.TypeOf(""),
-								Tag:  "gql:\"name=__typename\"",
-							})
-
-							structType := reflect.StructOf(structFields)
-							structValue := reflect.New(structType).Elem()
-
-							for i := 0; i < nV.NumField(); i++ {
-								name := nvx.Field(i).Name
-								structValue.Field(i).Set(nV.FieldByName(name))
-							}
-							structValue.FieldByName("Typename_").Set(reflect.ValueOf(value))
-							rdx = append(rdx, structValue.Interface())
-						}
-					} else {
-						//r.([]map[string]any)[rKey] = map[string]any{}
-					}
+				for i := 0; i < nV.NumField(); i++ {
+					structFields = append(structFields, reflect.StructField{
+						Name: nvx.Field(i).Name,
+						Type: nV.Field(i).Type(),
+						Tag:  nvx.Field(i).Tag,
+					})
 				}
-			case []any:
+				structFields = append(structFields, reflect.StructField{
+					Name: "Typename_",
+					Type: reflect.TypeOf(""),
+					Tag:  "gql:\"name=__typename\"",
+				})
+
+				structType := reflect.StructOf(structFields)
+				structValue := reflect.New(structType).Elem()
+
+				for i := 0; i < nV.NumField(); i++ {
+					name := nvx.Field(i).Name
+					structValue.Field(i).Set(nV.FieldByName(name))
+				}
+				structValue.FieldByName("Typename_").Set(reflect.ValueOf(value))
+				returnValues = append(returnValues, structValue.Interface())
 			}
 		}
-		if len(rdx) > 0 {
-			r = rdx
-		}
 	}
+
+	if !isArr && len(returnValues) == 1 {
+		r = returnValues[0]
+	}
+
+	if isArr {
+		r = returnValues
+	}
+
 	return
 }
 func (o *Gql) parseDirectives(directives ast.DirectiveList, typeName string, fieldName string, vars map[string]any) (r resolvers.DirectiveList, err definitionError.GQLError) {
