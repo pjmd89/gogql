@@ -3,6 +3,7 @@ package gql
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"reflect"
 	"strings"
 
@@ -33,10 +34,10 @@ var introspectionResolver = []string{
 
 func (o *Gql) response(request HttpRequest, sessionID string) (response HttpResponse) {
 	document, err := gqlparser.LoadQuery(o.schema, request.Query)
-
 	if err != nil {
-		fmt.Println(err.Error())
+		log.Println(err.Error())
 	}
+
 	if document != nil {
 		parse := document.Operations
 		if strings.Trim(request.OperationName, " ") != "" {
@@ -86,7 +87,7 @@ func (o *Gql) websocketOperationParse(operation *ast.OperationDefinition, variab
 		case reflect.TypeOf(&SubscriptionClose{}):
 			while = false
 		default:
-			vars := o.setVariables(operation, variables)
+			vars, _ := o.setVariables(operation, variables)
 			var dataReturn resolvers.DataReturn
 			data := make(map[string]interface{}, 0)
 			isSubscriptionResponse := false
@@ -106,9 +107,13 @@ func (o *Gql) operationParse(parse ast.OperationList, variables map[string]inter
 	response := HttpResponse{}
 	errList := make(definitionError.ErrorList, 0)
 	for _, operation := range parse {
-		vars := o.setVariables(operation, variables)
 		var dataReturn resolvers.DataReturn
 		var data Response
+		vars, setErr := o.setVariables(operation, variables)
+		if setErr != nil {
+			log.Println(setErr.Error())
+			break
+		}
 		switch operation.Operation {
 		case ast.Query, ast.Mutation:
 			data, _ = o.selectionSetParse(string(operation.Operation), operation.SelectionSet, dataReturn, dataReturn, nil, 0, nil, vars, sessionID, &errList)
@@ -121,14 +126,14 @@ func (o *Gql) operationParse(parse ast.OperationList, variables map[string]inter
 	}
 	return response
 }
-func (o *Gql) setVariables(operation *ast.OperationDefinition, variables map[string]interface{}) (r map[string]any) {
+func (o *Gql) setVariables(operation *ast.OperationDefinition, variables map[string]interface{}) (r map[string]any, err error) {
 	//las operaciones tambien pueden tener directivas
-	vars, err := validator.VariableValues(o.schema, operation, variables)
 	//validar las variables con los scalar propios
-	if err != nil {
-		fmt.Println(err)
+	r, varsErr := validator.VariableValues(o.schema, operation, variables)
+	if varsErr != nil {
+		err = varsErr
 	}
-	return vars
+	return
 }
 
 func (o *Gql) selectionSetParse(operation string, parse ast.SelectionSet, parent interface{}, parentProceced interface{}, typeName *string, start int, subscriptionValue interface{}, vars map[string]any, sessionID string, errList *definitionError.ErrorList) (Response, bool) {
