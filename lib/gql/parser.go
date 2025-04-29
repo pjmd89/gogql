@@ -144,25 +144,27 @@ func (o *Gql) selectionSetParse(operation string, parse ast.SelectionSet, parent
 	send := make(map[string]interface{}, 0)
 	//ejecucion de las queries internas
 	for _, selection := range parse {
-		var stop bool
+		var stop, fieldTypeIsUnion bool
 		rField := reflect.ValueOf(selection)
 		switch rField.Type() {
 		case reflect.TypeOf(&ast.Field{}):
 			field := selection.(*ast.Field)
-			fieldTypeIsUnion := o.typeIsUnion(field)
+			fieldTypeIsUnion = o.typeIsUnion(field)
 			prepareToSend, isSubscriptionResponse, stop = o.selectionParse(operation, field, parent, parentProceced, typeName, start, subscriptionValue, vars, sessionID, errList, fieldTypeIsUnion)
 		case reflect.TypeOf(&ast.FragmentSpread{}):
 			fragment := selection.(*ast.FragmentSpread)
 			fragmentDef := fragment.Definition
 			for _, fragmentSelection := range fragmentDef.SelectionSet {
 				field := fragmentSelection.(*ast.Field)
-				prepareToSend, isSubscriptionResponse, stop = o.selectionParse(operation, field, parent, parentProceced, typeName, start, subscriptionValue, vars, sessionID, errList, false)
+				fieldTypeIsUnion = o.typeIsUnion(field)
+				prepareToSend, isSubscriptionResponse, stop = o.selectionParse(operation, field, parent, parentProceced, typeName, start, subscriptionValue, vars, sessionID, errList, fieldTypeIsUnion)
 			}
 		case reflect.TypeOf(&ast.InlineFragment{}):
 			fragment := selection.(*ast.InlineFragment)
 			for _, fragmentSelection := range fragment.SelectionSet {
 				field := fragmentSelection.(*ast.Field)
-				prepareToSend, isSubscriptionResponse, stop = o.selectionParse(operation, field, parent, parentProceced, typeName, start, subscriptionValue, vars, sessionID, errList, false)
+				fieldTypeIsUnion = o.typeIsUnion(field)
+				prepareToSend, isSubscriptionResponse, stop = o.selectionParse(operation, field, parent, parentProceced, typeName, start, subscriptionValue, vars, sessionID, errList, fieldTypeIsUnion)
 			}
 		}
 		if start == 0 {
