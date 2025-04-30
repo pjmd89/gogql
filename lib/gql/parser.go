@@ -330,55 +330,71 @@ func (o *Gql) resolver(isArr bool, namedType string, resolverInfo resolvers.Reso
 		return o.objectTypes[namedType].Resolver(resolverInfo)
 	}
 
-	var returnValues []any
+	rx, err := o.objectTypes[namedType].Resolver(resolverInfo)
+	if err != nil {
+		return
+	}
+
+	var rdx []any
 	for _, value := range o.schema.Types[namedType].Types {
-		if o.objectTypes[value] == nil {
-			continue
-		}
-		dataReturn, resolverErr := o.objectTypes[value].Resolver(resolverInfo)
-		if resolverErr != nil {
-			return nil, resolverErr
-		}
+		switch rx.(type) {
+		case []map[string]any:
 
-		if dataReturn != nil {
-			switch reflect.TypeOf(dataReturn).Kind() {
-			case reflect.Struct:
-				nV := reflect.ValueOf(dataReturn)
-				nvx := reflect.TypeOf(dataReturn)
-				var structFields []reflect.StructField
-
-				for i := 0; i < nV.NumField(); i++ {
-					structFields = append(structFields, reflect.StructField{
-						Name: nvx.Field(i).Name,
-						Type: nV.Field(i).Type(),
-						Tag:  nvx.Field(i).Tag,
-					})
+			for rKey, rValue := range rx.([]map[string]any) {
+				if o.objectTypes[value] == nil {
+					continue
 				}
-				structFields = append(structFields, reflect.StructField{
-					Name: "Typename_",
-					Type: reflect.TypeOf(""),
-					Tag:  "gql:\"name=__typename\"",
-				})
+				resolverInfo.Parent = rValue
+				var x resolvers.DataReturn
 
-				structType := reflect.StructOf(structFields)
-				structValue := reflect.New(structType).Elem()
-
-				for i := 0; i < nV.NumField(); i++ {
-					name := nvx.Field(i).Name
-					structValue.Field(i).Set(nV.FieldByName(name))
+				x, err = o.objectTypes[value].Resolver(resolverInfo)
+				if err != nil {
+					return
 				}
-				structValue.FieldByName("Typename_").Set(reflect.ValueOf(value))
-				returnValues = append(returnValues, structValue.Interface())
+
+				if x != nil {
+					switch reflect.TypeOf(x).Kind() {
+					case reflect.Map:
+						rx.([]map[string]any)[rKey] = x.(map[string]any)
+
+					case reflect.Struct:
+						nV := reflect.ValueOf(x)
+						nvx := reflect.TypeOf(x)
+
+						var structFields []reflect.StructField
+
+						for i := 0; i < nV.NumField(); i++ {
+							structFields = append(structFields, reflect.StructField{
+								Name: nvx.Field(i).Name,
+								Type: nV.Field(i).Type(),
+								Tag:  nvx.Field(i).Tag,
+							})
+						}
+						structFields = append(structFields, reflect.StructField{
+							Name: "Typename_",
+							Type: reflect.TypeOf(""),
+							Tag:  "gql:\"name=__typename\"",
+						})
+
+						structType := reflect.StructOf(structFields)
+						structValue := reflect.New(structType).Elem()
+
+						for i := 0; i < nV.NumField(); i++ {
+							name := nvx.Field(i).Name
+							structValue.Field(i).Set(nV.FieldByName(name))
+						}
+						structValue.FieldByName("Typename_").Set(reflect.ValueOf(value))
+						rdx = append(rdx, structValue.Interface())
+					}
+				} else {
+					//r.([]map[string]any)[rKey] = map[string]any{}
+				}
 			}
+		case []any:
 		}
 	}
-
-	if !isArr && len(returnValues) == 1 {
-		r = returnValues[0]
-	}
-
-	if isArr {
-		r = returnValues
+	if len(rdx) > 0 {
+		r = rdx
 	}
 
 	return
