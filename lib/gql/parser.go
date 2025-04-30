@@ -335,7 +335,7 @@ func (o *Gql) resolver(isArr bool, namedType string, resolverInfo resolvers.Reso
 		return
 	}
 
-	var rdx []any
+	var returnValues []any
 	for _, value := range o.schema.Types[namedType].Types {
 		switch rx.(type) {
 		case []map[string]any:
@@ -384,7 +384,7 @@ func (o *Gql) resolver(isArr bool, namedType string, resolverInfo resolvers.Reso
 							structValue.Field(i).Set(nV.FieldByName(name))
 						}
 						structValue.FieldByName("Typename_").Set(reflect.ValueOf(value))
-						rdx = append(rdx, structValue.Interface())
+						returnValues = append(returnValues, structValue.Interface())
 					}
 				} else {
 					//r.([]map[string]any)[rKey] = map[string]any{}
@@ -393,8 +393,12 @@ func (o *Gql) resolver(isArr bool, namedType string, resolverInfo resolvers.Reso
 		case []any:
 		}
 	}
-	if len(rdx) > 0 {
-		r = rdx
+	if !isArr && len(returnValues) == 1 {
+		r = returnValues[0]
+	}
+
+	if isArr {
+		r = returnValues
 	}
 
 	return
