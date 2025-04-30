@@ -217,7 +217,7 @@ func (o *Gql) selectionParse(operation string, field *ast.Field, parent interfac
 			authenticatedError = o.OnIntrospection()
 		}
 
-		if o.objectTypes[namedType] != nil && authenticatedError == nil || isUnion {
+		if o.objectTypes[namedType] != nil && authenticatedError == nil {
 			args, vError := o.parseArguments(field.Arguments, field.Definition.Arguments, vars)
 			var argumentError definitionError.GQLError
 			if vError != nil {
@@ -336,7 +336,7 @@ func (o *Gql) resolver(isArr bool, namedType string, resolverInfo resolvers.Reso
 	}
 
 	if reflect.ValueOf(unionData).Type() != reflect.TypeOf(map[string]any{}) {
-		log.Println("union resolver must be of type map[string]any")
+		log.Println("return data of Union resolver must be of type map[string]any")
 		return nil, nil
 	}
 
