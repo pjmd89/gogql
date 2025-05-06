@@ -15,13 +15,16 @@ import (
 3. verificar los valores que sean array para parsearlos
 4. validar el tipo de datos de cada argumento
 */
-type varDef interface {
-	*ast.Argument | *ast.ChildValue
-}
-type variableDef[T varDef] struct {
-	data T
-}
 
+/*
+	type varDef interface {
+		*ast.Argument | *ast.ChildValue
+	}
+
+	type variableDef[T varDef] struct {
+		data T
+	}
+*/
 func (o *Gql) parseArguments(argsRaw ast.ArgumentList, argsDefinition ast.ArgumentDefinitionList, vars map[string]any) (r map[string]interface{}, err definitionError.GQLError) {
 	args := make(map[string]*DefaultArguments)
 	for _, val := range argsDefinition {
@@ -219,16 +222,14 @@ func (o *Gql) parseArgChildren(rawArgs ast.ChildValueList, vars map[string]any) 
 	return args
 }
 func (o *Gql) setValue(vArgs any, vars map[string]any) (r any) {
-	switch vArgs.(type) {
+	switch nArgs := vArgs.(type) {
 	case *ast.ChildValue:
-		nArgs := vArgs.(*ast.ChildValue)
 		r = nArgs.Value.Raw
 		if nArgs.Value.VariableDefinition != nil {
 			r = vars[nArgs.Value.Raw]
 			//r = o.typedValue(nArgs.Value.Raw, nArgs.Value.VariableDefinition.Type.NamedType)
 		}
 	case *ast.Argument:
-		nArgs := vArgs.(*ast.Argument)
 		r = nArgs.Value.Raw
 		if nArgs.Value.VariableDefinition != nil && nArgs.Value.VariableDefinition.Definition.Kind == "SCALAR" {
 			r = vars[nArgs.Value.Raw]
