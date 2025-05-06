@@ -1,7 +1,9 @@
 package gql
 
 import (
+	"fmt"
 	"log"
+	"reflect"
 
 	"github.com/pjmd89/gogql/lib/gql/definitionError"
 	"github.com/pjmd89/gqlparser/v2/ast"
@@ -144,29 +146,27 @@ func (o *Gql) parseInputObject(argInput *DefaultArguments) (r interface{}, err d
 		if argInput.IsArray {
 			re := make([]interface{}, 0)
 			if argInput.Value != nil {
-				switch argInput.Value.(type) {
-				case []any:
-					for _, v := range argInput.Value.([]interface{}) {
-						newArgs := make(map[string]*DefaultArguments, 0)
-						for k, v := range args {
-							var x *DefaultArguments = &DefaultArguments{}
-							*x = *v
-							newArgs[k] = x
-						}
-						for name, val := range v.(map[string]interface{}) {
-							if args[name] != nil {
-								newArgs[name].Value = val
-							}
-						}
-						vValue, vError := o.validateArguments(newArgs)
-						if vError != nil {
-							return vValue, vError
-						}
-						re = append(re, vValue)
+				if reflect.TypeOf(argInput.Value) != reflect.TypeOf([]any{}) {
+					msg := fmt.Sprintf("variable %s is not an array", argInput.Name)
+					return nil, definitionError.NewFatal(msg, nil)
+				}
+				for _, v := range argInput.Value.([]any) {
+					newArgs := make(map[string]*DefaultArguments, 0)
+					for k, v := range args {
+						var x *DefaultArguments = &DefaultArguments{}
+						*x = *v
+						newArgs[k] = x
 					}
-				default:
-					log.Printf("variable %s is not an array ", argInput.Name)
-					re = nil
+					for name, val := range v.(map[string]any) {
+						if args[name] != nil {
+							newArgs[name].Value = val
+						}
+					}
+					vValue, vError := o.validateArguments(newArgs)
+					if vError != nil {
+						return vValue, vError
+					}
+					re = append(re, vValue)
 				}
 			}
 			r = re

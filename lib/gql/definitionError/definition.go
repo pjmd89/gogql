@@ -32,6 +32,7 @@ type ErrorStruct struct {
 
 type GQLError interface {
 	Error() ErrorStruct
+	ErrorLevel() errorLevel
 }
 type ErrorList []GQLError
 type Warning struct {
