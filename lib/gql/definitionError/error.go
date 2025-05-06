@@ -40,10 +40,20 @@ func (o *Warning) Error() (r ErrorStruct) {
 	r = o.ErrorStruct
 	return
 }
+
+func (o *Warning) ErrorLevel() errorLevel {
+	return LEVEL_WARNING
+}
+
 func (o *Fatal) Error() (r ErrorStruct) {
 	r = o.ErrorStruct
 	return
 }
+
+func (o *Fatal) ErrorLevel() errorLevel {
+	return LEVEL_FATAL
+}
+
 func (o ErrorList) GetErrors() (r []ErrorStruct) {
 	if len(o) > 0 {
 		r = make([]ErrorStruct, 0)

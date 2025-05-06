@@ -13,7 +13,7 @@ import (
 )
 
 // *
-func (o *Gql) dataResponse(fieldNames map[string]interface{}, resolved interface{}, resolverName string, fieldGroup map[string]map[string]string) (r interface{}) {
+func (o *Gql) dataResponse(fieldNames map[string]string, resolved interface{}, resolverName string) (r interface{}) {
 	rType := reflect.TypeOf(resolved)
 	if rType != nil {
 		rKind := rType.Kind()
@@ -24,19 +24,18 @@ func (o *Gql) dataResponse(fieldNames map[string]interface{}, resolved interface
 				rValue := reflect.ValueOf(resolved)
 				id := rValue.Interface().(primitive.ObjectID).Hex()
 				r = reflect.ValueOf(id).Interface()
-				break
 			default:
 				r = make([]interface{}, 0)
 				rValue := reflect.ValueOf(resolved)
 				for i := 0; i < rValue.Len(); i++ {
-					value := o.dataResponse(fieldNames, rValue.Index(i).Interface(), resolverName, fieldGroup)
-					r = append(r.([]interface{}), o.dataResponse(fieldNames, value, resolverName, fieldGroup))
+					value := o.dataResponse(fieldNames, rValue.Index(i).Interface(), resolverName)
+					r = append(r.([]interface{}), o.dataResponse(fieldNames, value, resolverName))
 				}
 			}
 		case reflect.Ptr:
 			rValue := reflect.ValueOf(resolved)
 			if !rValue.IsNil() {
-				r = o.dataResponse(fieldNames, rValue.Elem().Interface(), resolverName, fieldGroup)
+				r = o.dataResponse(fieldNames, rValue.Elem().Interface(), resolverName)
 			}
 
 		case reflect.Struct:
@@ -44,12 +43,10 @@ func (o *Gql) dataResponse(fieldNames map[string]interface{}, resolved interface
 			e := rValue.Type()
 
 			r = make(map[string]interface{}, 0)
-			for _, field := range fieldNames {
-				if field == "__typename" {
-					r.(map[string]interface{})["__typename"] = resolverName
-					break
-				}
+			if _, ok := fieldNames["__typename"]; ok {
+				r.(map[string]interface{})["__typename"] = resolverName
 			}
+
 			for i := 0; i < e.NumField(); i++ {
 				tagsContent := dbutils.GetTags(e.Field(i))
 				varName := e.Field(i).Name
@@ -63,8 +60,8 @@ func (o *Gql) dataResponse(fieldNames map[string]interface{}, resolved interface
 						isNill = rValue.Field(i).IsNil()
 					}
 					if !isNill {
-						data := o.dataResponse(make(map[string]interface{}, 0), rValue.Field(i).Interface(), resolverName, fieldGroup)
-						if fieldNames[varName] != nil {
+						data := o.dataResponse(make(map[string]string, 0), rValue.Field(i).Interface(), resolverName)
+						if fieldNames[varName] != "" {
 							y := e.Field(i).Type.Name()
 							if o.scalars[y] != nil {
 								resolvedData := resolvers.ScalarResolved{
@@ -74,11 +71,11 @@ func (o *Gql) dataResponse(fieldNames map[string]interface{}, resolved interface
 								}
 								data, _ = o.scalars[y].Assess(resolvedData)
 							}
-							r.(map[string]interface{})[fieldNames[varName].(string)] = data
+							r.(map[string]interface{})[fieldNames[varName]] = data
 						}
 					} else {
-						if fieldNames[varName] != nil {
-							r.(map[string]interface{})[fieldNames[varName].(string)] = nil
+						if fieldNames[varName] != "" {
+							r.(map[string]interface{})[fieldNames[varName]] = nil
 						}
 					}
 				}

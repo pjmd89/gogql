@@ -194,19 +194,16 @@ func (o *Gql) selectionParse(operation string, field *ast.Field, parent interfac
 	fieldElem := field.Definition.Type.Elem
 	isArr := field.Definition.Type.Elem != nil
 	isSubscriptionResponse := false
+	canResolve := true
 	prepareToSend := make(map[string]interface{}, 0)
-	var resolved resolvers.DataReturn
+	var resolved, resolvedProcesed resolvers.DataReturn
 	var err definitionError.GQLError
-	var resolvedProcesed resolvers.DataReturn
 	namedType := field.Definition.Type.NamedType
-	if field.SelectionSet != nil {
 
-		fieldNames, typeCondition, fieldGroup := o.getFieldNames(field.SelectionSet)
+	if field.SelectionSet != nil {
+		fieldNames, _, fieldGroup := o.getFieldNames(field.SelectionSet)
 		if fieldElem != nil {
 			namedType = fieldElem.NamedType
-		}
-		if typeCondition {
-			//namedType = typeCondition
 		}
 		var authenticatedError definitionError.GQLError
 		if !slices.Contains(introspectionType, namedType) {
@@ -215,6 +212,14 @@ func (o *Gql) selectionParse(operation string, field *ast.Field, parent interfac
 		}
 		if authenticatedError == nil && slices.Contains(introspectionType, namedType) && slices.Contains(introspectionResolver, field.Name) {
 			authenticatedError = o.OnIntrospection()
+		}
+
+		if authenticatedError != nil {
+			resolvedProcesed = o.dataResponse(fieldNames, nil, namedType)
+			*errList = append(*errList, authenticatedError)
+			if reflect.TypeOf(authenticatedError) == reflect.TypeOf(&definitionError.Fatal{}) {
+				return nil, isSubscriptionResponse, true
+			}
 		}
 
 		if o.objectTypes[namedType] != nil && authenticatedError == nil {
@@ -245,38 +250,18 @@ func (o *Gql) selectionParse(operation string, field *ast.Field, parent interfac
 				SessionID:         sessionID,
 			}
 			if operation == "subscription" && start == 0 {
-				if ok := o.objectTypes[namedType].Subscribe(resolverInfo); ok {
-					resolved, err = o.resolver(isArr, namedType, resolverInfo, isUnion)
-					typeName = &namedType
-					resolvedProcesed = o.dataResponse(fieldNames, resolved, namedType, fieldGroup)
-					if err != nil {
-						*errList = append(*errList, err)
-					}
-					isSubscriptionResponse = true
-					switch err.(type) {
-					case *definitionError.Fatal:
-						return nil, isSubscriptionResponse, true
-					}
-				}
-			} else {
-				resolved, err = o.resolver(isArr, namedType, resolverInfo, isUnion)
+				canResolve = o.objectTypes[namedType].Subscribe(resolverInfo)
+				isSubscriptionResponse = canResolve
+			}
+			if canResolve {
+				resolved, resolvedProcesed, err = o.resolve(fieldNames, fieldGroup, namedType, resolverInfo, isArr, isUnion)
 				if err != nil {
 					*errList = append(*errList, err)
 				}
-				switch err.(type) {
-				case *definitionError.Fatal:
+				if err != nil && err.ErrorLevel() == definitionError.LEVEL_FATAL {
 					return nil, isSubscriptionResponse, true
 				}
 				typeName = &namedType
-				resolvedProcesed = o.dataResponse(fieldNames, resolved, namedType, fieldGroup)
-			}
-		}
-		if authenticatedError != nil {
-			resolvedProcesed = o.dataResponse(fieldNames, nil, namedType, fieldGroup)
-			*errList = append(*errList, authenticatedError)
-			switch authenticatedError.(type) {
-			case *definitionError.Fatal:
-				return nil, isSubscriptionResponse, true
 			}
 		}
 		rType := reflect.TypeOf(resolved)
@@ -324,85 +309,69 @@ func (o *Gql) selectionParse(operation string, field *ast.Field, parent interfac
 	}
 	return prepareToSend, isSubscriptionResponse, false
 }
-func (o *Gql) resolver(isArr bool, namedType string, resolverInfo resolvers.ResolverInfo, isUnion bool) (r resolvers.DataReturn, err definitionError.GQLError) {
 
+func (o *Gql) resolve(fieldnames map[string]string, fieldGroup map[string]map[string]string, namedType string, resolverInfo resolvers.ResolverInfo, isArr, isUnion bool) (rawResolved, parsedResolved resolvers.DataReturn, err definitionError.GQLError) {
 	if !isUnion {
-		return o.objectTypes[namedType].Resolver(resolverInfo)
+		dataReturn, resolvErr := o.objectTypes[namedType].Resolver(resolverInfo)
+		if resolvErr != nil && resolvErr.ErrorLevel() == definitionError.LEVEL_FATAL {
+			err = resolvErr
+			return
+		}
+		return dataReturn, o.dataResponse(fieldnames, dataReturn, namedType), resolvErr
 	}
 
 	unionData, err := o.objectTypes[namedType].Resolver(resolverInfo)
-	if err != nil {
+	if err != nil && err.ErrorLevel() == definitionError.LEVEL_FATAL {
 		return
 	}
 
-	if reflect.ValueOf(unionData).Type() != reflect.TypeOf(map[string]any{}) {
-		log.Println("return data of Union resolver must be of type map[string]any")
-		return nil, nil
+	if unionData == nil || reflect.ValueOf(unionData).Type() != reflect.TypeOf(map[string]any{}) {
+		log.Printf("return data of union %s resolver must be of type map[string]any\n", namedType)
+		return
 	}
 
-	var (
-		returnValues []any
-		typeResolver string
-		data         any
-	)
-
-	for typeResolver, data = range unionData.(map[string]any) {
+	var resolversDataReturn, processedResolved []any
+	for typeResolver, data := range unionData.(map[string]any) {
 		if index := slices.Index(o.schema.Types[namedType].Types, typeResolver); index == -1 {
-			log.Println("type name must be in the union")
-			return nil, nil
+			log.Printf("map key returned by union %s resolver must be in the union types\n", namedType)
+			continue
 		}
-		break
-	}
 
-	resolverInfo.Parent = data
-	x, err := o.objectTypes[typeResolver].Resolver(resolverInfo)
-	if err != nil {
-		return
-	}
-
-	if x != nil {
-		switch reflect.TypeOf(x).Kind() {
-		case reflect.Map:
-			returnValues = append(returnValues, x.(map[string]any))
-		case reflect.Struct:
-			nV := reflect.ValueOf(x)
-			nvx := reflect.TypeOf(x)
-
-			var structFields []reflect.StructField
-
-			for i := 0; i < nV.NumField(); i++ {
-				structFields = append(structFields, reflect.StructField{
-					Name: nvx.Field(i).Name,
-					Type: nV.Field(i).Type(),
-					Tag:  nvx.Field(i).Tag,
-				})
-			}
-			structFields = append(structFields, reflect.StructField{
-				Name: "Typename_",
-				Type: reflect.TypeOf(""),
-				Tag:  "gql:\"name=__typename\"",
-			})
-
-			structType := reflect.StructOf(structFields)
-			structValue := reflect.New(structType).Elem()
-
-			for i := 0; i < nV.NumField(); i++ {
-				name := nvx.Field(i).Name
-				structValue.Field(i).Set(nV.FieldByName(name))
-			}
-			structValue.FieldByName("Typename_").Set(reflect.ValueOf(typeResolver))
-			returnValues = append(returnValues, structValue.Interface())
+		if _, ok := fieldGroup[typeResolver]; !ok || o.objectTypes[typeResolver] == nil {
+			continue
 		}
-	} else {
-		//r.([]map[string]any)[rKey] = map[string]any{}
+
+		resolverInfo.Parent = data
+		dataReturn, resolvErr := o.objectTypes[typeResolver].Resolver(resolverInfo)
+		if resolvErr != nil && resolvErr.ErrorLevel() == definitionError.LEVEL_FATAL {
+			err = resolvErr
+			return
+		}
+
+		if dataReturn != nil {
+			switch reflect.TypeOf(dataReturn).Kind() {
+			case reflect.Slice, reflect.Array:
+				r := o.dataResponse(fieldGroup[typeResolver], dataReturn, typeResolver)
+				processedResolved = append(processedResolved, r.([]any)...)
+				rValueArray := reflect.ValueOf(dataReturn)
+				for i := 0; i < rValueArray.Len(); i++ {
+					resolversDataReturn = append(resolversDataReturn, rValueArray.Index(i).Interface())
+				}
+			default:
+				resolversDataReturn = append(resolversDataReturn, dataReturn)
+				processedResolved = append(processedResolved, o.dataResponse(fieldGroup[typeResolver], dataReturn, typeResolver))
+			}
+		}
 	}
 
-	if !isArr && len(returnValues) == 1 {
-		r = returnValues[0]
+	if !isArr && len(resolversDataReturn) > 0 {
+		rawResolved = resolversDataReturn[0]
+		parsedResolved = processedResolved[0]
 	}
 
 	if isArr {
-		r = returnValues
+		rawResolved = resolversDataReturn
+		parsedResolved = processedResolved
 	}
 
 	return
@@ -424,8 +393,8 @@ func (o *Gql) parseDirectives(directives ast.DirectiveList, typeName string, fie
 	return
 }
 
-func (o *Gql) getFieldNames(parse ast.SelectionSet) (fields map[string]interface{}, typeCondition bool, fieldsGroup map[string]map[string]string) {
-	fields = make(map[string]interface{})
+func (o *Gql) getFieldNames(parse ast.SelectionSet) (fields map[string]string, typeCondition bool, fieldsGroup map[string]map[string]string) {
+	fields = make(map[string]string, 0)
 	fieldsGroup = map[string]map[string]string{}
 	//debo anadir la consulta al
 	for _, selection := range parse {
