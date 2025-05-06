@@ -268,7 +268,7 @@ func (o *Gql) selectionParse(operation string, field *ast.Field, parent interfac
 		if rType != nil {
 			rKind := rType.Kind()
 			switch rKind {
-			case reflect.Slice:
+			case reflect.Slice, reflect.Array:
 				var data []interface{}
 				rValue := reflect.ValueOf(resolved)
 				for i := 0; i < rValue.Len(); i++ {
@@ -314,10 +314,19 @@ func (o *Gql) resolve(fieldnames map[string]string, fieldGroup map[string]map[st
 	if !isUnion {
 		dataReturn, resolvErr := o.objectTypes[namedType].Resolver(resolverInfo)
 		if resolvErr != nil && resolvErr.ErrorLevel() == definitionError.LEVEL_FATAL {
-			err = resolvErr
 			return
 		}
-		return dataReturn, o.dataResponse(fieldnames, dataReturn, namedType), resolvErr
+		if (isArr && dataReturn != nil) && (reflect.TypeOf(dataReturn).Kind() != reflect.Slice && reflect.TypeOf(dataReturn).Kind() != reflect.Array) {
+			log.Printf("return data of %s resolver must be of kind []\n", namedType)
+			return
+		}
+		if (!isArr && dataReturn != nil) && (reflect.TypeOf(dataReturn).Kind() == reflect.Slice || reflect.TypeOf(dataReturn).Kind() == reflect.Array) {
+			log.Printf("return data of %s resolver cannot be of kind[]\n", namedType)
+			return
+		}
+
+		parsedResolved = o.dataResponse(fieldnames, dataReturn, namedType)
+		return dataReturn, parsedResolved, resolvErr
 	}
 
 	unionData, err := o.objectTypes[namedType].Resolver(resolverInfo)
