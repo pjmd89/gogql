@@ -81,7 +81,7 @@ func (o *sessionManager) checkSession(sessionID string) {
 	o.lock.Unlock()
 }
 
-func (o *sessionManager) GetSessionByRoutine(dataReceiver any) (r any, err error) {
+func (o *sessionManager) GetSessionByRoutine() (r any, err error) {
 	routineID := systemutils.GetRoutineID()
 	if sessID, isIn := o.routineSessions[routineID]; isIn {
 		r, err = o.sessionProvider.Get(sessID)

@@ -1,7 +1,9 @@
 package gql
 
 import (
+	"fmt"
 	"log"
+	"reflect"
 
 	"github.com/pjmd89/gogql/lib/gql/definitionError"
 	"github.com/pjmd89/gqlparser/v2/ast"
@@ -13,13 +15,16 @@ import (
 3. verificar los valores que sean array para parsearlos
 4. validar el tipo de datos de cada argumento
 */
-type varDef interface {
-	*ast.Argument | *ast.ChildValue
-}
-type variableDef[T varDef] struct {
-	data T
-}
 
+/*
+	type varDef interface {
+		*ast.Argument | *ast.ChildValue
+	}
+
+	type variableDef[T varDef] struct {
+		data T
+	}
+*/
 func (o *Gql) parseArguments(argsRaw ast.ArgumentList, argsDefinition ast.ArgumentDefinitionList, vars map[string]any) (r map[string]interface{}, err definitionError.GQLError) {
 	args := make(map[string]*DefaultArguments)
 	for _, val := range argsDefinition {
@@ -144,29 +149,27 @@ func (o *Gql) parseInputObject(argInput *DefaultArguments) (r interface{}, err d
 		if argInput.IsArray {
 			re := make([]interface{}, 0)
 			if argInput.Value != nil {
-				switch argInput.Value.(type) {
-				case []any:
-					for _, v := range argInput.Value.([]interface{}) {
-						newArgs := make(map[string]*DefaultArguments, 0)
-						for k, v := range args {
-							var x *DefaultArguments = &DefaultArguments{}
-							*x = *v
-							newArgs[k] = x
-						}
-						for name, val := range v.(map[string]interface{}) {
-							if args[name] != nil {
-								newArgs[name].Value = val
-							}
-						}
-						vValue, vError := o.validateArguments(newArgs)
-						if vError != nil {
-							return vValue, vError
-						}
-						re = append(re, vValue)
+				if reflect.TypeOf(argInput.Value) != reflect.TypeOf([]any{}) {
+					msg := fmt.Sprintf("variable %s is not an array", argInput.Name)
+					return nil, definitionError.NewFatal(msg, nil)
+				}
+				for _, v := range argInput.Value.([]any) {
+					newArgs := make(map[string]*DefaultArguments, 0)
+					for k, v := range args {
+						var x *DefaultArguments = &DefaultArguments{}
+						*x = *v
+						newArgs[k] = x
 					}
-				default:
-					log.Printf("variable %s is not an array ", argInput.Name)
-					re = nil
+					for name, val := range v.(map[string]any) {
+						if args[name] != nil {
+							newArgs[name].Value = val
+						}
+					}
+					vValue, vError := o.validateArguments(newArgs)
+					if vError != nil {
+						return vValue, vError
+					}
+					re = append(re, vValue)
 				}
 			}
 			r = re
@@ -219,16 +222,14 @@ func (o *Gql) parseArgChildren(rawArgs ast.ChildValueList, vars map[string]any) 
 	return args
 }
 func (o *Gql) setValue(vArgs any, vars map[string]any) (r any) {
-	switch vArgs.(type) {
+	switch nArgs := vArgs.(type) {
 	case *ast.ChildValue:
-		nArgs := vArgs.(*ast.ChildValue)
 		r = nArgs.Value.Raw
 		if nArgs.Value.VariableDefinition != nil {
 			r = vars[nArgs.Value.Raw]
 			//r = o.typedValue(nArgs.Value.Raw, nArgs.Value.VariableDefinition.Type.NamedType)
 		}
 	case *ast.Argument:
-		nArgs := vArgs.(*ast.Argument)
 		r = nArgs.Value.Raw
 		if nArgs.Value.VariableDefinition != nil && nArgs.Value.VariableDefinition.Definition.Kind == "SCALAR" {
 			r = vars[nArgs.Value.Raw]
