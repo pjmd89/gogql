@@ -9,12 +9,6 @@ import (
 	"github.com/pjmd89/gogql/lib/resolvers"
 )
 
-func Init() (r *rest) {
-	r = &rest{}
-	r.objectTypes = make(map[string]ObjectType)
-	return
-}
-
 func (o *rest) RestRender(w http.ResponseWriter, r *http.Request, sessionID string) (isErr bool) {
 	isErr = false
 	if len(o.objectTypes) > 0 {

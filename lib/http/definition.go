@@ -14,6 +14,7 @@ type Gql interface {
 }
 type Rest interface {
 	RestRender(w http.ResponseWriter, r *http.Request, sessionID string) (isErr bool)
+	RenderWebsocket(mt int, message []byte, socketId string, sessionID string)
 }
 type URL struct {
 	Scheme     string

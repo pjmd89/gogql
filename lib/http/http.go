@@ -341,7 +341,7 @@ func (o *Http) websocketServeHTTP(w http.ResponseWriter, r *http.Request, httpPa
 	conn = WsChannels[id]
 	WsLocker.Unlock()
 	for {
-		mt, message, err := conn.ReadMessage()
+		msgType, message, err := conn.ReadMessage()
 		if err != nil {
 			conn.Close()
 			WsLocker.Lock()
@@ -351,7 +351,7 @@ func (o *Http) websocketServeHTTP(w http.ResponseWriter, r *http.Request, httpPa
 			isErr = true
 			break
 		}
-		go o.WebSocketMessage(mt, message, id, httpPath, sessionID)
+		go o.WebSocketMessage(msgType, message, id, httpPath, sessionID)
 	}
 	return
 }
@@ -379,9 +379,11 @@ func (o *Http) listenHttps(channel chan bool, handler *http.Server) {
 	}
 }
 func (o *Http) WebSocketMessage(mt int, message []byte, id string, httpPath *Path, sessionID string) {
-
-	//o.gql[httpPath.host].GQLRenderSubscription(mt, message, id, sessionID)
-	o.gql.GQLRenderSubscription(mt, message, id, sessionID)
+	if httpPath.Endpoint == "graphql-ws" {
+		o.gql.GQLRenderSubscription(mt, message, id, sessionID)
+	} else {
+		o.rest.RenderWebsocket(mt, message, id, sessionID)
+	}
 }
 
 func WriteWebsocketMessage(mt int, id string, message []byte) {

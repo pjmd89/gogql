@@ -10,3 +10,15 @@ type ObjectType struct {
 type rest struct {
 	objectTypes ObjectTypes
 }
+
+type WebSocketRequest struct {
+	Id      string `json:"id"`
+	Type    string `json:"type"`
+	Payload string `json:"payload"`
+}
+
+func Init() (r *rest) {
+	r = &rest{}
+	r.objectTypes = make(map[string]ObjectType)
+	return
+}
