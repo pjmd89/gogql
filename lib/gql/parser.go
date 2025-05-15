@@ -314,6 +314,7 @@ func (o *Gql) resolve(fieldnames map[string]string, fieldGroup map[string]map[st
 	if !isUnion {
 		dataReturn, resolvErr := o.objectTypes[namedType].Resolver(resolverInfo)
 		if resolvErr != nil && resolvErr.ErrorLevel() == definitionError.LEVEL_FATAL {
+			err = resolvErr
 			return
 		}
 		if (isArr && dataReturn != nil) && (reflect.TypeOf(dataReturn).Kind() != reflect.Slice && reflect.TypeOf(dataReturn).Kind() != reflect.Array) {
