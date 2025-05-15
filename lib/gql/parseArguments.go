@@ -1,7 +1,6 @@
 package gql
 
 import (
-	"fmt"
 	"log"
 	"reflect"
 
@@ -150,8 +149,9 @@ func (o *Gql) parseInputObject(argInput *DefaultArguments) (r interface{}, err d
 			re := make([]interface{}, 0)
 			if argInput.Value != nil {
 				if reflect.TypeOf(argInput.Value) != reflect.TypeOf([]any{}) {
-					msg := fmt.Sprintf("variable %s is not an array", argInput.Name)
-					return nil, definitionError.NewFatal(msg, nil)
+					//msg := fmt.Sprintf("variable %s is not an array", argInput.Name)
+					log.Printf("variable %s is not an array ", argInput.Name)
+					return nil, nil
 				}
 				for _, v := range argInput.Value.([]any) {
 					newArgs := make(map[string]*DefaultArguments, 0)
