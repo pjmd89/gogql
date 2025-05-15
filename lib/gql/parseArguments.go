@@ -147,12 +147,10 @@ func (o *Gql) parseInputObject(argInput *DefaultArguments) (r interface{}, err d
 		}
 		if argInput.IsArray {
 			re := make([]interface{}, 0)
-			if argInput.Value != nil {
-				if reflect.TypeOf(argInput.Value) != reflect.TypeOf([]any{}) {
-					//msg := fmt.Sprintf("variable %s is not an array", argInput.Name)
-					log.Printf("variable %s is not an array ", argInput.Name)
-					return nil, nil
-				}
+			if argInput.Value != nil && reflect.TypeOf(argInput.Value) == reflect.TypeOf([]any{}) {
+				//msg := fmt.Sprintf("variable %s is not an array", argInput.Name)
+				//log.Printf("variable %s is not an array ", argInput.Name)
+				//return re, nil
 				for _, v := range argInput.Value.([]any) {
 					newArgs := make(map[string]*DefaultArguments, 0)
 					for k, v := range args {
@@ -174,8 +172,8 @@ func (o *Gql) parseInputObject(argInput *DefaultArguments) (r interface{}, err d
 			}
 			r = re
 		} else {
-			if argInput.Value != nil {
-				for k, v := range argInput.Value.(map[string]interface{}) {
+			if argInput.Value != nil && reflect.TypeOf(argInput.Value) == reflect.TypeOf(map[string]any{}) {
+				for k, v := range argInput.Value.(map[string]any) {
 					args[k].Value = v
 				}
 				vValue, vError := o.validateArguments(args)
@@ -184,7 +182,7 @@ func (o *Gql) parseInputObject(argInput *DefaultArguments) (r interface{}, err d
 				}
 				r = vValue
 			} else {
-				re := make(map[string]interface{}, 0)
+				re := make(map[string]any, 0)
 				for k, v := range args {
 					re[k] = v.Value
 				}
