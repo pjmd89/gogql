@@ -389,10 +389,10 @@ func (o *Http) WebSocketMessage(mt int, message []byte, id string, httpPath *Pat
 func WriteWebsocketMessage(mt int, id string, message []byte) {
 	WsLocker.Lock()
 	websocketConn, exists := WsChannels[id]
-	WsLocker.Unlock()
 	if exists {
 		websocketConn.WriteMessage(mt, message)
 	}
+	WsLocker.Unlock()
 }
 func contains(s []interface{}, e int) bool {
 	for _, a := range s {
