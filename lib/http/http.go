@@ -336,6 +336,7 @@ func (o *Http) websocketServeHTTP(w http.ResponseWriter, r *http.Request, httpPa
 		deleteSocketID(id)
 		logs.System.Error().Println("error upgrading server to websocket", upgraderError.Error())
 		fmt.Fprint(w, "error upgrading server to websocket")
+		WsLocker.Unlock()
 		return true
 	}
 	conn = WsChannels[id]
@@ -387,10 +388,10 @@ func (o *Http) WebSocketMessage(mt int, message []byte, id string, httpPath *Pat
 func WriteWebsocketMessage(mt int, id string, message []byte) {
 	WsLocker.Lock()
 	websocketConn, exists := WsChannels[id]
-	WsLocker.Unlock()
 	if exists {
 		websocketConn.WriteMessage(mt, message)
 	}
+	WsLocker.Unlock()
 }
 func contains(s []interface{}, e int) bool {
 	for _, a := range s {
