@@ -9,13 +9,13 @@ import (
 	"github.com/pjmd89/gogql/lib/resolvers"
 )
 
-func Init() (r *rest) {
-	r = &rest{}
+func Init() (r *Rest) {
+	r = &Rest{}
 	r.objectTypes = make(map[string]ObjectType)
 	return
 }
 
-func (o *rest) RestRender(w http.ResponseWriter, r *http.Request, sessionID string) (isErr bool) {
+func (o *Rest) RestRender(w http.ResponseWriter, r *http.Request, sessionID string) (isErr bool) {
 	isErr = false
 	if len(o.objectTypes) > 0 {
 		for k, v := range o.objectTypes {
@@ -54,6 +54,6 @@ func (o *rest) RestRender(w http.ResponseWriter, r *http.Request, sessionID stri
 	}
 	return
 }
-func (o *rest) ObjectType(url, alias string, object resolvers.ObjectTypeInterface) {
+func (o *Rest) ObjectType(url, alias string, object resolvers.ObjectTypeInterface) {
 	o.objectTypes[url] = ObjectType{Alias: alias, ObjectType: object}
 }
