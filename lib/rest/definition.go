@@ -7,6 +7,6 @@ type ObjectType struct {
 	Alias      string
 	ObjectType resolvers.ObjectTypeInterface
 }
-type rest struct {
+type Rest struct {
 	objectTypes ObjectTypes
 }
