@@ -3,7 +3,6 @@ package rest
 import (
 	"fmt"
 	"net/http"
-	"regexp"
 	"strings"
 
 	"github.com/pjmd89/gogql/lib/resolvers"
@@ -20,11 +19,10 @@ func (o *Rest) RestRender(w http.ResponseWriter, r *http.Request, sessionID stri
 	if len(o.objectTypes) > 0 {
 		for k, v := range o.objectTypes {
 			post := map[string][]string{}
-			matchPath, _ := regexp.MatchString(`^`+k, r.URL.Path)
 			if err := r.ParseForm(); err == nil {
 				post = r.PostForm
 			}
-			if matchPath {
+			if k == r.URL.Path {
 				resolverInfo := resolvers.ResolverInfo{
 					Operation: "rest",
 					Resolver:  v.Alias,
