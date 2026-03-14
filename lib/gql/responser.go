@@ -59,7 +59,7 @@ func (o *Gql) dataResponse(fieldNames map[string]string, resolved interface{}, r
 					case reflect.Ptr:
 						isNill = rValue.Field(i).IsNil()
 					}
-					if !isNill {
+					if !isNill && rValue.Field(i).CanInterface() {
 						data := o.dataResponse(make(map[string]string, 0), rValue.Field(i).Interface(), resolverName)
 						if fieldNames[varName] != "" {
 							y := e.Field(i).Type.Name()
